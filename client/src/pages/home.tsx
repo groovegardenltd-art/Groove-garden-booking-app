@@ -61,6 +61,21 @@ export default function Home() {
     setSelectedTime(time);
   };
 
+  const calculatePrice = (duration: number) => {
+    switch (duration) {
+      case 1:
+        return 50;
+      case 2:
+        return 95;
+      case 3:
+        return 135;
+      case 4:
+        return 170;
+      default:
+        return duration * 50;
+    }
+  };
+
   const handleBookingSuccess = (booking: any) => {
     // Find the room details to include in the success modal
     const room = rooms.find((r: Room) => r.id === booking.roomId);
@@ -204,7 +219,7 @@ export default function Home() {
                         <div className="flex justify-between pt-2 border-t border-gray-200">
                           <span className="text-gray-600">Total:</span>
                           <span className="font-semibold text-music-purple text-lg">
-                            ${selectedRoom.pricePerHour}
+                            ${calculatePrice(selectedDuration)}
                           </span>
                         </div>
                       </div>
