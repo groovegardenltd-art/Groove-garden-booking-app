@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import { Room } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 
@@ -9,8 +11,10 @@ interface BookingCalendarProps {
   selectedRoom: Room | null;
   selectedDate: string | null;
   selectedTime: string | null;
+  selectedDuration: number;
   onDateSelect: (date: string) => void;
   onTimeSelect: (time: string) => void;
+  onDurationChange: (duration: number) => void;
 }
 
 interface TimeSlot {
@@ -40,8 +44,10 @@ export function BookingCalendar({
   selectedRoom,
   selectedDate,
   selectedTime,
+  selectedDuration,
   onDateSelect,
   onTimeSelect,
+  onDurationChange,
 }: BookingCalendarProps) {
   const [currentWeek, setCurrentWeek] = useState(new Date());
 
@@ -84,12 +90,26 @@ export function BookingCalendar({
     enabled: !!selectedRoom && !!selectedDate,
   });
 
-  const isTimeSlotBooked = (time: string) => {
-    if (!availability?.bookedSlots) return false;
+  const isTimeSlotAvailable = (time: string, duration: number) => {
+    if (!availability || !availability.bookedSlots) return true;
     
-    return availability.bookedSlots.some((slot: { startTime: string; endTime: string }) => {
-      return time >= slot.startTime && time < slot.endTime;
-    });
+    // Check if the time slot and the next (duration-1) hours are available
+    for (let i = 0; i < duration; i++) {
+      const currentHour = parseInt(time.split(':')[0]) + i;
+      const checkTime = `${currentHour.toString().padStart(2, '0')}:00`;
+      
+      // Check if this hour is booked
+      const isBooked = availability.bookedSlots.some((slot: { startTime: string; endTime: string }) => {
+        return checkTime >= slot.startTime && checkTime < slot.endTime;
+      });
+      
+      if (isBooked) return false;
+      
+      // Check if we're going beyond business hours
+      if (currentHour >= 23) return false;
+    }
+    
+    return true;
   };
 
   const navigateWeek = (direction: 'prev' | 'next') => {
@@ -116,13 +136,43 @@ export function BookingCalendar({
   };
 
   const handleTimeClick = (time: string) => {
-    if (selectedRoom && selectedDate && !isTimeSlotBooked(time)) {
+    if (selectedRoom && selectedDate && isTimeSlotAvailable(time, selectedDuration)) {
       onTimeSelect(time);
     }
   };
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      {/* Duration Selection */}
+      <div className="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
+        <div className="flex items-center gap-4">
+          <Clock className="h-5 w-5 text-purple-600" />
+          <div className="flex-1">
+            <Label htmlFor="duration" className="text-sm font-medium text-purple-800">
+              Session Duration
+            </Label>
+            <Select value={selectedDuration.toString()} onValueChange={(value) => onDurationChange(parseInt(value))}>
+              <SelectTrigger className="w-48 mt-1">
+                <SelectValue placeholder="Select duration" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1 Hour - $50</SelectItem>
+                <SelectItem value="2">2 Hours - $95</SelectItem>
+                <SelectItem value="3">3 Hours - $135</SelectItem>
+                <SelectItem value="4">4 Hours - $170</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="text-sm text-purple-700">
+            {selectedDuration > 1 && (
+              <span className="font-medium">
+                Save ${(selectedDuration * 50) - (selectedDuration === 2 ? 95 : selectedDuration === 3 ? 135 : 170)}!
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Calendar Header */}
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-gray-900">Select Date & Time</h3>
@@ -192,7 +242,7 @@ export function BookingCalendar({
                   </div>
                   {weekDays.map((date, dayIndex) => {
                     const dateStr = formatDate(date);
-                    const isBooked = dateStr === selectedDate && isTimeSlotBooked(hour.time);
+                    const isAvailable = dateStr === selectedDate ? isTimeSlotAvailable(hour.time, selectedDuration) : true;
                     const isSelectedSlot = selectedDate === dateStr && selectedTime === hour.time;
                     const isPast = isPastDate(date);
                     const isClosed = date.getDay() === 0; // Sunday
@@ -209,9 +259,9 @@ export function BookingCalendar({
                       buttonClass += "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed";
                       buttonText = "Past";
                       disabled = true;
-                    } else if (isBooked) {
+                    } else if (!isAvailable && dateStr === selectedDate) {
                       buttonClass += "bg-red-100 border-red-200 text-red-700 cursor-not-allowed";
-                      buttonText = "Booked";
+                      buttonText = selectedDuration > 1 ? `${selectedDuration}h blocked` : "Booked";
                       disabled = true;
                     } else if (isSelectedSlot) {
                       buttonClass += "bg-music-indigo border-music-indigo text-white";
