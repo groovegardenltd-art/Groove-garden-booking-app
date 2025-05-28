@@ -80,7 +80,7 @@ export function BookingCalendar({
 
   // Fetch availability for selected room and date
   const { data: availability } = useQuery({
-    queryKey: [`/api/rooms/${selectedRoom?.id}/availability`, selectedDate],
+    queryKey: [`/api/rooms/${selectedRoom?.id}/availability?date=${selectedDate}`, selectedDate],
     enabled: !!selectedRoom && !!selectedDate,
   });
 
