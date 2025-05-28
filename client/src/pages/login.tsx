@@ -9,6 +9,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { setAuthState } from "@/lib/auth";
 import { useLocation } from "wouter";
+import { Music } from "lucide-react";
 import logoImage from "@assets/groove-garden-logo.jpeg";
 
 export default function Login() {
