@@ -38,8 +38,8 @@ export const bookings = pgTable("bookings", {
   specialRequests: text("special_requests"),
   accessCode: text("access_code").notNull(),
   // ID verification for self-entry studio
-  idNumber: text("id_number").notNull(),
-  idType: text("id_type").notNull(), // "drivers_license", "passport", "state_id", etc.
+  idNumber: text("id_number"),
+  idType: text("id_type"), // "drivers_license", "passport", "state_id", etc.
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
