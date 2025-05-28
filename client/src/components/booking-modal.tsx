@@ -37,6 +37,8 @@ export function BookingModal({
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [idNumber, setIdNumber] = useState("");
+  const [idType, setIdType] = useState("");
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -75,6 +77,8 @@ export function BookingModal({
     setPaymentMethod("card");
     setAcceptedTerms(false);
     setIsSubmitting(false);
+    setIdNumber("");
+    setIdType("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -98,6 +102,15 @@ export function BookingModal({
       return;
     }
 
+    if (!idNumber || !idType) {
+      toast({
+        title: "ID Verification Required",
+        description: "Please provide your ID information for studio access.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     const endTime = `${String(parseInt(selectedTime.split(':')[0]) + 1).padStart(2, '0')}:00`;
@@ -112,6 +125,8 @@ export function BookingModal({
       contactPhone,
       numberOfPeople: parseInt(numberOfPeople),
       specialRequests: specialRequests || null,
+      idNumber,
+      idType,
     };
 
     bookingMutation.mutate(bookingData);
@@ -233,6 +248,46 @@ export function BookingModal({
                     <SelectItem value="5">5+ people</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* ID Verification */}
+          <div>
+            <h4 className="font-medium text-gray-900 mb-3">ID Verification (Required for Self-Entry)</h4>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="idType" className="text-sm font-medium text-gray-700">
+                  ID Type *
+                </Label>
+                <Select value={idType} onValueChange={setIdType}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select ID type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="drivers_license">Driver's License</SelectItem>
+                    <SelectItem value="state_id">State ID</SelectItem>
+                    <SelectItem value="passport">Passport</SelectItem>
+                    <SelectItem value="military_id">Military ID</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="idNumber" className="text-sm font-medium text-gray-700">
+                  ID Number *
+                </Label>
+                <Input
+                  id="idNumber"
+                  type="text"
+                  placeholder="Enter your ID number"
+                  value={idNumber}
+                  onChange={(e) => setIdNumber(e.target.value)}
+                  required
+                  className="mt-1"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Required for studio access verification and security
+                </p>
               </div>
             </div>
           </div>

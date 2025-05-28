@@ -9,6 +9,8 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   name: text("name").notNull(),
   phone: text("phone"),
+  idNumber: text("id_number"),
+  idType: text("id_type"), // "drivers_license", "passport", "state_id", etc.
 });
 
 export const rooms = pgTable("rooms", {
@@ -35,6 +37,9 @@ export const bookings = pgTable("bookings", {
   numberOfPeople: integer("number_of_people").notNull().default(1),
   specialRequests: text("special_requests"),
   accessCode: text("access_code").notNull(),
+  // ID verification for self-entry studio
+  idNumber: text("id_number").notNull(),
+  idType: text("id_type").notNull(), // "drivers_license", "passport", "state_id", etc.
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -59,6 +64,8 @@ export const insertBookingSchema = createInsertSchema(bookings).omit({
 }).extend({
   contactPhone: z.string().min(1, "Phone number is required"),
   numberOfPeople: z.number().min(1, "Number of people must be at least 1"),
+  idNumber: z.string().min(1, "ID number is required for studio access"),
+  idType: z.string().min(1, "ID type is required"),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
