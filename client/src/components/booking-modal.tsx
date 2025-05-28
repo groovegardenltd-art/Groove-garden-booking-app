@@ -20,6 +20,7 @@ interface BookingModalProps {
   selectedRoom: Room | null;
   selectedDate: string | null;
   selectedTime: string | null;
+  selectedDuration: number;
   onBookingSuccess: (booking: any) => void;
 }
 
@@ -29,6 +30,7 @@ export function BookingModal({
   selectedRoom,
   selectedDate,
   selectedTime,
+  selectedDuration,
   onBookingSuccess,
 }: BookingModalProps) {
   const [contactPhone, setContactPhone] = useState("");
@@ -113,15 +115,15 @@ export function BookingModal({
 
     setIsSubmitting(true);
 
-    const endTime = `${String(parseInt(selectedTime.split(':')[0]) + 1).padStart(2, '0')}:00`;
+    const endTime = `${String(parseInt(selectedTime.split(':')[0]) + selectedDuration).padStart(2, '0')}:00`;
     
     const bookingData = {
       roomId: selectedRoom.id,
       date: selectedDate,
       startTime: selectedTime,
       endTime: endTime,
-      duration: 1,
-      totalPrice: selectedRoom.pricePerHour,
+      duration: selectedDuration,
+      totalPrice: calculatePrice(selectedDuration),
       contactPhone,
       numberOfPeople: parseInt(numberOfPeople),
       specialRequests: specialRequests || null,
@@ -145,7 +147,7 @@ export function BookingModal({
   const formatTime = (timeStr: string) => {
     const [hours] = timeStr.split(':');
     const hour = parseInt(hours);
-    const nextHour = hour + 1;
+    const endHour = hour + selectedDuration;
     
     const formatHour = (h: number) => {
       if (h === 0) return "12:00 AM";
@@ -154,7 +156,22 @@ export function BookingModal({
       return `${h - 12}:00 PM`;
     };
 
-    return `${formatHour(hour)} - ${formatHour(nextHour)}`;
+    return `${formatHour(hour)} - ${formatHour(endHour)}`;
+  };
+
+  const calculatePrice = (duration: number) => {
+    switch (duration) {
+      case 1:
+        return 50;
+      case 2:
+        return 95;
+      case 3:
+        return 135;
+      case 4:
+        return 170;
+      default:
+        return duration * 50;
+    }
   };
 
   const { user } = getAuthState();

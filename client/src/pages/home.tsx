@@ -21,6 +21,7 @@ export default function Home() {
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [selectedDuration, setSelectedDuration] = useState<number>(1);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successBooking, setSuccessBooking] = useState<any>(null);
@@ -161,8 +162,10 @@ export default function Home() {
               selectedRoom={selectedRoom}
               selectedDate={selectedDate}
               selectedTime={selectedTime}
+              selectedDuration={selectedDuration}
               onDateSelect={handleDateSelect}
               onTimeSelect={handleTimeSelect}
+              onDurationChange={setSelectedDuration}
             />
 
             {/* Booking Summary */}
@@ -191,12 +194,12 @@ export default function Home() {
                         <div className="flex justify-between">
                           <span className="text-gray-600">Time:</span>
                           <span className="font-medium">
-                            {formatTime(selectedTime, `${String(parseInt(selectedTime.split(':')[0]) + 1).padStart(2, '0')}:00`)}
+                            {formatTime(selectedTime, `${String(parseInt(selectedTime.split(':')[0]) + selectedDuration).padStart(2, '0')}:00`)}
                           </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Duration:</span>
-                          <span className="font-medium">1 hour</span>
+                          <span className="font-medium">{selectedDuration} hour{selectedDuration > 1 ? 's' : ''}</span>
                         </div>
                         <div className="flex justify-between pt-2 border-t border-gray-200">
                           <span className="text-gray-600">Total:</span>
@@ -314,6 +317,7 @@ export default function Home() {
         selectedRoom={selectedRoom}
         selectedDate={selectedDate}
         selectedTime={selectedTime}
+        selectedDuration={selectedDuration}
         onBookingSuccess={handleBookingSuccess}
       />
 
