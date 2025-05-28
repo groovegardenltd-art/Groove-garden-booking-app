@@ -1,0 +1,115 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 20 14.3% 4.1%;
+  --muted: 60 4.8% 95.9%;
+  --muted-foreground: 25 5.3% 44.7%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 20 14.3% 4.1%;
+  --card: 0 0% 100%;
+  --card-foreground: 20 14.3% 4.1%;
+  --border: 20 5.9% 90%;
+  --input: 20 5.9% 90%;
+  --primary: 207 90% 54%;
+  --primary-foreground: 211 100% 99%;
+  --secondary: 60 4.8% 95.9%;
+  --secondary-foreground: 24 9.8% 10%;
+  --accent: 60 4.8% 95.9%;
+  --accent-foreground: 24 9.8% 10%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 60 9.1% 97.8%;
+  --ring: 20 14.3% 4.1%;
+  --radius: 0.5rem;
+  
+  /* Music-themed custom colors */
+  --music-purple: 45 42% 20%; /* #2D1B69 */
+  --music-indigo: 247 91% 68%; /* #6366F1 */
+  --music-amber: 43 96% 49%; /* #F59E0B */
+}
+
+.dark {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --primary: 207 90% 54%;
+  --primary-foreground: 211 100% 99%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --ring: 240 4.9% 83.9%;
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+/* Music-themed utility classes */
+.text-music-purple {
+  color: hsl(var(--music-purple));
+}
+
+.bg-music-purple {
+  background-color: hsl(var(--music-purple));
+}
+
+.text-music-indigo {
+  color: hsl(var(--music-indigo));
+}
+
+.bg-music-indigo {
+  background-color: hsl(var(--music-indigo));
+}
+
+.text-music-amber {
+  color: hsl(var(--music-amber));
+}
+
+.bg-music-amber {
+  background-color: hsl(var(--music-amber));
+}
+
+.border-music-indigo {
+  border-color: hsl(var(--music-indigo));
+}
+
+.border-music-purple {
+  border-color: hsl(var(--music-purple));
+}
+
+/* Music-themed gradients and effects */
+.music-gradient {
+  background: linear-gradient(135deg, hsl(var(--music-purple)) 0%, hsl(var(--music-indigo)) 100%);
+}
+
+/* Hover states for music theme */
+.hover\:bg-music-purple\/90:hover {
+  background-color: hsl(var(--music-purple) / 0.9);
+}
+
+.hover\:text-music-purple:hover {
+  color: hsl(var(--music-purple));
+}
+
+.hover\:text-music-indigo:hover {
+  color: hsl(var(--music-indigo));
+}

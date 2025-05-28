@@ -1,0 +1,74 @@
+import { pgTable, text, serial, integer, boolean, timestamp, decimal } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(),
+  password: text("password").notNull(),
+  name: text("name").notNull(),
+  phone: text("phone"),
+});
+
+export const rooms = pgTable("rooms", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  equipment: text("equipment").array().notNull().default([]),
+  pricePerHour: decimal("price_per_hour", { precision: 10, scale: 2 }).notNull(),
+  maxCapacity: integer("max_capacity").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+});
+
+export const bookings = pgTable("bookings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  roomId: integer("room_id").notNull(),
+  date: text("date").notNull(), // YYYY-MM-DD format
+  startTime: text("start_time").notNull(), // HH:MM format
+  endTime: text("end_time").notNull(), // HH:MM format
+  duration: integer("duration").notNull(), // in hours
+  totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
+  status: text("status").notNull().default("confirmed"), // confirmed, cancelled, completed
+  contactPhone: text("contact_phone"),
+  numberOfPeople: integer("number_of_people").notNull().default(1),
+  specialRequests: text("special_requests"),
+  accessCode: text("access_code").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+});
+
+export const loginSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(1, "Password is required"),
+});
+
+export const insertRoomSchema = createInsertSchema(rooms).omit({
+  id: true,
+});
+
+export const insertBookingSchema = createInsertSchema(bookings).omit({
+  id: true,
+  userId: true,
+  accessCode: true,
+  createdAt: true,
+}).extend({
+  contactPhone: z.string().min(1, "Phone number is required"),
+  numberOfPeople: z.number().min(1, "Number of people must be at least 1"),
+});
+
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type LoginUser = z.infer<typeof loginSchema>;
+export type User = typeof users.$inferSelect;
+export type InsertRoom = z.infer<typeof insertRoomSchema>;
+export type Room = typeof rooms.$inferSelect;
+export type InsertBooking = z.infer<typeof insertBookingSchema>;
+export type Booking = typeof bookings.$inferSelect;
+
+export type BookingWithRoom = Booking & {
+  room: Room;
+};
