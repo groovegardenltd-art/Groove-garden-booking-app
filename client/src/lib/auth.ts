@@ -5,7 +5,7 @@ interface AuthState {
   sessionId: string | null;
 }
 
-const AUTH_STORAGE_KEY = "harmony_studios_auth";
+const AUTH_STORAGE_KEY = "groove_garden_studios_auth";
 
 export function getAuthState(): AuthState {
   try {

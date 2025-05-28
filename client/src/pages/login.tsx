@@ -4,12 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Music } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { setAuthState } from "@/lib/auth";
 import { useLocation } from "wouter";
+import logoImage from "@assets/groove-garden-logo.jpeg";
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -122,7 +122,7 @@ export default function Login() {
         <div className="text-center">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Music className="h-8 w-8 text-music-purple" />
-            <h1 className="text-2xl font-bold text-music-purple">Harmony Studios</h1>
+            <h1 className="text-2xl font-bold text-music-purple">Groove Garden Studios</h1>
           </div>
           <h2 className="text-xl text-gray-900">
             Access Your Rehearsal Space

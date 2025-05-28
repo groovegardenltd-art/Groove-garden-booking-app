@@ -1,9 +1,10 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Bell, Music } from "lucide-react";
+import { Bell } from "lucide-react";
 import { getAuthState, clearAuthState } from "@/lib/auth";
 import { useState, useEffect } from "react";
 import { User } from "@shared/schema";
+import logoImage from "@assets/groove-garden-logo.jpeg";
 
 interface HeaderProps {
   onLogout?: () => void;
@@ -43,9 +44,13 @@ export function Header({ onLogout }: HeaderProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <Music className="text-music-purple text-2xl" />
-              <h1 className="text-xl font-bold text-music-purple">Harmony Studios</h1>
+            <div className="flex items-center space-x-3">
+              <img 
+                src={logoImage} 
+                alt="Groove Garden Studios" 
+                className="h-10 w-10 rounded-full object-cover"
+              />
+              <h1 className="text-xl font-bold text-music-purple">Groove Garden Studios</h1>
             </div>
             {user && (
               <nav className="hidden md:flex space-x-8 ml-8">
