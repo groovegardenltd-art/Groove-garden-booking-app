@@ -10,6 +10,22 @@ function generateAccessCode(): string {
   return Math.floor(1000 + Math.random() * 9000).toString();
 }
 
+// Calculate booking price in pounds based on duration
+function calculateBookingPrice(duration: number): number {
+  switch (duration) {
+    case 1:
+      return 40;
+    case 2:
+      return 75;
+    case 3:
+      return 105;
+    case 4:
+      return 135;
+    default:
+      return duration * 40;
+  }
+}
+
 // Simple session management
 const sessions = new Map<string, { userId: number; expires: Date }>();
 
@@ -218,6 +234,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Time slot is already booked" });
       }
 
+      // Calculate duration and total price
+      const startHour = parseInt(bookingData.startTime.split(':')[0]);
+      const endHour = parseInt(bookingData.endTime.split(':')[0]);
+      const duration = endHour - startHour;
+      const totalPrice = calculateBookingPrice(duration);
+
       // Generate access code
       const accessCode = generateAccessCode();
       
@@ -250,6 +272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const booking = await storage.createBooking({
         ...bookingData,
+        totalPrice: totalPrice.toString(),
         userId: req.userId,
         accessCode,
         ttlockPasscode: ttlockPasscode || undefined,
