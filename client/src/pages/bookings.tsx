@@ -227,7 +227,7 @@ export default function Bookings() {
                         <div className="pt-3 border-t">
                           <div className="flex justify-between items-center">
                             <span className="font-semibold text-music-purple">
-                              ${booking.totalPrice}
+                              £{booking.totalPrice}
                             </span>
                             <Button
                               variant="outline"
@@ -277,7 +277,7 @@ export default function Bookings() {
                                 {booking.numberOfPeople} {booking.numberOfPeople === 1 ? 'person' : 'people'}
                               </div>
                               <div className="font-semibold text-music-purple">
-                                ${booking.totalPrice}
+                                £{booking.totalPrice}
                               </div>
                             </div>
                             {booking.specialRequests && (

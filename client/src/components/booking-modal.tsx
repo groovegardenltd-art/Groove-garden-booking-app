@@ -162,15 +162,15 @@ export function BookingModal({
   const calculatePrice = (duration: number) => {
     switch (duration) {
       case 1:
-        return 50;
+        return 40;
       case 2:
-        return 95;
+        return 75;
       case 3:
-        return 135;
+        return 105;
       case 4:
-        return 170;
+        return 135;
       default:
-        return duration * 50;
+        return duration * 40;
     }
   };
 
@@ -208,12 +208,12 @@ export function BookingModal({
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Duration:</span>
-                <span className="font-medium">1 hour</span>
+                <span className="font-medium">{selectedDuration} {selectedDuration === 1 ? 'hour' : 'hours'}</span>
               </div>
               <div className="flex justify-between pt-2 border-t border-gray-200">
                 <span className="text-gray-600">Total:</span>
                 <span className="font-semibold text-music-purple text-lg">
-                  ${selectedRoom?.pricePerHour}
+                  £{calculatePrice(selectedDuration)}
                 </span>
               </div>
             </div>
