@@ -37,6 +37,10 @@ export const bookings = pgTable("bookings", {
   numberOfPeople: integer("number_of_people").notNull().default(1),
   specialRequests: text("special_requests"),
   accessCode: text("access_code").notNull(),
+  // TTLock integration fields
+  ttlockPasscode: text("ttlock_passcode"),
+  ttlockPasscodeId: integer("ttlock_passcode_id"),
+  lockAccessEnabled: boolean("lock_access_enabled").notNull().default(false),
   // ID verification for self-entry studio
   idNumber: text("id_number"),
   idType: text("id_type"), // "drivers_license", "passport", "state_id", etc.

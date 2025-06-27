@@ -145,7 +145,7 @@ export class DatabaseStorage implements IStorage {
       );
   }
 
-  async createBooking(booking: InsertBooking & { userId: number; accessCode: string }): Promise<Booking> {
+  async createBooking(booking: InsertBooking & { userId: number; accessCode: string; ttlockPasscode?: string; ttlockPasscodeId?: number; lockAccessEnabled?: boolean }): Promise<Booking> {
     const [newBooking] = await db
       .insert(bookings)
       .values({

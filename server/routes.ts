@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, loginSchema, insertBookingSchema } from "@shared/schema";
+import { createTTLockService } from "./ttlock";
 import { z } from "zod";
 
 // Mock smart lock API
@@ -48,6 +49,8 @@ function requireAuth(req: any, res: any, next: any) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize TTLock service
+  const ttlockService = createTTLockService();
   // Auth routes
   app.post("/api/register", async (req, res) => {
     try {
