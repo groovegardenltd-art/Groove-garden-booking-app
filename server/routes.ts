@@ -221,10 +221,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate access code
       const accessCode = generateAccessCode();
       
+      // TTLock integration - create smart lock passcode if service is available
+      let ttlockPasscode: string | undefined;
+      let ttlockPasscodeId: number | undefined;
+      let lockAccessEnabled = false;
+
+      if (ttlockService) {
+        try {
+          const startDateTime = new Date(`${bookingData.date}T${bookingData.startTime}:00`);
+          const endDateTime = new Date(`${bookingData.date}T${bookingData.endTime}:00`);
+          
+          const lockResult = await ttlockService.createTimeLimitedPasscode(
+            startDateTime,
+            endDateTime,
+            Date.now() // temporary booking ID
+          );
+          
+          ttlockPasscode = lockResult.passcode;
+          ttlockPasscodeId = lockResult.passcodeId;
+          lockAccessEnabled = true;
+          
+          console.log(`Smart lock passcode created: ${ttlockPasscode} for booking ${bookingData.date} ${bookingData.startTime}-${bookingData.endTime}`);
+        } catch (error) {
+          console.warn('Failed to create smart lock passcode:', error);
+          // Continue with booking creation even if smart lock fails
+        }
+      }
+      
       const booking = await storage.createBooking({
         ...bookingData,
         userId: req.userId,
-        accessCode
+        accessCode,
+        ttlockPasscode: ttlockPasscode || undefined,
+        ttlockPasscodeId: ttlockPasscodeId || undefined,
+        lockAccessEnabled
       });
 
       res.status(201).json(booking);
@@ -253,6 +283,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Booking is already cancelled" });
       }
 
+      // Delete TTLock passcode if it exists
+      if (ttlockService && booking.ttlockPasscodeId && booking.lockAccessEnabled) {
+        try {
+          await ttlockService.deletePasscode(booking.ttlockPasscodeId);
+          console.log(`Smart lock passcode deleted for cancelled booking ${id}`);
+        } catch (error) {
+          console.warn('Failed to delete smart lock passcode:', error);
+        }
+      }
+
       const success = await storage.cancelBooking(id);
       if (success) {
         res.json({ message: "Booking cancelled successfully" });
@@ -264,7 +304,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Smart lock integration (mock)
+  // Smart lock management routes
+  app.get("/api/smart-lock/status", requireAuth, async (req, res) => {
+    try {
+      if (!ttlockService) {
+        return res.status(503).json({ 
+          message: "Smart lock service not configured",
+          configured: false
+        });
+      }
+
+      const status = await ttlockService.getLockStatus();
+      res.json({
+        configured: true,
+        ...status
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get lock status" });
+    }
+  });
+
+  app.get("/api/smart-lock/logs", requireAuth, async (req, res) => {
+    try {
+      if (!ttlockService) {
+        return res.status(503).json({ message: "Smart lock service not configured" });
+      }
+
+      const { startDate, endDate } = req.query;
+      const start = startDate ? new Date(startDate as string) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
+      const end = endDate ? new Date(endDate as string) : new Date();
+
+      const logs = await ttlockService.getAccessLogs(start, end);
+      res.json(logs);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get access logs" });
+    }
+  });
+
+  app.post("/api/smart-lock/test-connection", requireAuth, async (req, res) => {
+    try {
+      if (!ttlockService) {
+        return res.status(503).json({ 
+          message: "TTLock API credentials not configured",
+          configured: false,
+          setup_instructions: {
+            required_env_vars: [
+              "TTLOCK_CLIENT_ID",
+              "TTLOCK_CLIENT_SECRET", 
+              "TTLOCK_USERNAME",
+              "TTLOCK_PASSWORD",
+              "TTLOCK_LOCK_ID"
+            ]
+          }
+        });
+      }
+
+      const status = await ttlockService.getLockStatus();
+      res.json({
+        message: "TTLock connection successful",
+        configured: true,
+        lock_online: status.isOnline,
+        battery_level: status.batteryLevel
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        message: "TTLock connection failed",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Legacy smart lock endpoint for backward compatibility
   app.post("/api/smart-lock/generate-code", requireAuth, async (req, res) => {
     try {
       const { bookingId } = req.body;
