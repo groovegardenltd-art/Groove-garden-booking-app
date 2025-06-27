@@ -28,6 +28,16 @@ export function SuccessModal({
     }
   };
 
+  const copySmartLockCode = () => {
+    if (booking?.ttlockPasscode) {
+      navigator.clipboard.writeText(booking.ttlockPasscode);
+      toast({
+        title: "Smart Lock Code Copied!",
+        description: "The smart lock passcode has been copied to your clipboard.",
+      });
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', { 
@@ -84,9 +94,38 @@ export function SuccessModal({
             </div>
           </div>
 
-          {/* Access Code */}
+          {/* Smart Lock Passcode */}
+          {booking.ttlockPasscode && booking.lockAccessEnabled && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <DoorOpen className="h-5 w-5 text-green-600" />
+                <h4 className="font-medium text-gray-900">Smart Lock Access</h4>
+              </div>
+              <div className="flex items-center justify-center space-x-2 mb-2">
+                <code className="bg-green-600 text-white px-4 py-2 rounded-lg text-2xl font-mono tracking-wider">
+                  {booking.ttlockPasscode}
+                </code>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={copySmartLockCode}
+                  className="p-2 text-green-600 hover:bg-green-600 hover:text-white"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-sm text-gray-600">
+                Enter this 6-digit code on the studio door keypad. Valid only during your booking time.
+              </p>
+            </div>
+          )}
+
+          {/* Backup Access Code */}
           <div className="bg-music-indigo/5 border border-music-indigo/20 rounded-lg p-4 mb-6">
-            <h4 className="font-medium text-gray-900 mb-2">Your Access Code</h4>
+            <div className="flex items-center gap-2 mb-2">
+              <RectangleEllipsis className="h-5 w-5 text-music-indigo" />
+              <h4 className="font-medium text-gray-900">Backup Access Code</h4>
+            </div>
             <div className="flex items-center justify-center space-x-2 mb-2">
               <code className="bg-music-indigo text-white px-4 py-2 rounded-lg text-2xl font-mono tracking-wider">
                 {booking.accessCode}
@@ -101,7 +140,7 @@ export function SuccessModal({
               </Button>
             </div>
             <p className="text-sm text-gray-600">
-              Use this code to unlock {booking.room?.name || 'the room'} on your booking date
+              Alternative access method - contact studio if smart lock is unavailable
             </p>
           </div>
 
