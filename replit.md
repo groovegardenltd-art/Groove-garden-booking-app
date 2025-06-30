@@ -11,14 +11,13 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - **Smart Lock**: TTLock API integration for automated access control
 
 ## Recent Changes
-- **Jun 30, 2025**: FINAL FIX - TTLock timezone issue resolved by subtracting 1 hour to compensate for app's +1 hour timezone interpretation
-- **Jun 30, 2025**: Fixed TTLock timing issue - removed 1-minute adjustment that caused "14:59" display instead of "14:00" in TTLock app
-- **Jun 30, 2025**: Updated date parsing to use UTC format preventing timezone conversion errors in passcode transmission
-- **Jun 30, 2025**: TTLock integration fully tested and operational - confirmed real passcodes sent to physical lock
-- **Jun 30, 2025**: Fixed time display formatting across all components to properly handle minutes
-- **Jun 30, 2025**: Updated pricing display to pounds currency throughout booking interface
-- **Jun 30, 2025**: TTLock API integration confirmed working - successfully sending real 6-digit passcodes to physical smart lock hardware (lock ID 23687062)
-- **Jun 30, 2025**: Fixed MD5 password encryption and lock ID configuration for TTLock authentication
+- **Jun 30, 2025**: ✅ TIMEZONE ISSUE RESOLVED - TTLock app now displays correct booking times (confirmed working with passcode 354185)
+- **Jun 30, 2025**: Fixed TTLock timezone calculation by subtracting 1 hour to compensate for app's +1 hour interpretation
+- **Jun 30, 2025**: Removed 1-minute timing adjustment that caused ":59" display issues
+- **Jun 30, 2025**: TTLock integration fully operational - real 6-digit passcodes transmitted to physical lock (ID: 23687062)
+- **Jun 30, 2025**: Fixed time display formatting across all booking components
+- **Jun 30, 2025**: Updated pricing to pounds currency (£40/1hr, £75/2hrs, £105/3hrs, £135/4hrs)
+- **Jun 30, 2025**: Configured MD5 password encryption for TTLock authentication
 - **Jun 27, 2025**: Changed currency from dollars to pounds with new pricing structure (1hr-£40, 2hrs-£75, 3hrs-£105, 4hrs-£135)
 - **Jun 27, 2025**: Completed TTLock smart lock integration with automatic passcode generation for booking time slots
 - **Dec 30, 2024**: Added multi-hour booking functionality with bulk pricing discounts
