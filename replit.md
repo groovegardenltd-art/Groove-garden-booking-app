@@ -11,7 +11,8 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - **Smart Lock**: TTLock API integration for automated access control
 
 ## Recent Changes
-- **Jun 30, 2025**: TTLock API integration now fully operational - sending real passcodes to physical smart lock hardware
+- **Jun 30, 2025**: TTLock API integration confirmed working - successfully sending real 6-digit passcodes to physical smart lock hardware (lock ID 23687062)
+- **Jun 30, 2025**: Fixed MD5 password encryption and lock ID configuration for TTLock authentication
 - **Jun 30, 2025**: Fixed validation errors preventing bookings from web interface 
 - **Jun 30, 2025**: Database schema updated to support TTLock passcode storage with proper data types
 - **Jun 27, 2025**: Changed currency from dollars to pounds with new pricing structure (1hr-£40, 2hrs-£75, 3hrs-£105, 4hrs-£135)
