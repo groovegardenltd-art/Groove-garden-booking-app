@@ -82,13 +82,15 @@ export default function Bookings() {
 
   const formatTime = (startTime: string, endTime: string) => {
     const formatSingleTime = (timeStr: string) => {
-      const [hours] = timeStr.split(':');
+      console.log('Formatting time:', timeStr); // Debug log
+      const [hours, minutes = '00'] = timeStr.split(':');
       const hour = parseInt(hours);
+      const minute = parseInt(minutes);
       
-      if (hour === 0) return "12:00 AM";
-      if (hour < 12) return `${hour}:00 AM`;
-      if (hour === 12) return "12:00 PM";
-      return `${hour - 12}:00 PM`;
+      if (hour === 0) return `12:${minute.toString().padStart(2, '0')} AM`;
+      if (hour < 12) return `${hour}:${minute.toString().padStart(2, '0')} AM`;
+      if (hour === 12) return `12:${minute.toString().padStart(2, '0')} PM`;
+      return `${hour - 12}:${minute.toString().padStart(2, '0')} PM`;
     };
 
     return `${formatSingleTime(startTime)} - ${formatSingleTime(endTime)}`;

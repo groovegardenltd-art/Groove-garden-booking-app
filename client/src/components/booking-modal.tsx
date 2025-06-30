@@ -135,7 +135,9 @@ export function BookingModal({
   };
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
+    // Parse date as local date to avoid timezone issues
+    const [year, month, day] = dateStr.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
     return date.toLocaleDateString('en-US', { 
       weekday: 'long', 
       year: 'numeric', 
@@ -145,18 +147,21 @@ export function BookingModal({
   };
 
   const formatTime = (timeStr: string) => {
-    const [hours] = timeStr.split(':');
+    console.log('Booking modal formatTime input:', timeStr); // Debug log
+    const [hours, minutes = '00'] = timeStr.split(':');
     const hour = parseInt(hours);
+    const minute = parseInt(minutes);
     const endHour = hour + selectedDuration;
     
-    const formatHour = (h: number) => {
-      if (h === 0) return "12:00 AM";
-      if (h < 12) return `${h}:00 AM`;
-      if (h === 12) return "12:00 PM";
-      return `${h - 12}:00 PM`;
+    const formatHour = (h: number, m: number = 0) => {
+      const minuteStr = m.toString().padStart(2, '0');
+      if (h === 0) return `12:${minuteStr} AM`;
+      if (h < 12) return `${h}:${minuteStr} AM`;
+      if (h === 12) return `12:${minuteStr} PM`;
+      return `${h - 12}:${minuteStr} PM`;
     };
 
-    return `${formatHour(hour)} - ${formatHour(endHour)}`;
+    return `${formatHour(hour, minute)} - ${formatHour(endHour)}`;
   };
 
   const calculatePrice = (duration: number) => {
