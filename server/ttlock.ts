@@ -89,6 +89,7 @@ export class TTLockService {
 
       console.log(`Sending passcode ${passcode} to TTLock lock ${this.config.lockId} for booking ${bookingId}`);
       console.log(`Valid from ${startTime.toISOString()} to ${endTime.toISOString()}`);
+      console.log(`TTLock timestamps - Start: ${startTimeMs}, End: ${endTimeMs}`);
 
       const response = await fetch(`${this.baseUrl}/v3/keyboardPwd/add`, {
         method: 'POST',

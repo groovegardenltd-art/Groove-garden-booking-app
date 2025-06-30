@@ -262,13 +262,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (ttlockService) {
         try {
-          // Create dates using UTC to avoid timezone conversion issues
+          // Create dates in local timezone (UK is UTC+1 in summer)
           const [startHours, startMinutes = '00'] = bookingData.startTime.split(':');
           const [endHours, endMinutes = '00'] = bookingData.endTime.split(':');
           const [year, month, day] = bookingData.date.split('-');
           
-          const startDateTime = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(startHours), parseInt(startMinutes)));
-          const endDateTime = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(endHours), parseInt(endMinutes)));
+          // Adjust for timezone difference - subtract 2 hours to correct TTLock display
+          const adjustedStartHour = parseInt(startHours) - 2;
+          const adjustedEndHour = parseInt(endHours) - 2;
+          
+          console.log(`DEBUG: Original booking ${startHours}:${startMinutes} - ${endHours}:${endMinutes}`);
+          console.log(`DEBUG: Adjusted hours ${adjustedStartHour} - ${adjustedEndHour}`);
+          
+          const startDateTime = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), adjustedStartHour, parseInt(startMinutes)));
+          const endDateTime = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), adjustedEndHour, parseInt(endMinutes)));
+          
+          console.log(`DEBUG: Final datetime objects ${startDateTime.toISOString()} - ${endDateTime.toISOString()}`);
           
           const lockResult = await ttlockService.createTimeLimitedPasscode(
             startDateTime,
