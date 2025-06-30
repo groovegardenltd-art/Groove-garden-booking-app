@@ -88,8 +88,12 @@ export function SuccessModal({
               <div className="flex justify-between">
                 <span className="text-gray-600">Date & Time:</span>
                 <span className="font-medium">
-                  {formatDate(booking.date)}, {formatTime(booking.startTime)}
+                  {formatDate(booking.date)}, {formatTime(booking.startTime)} - {formatTime(booking.endTime)}
                 </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Duration:</span>
+                <span className="font-medium">{booking.duration} hour{booking.duration > 1 ? 's' : ''}</span>
               </div>
             </div>
           </div>

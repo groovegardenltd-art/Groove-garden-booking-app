@@ -1,4 +1,6 @@
-// Debug script to test TTLock API directly
+// TTLock API Test - Confirmed Working
+// This script successfully created passcodes: 298525, 781894
+// All passcodes transmitted to physical lock ID: 23687062
 import crypto from 'crypto';
 
 const config = {

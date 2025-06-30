@@ -262,8 +262,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (ttlockService) {
         try {
-          const startDateTime = new Date(`${bookingData.date}T${bookingData.startTime}:00`);
-          const endDateTime = new Date(`${bookingData.date}T${bookingData.endTime}:00`);
+          // Create dates in local timezone (UK time)
+          const startDateTime = new Date(`${bookingData.date}T${bookingData.startTime}:00.000+00:00`);
+          const endDateTime = new Date(`${bookingData.date}T${bookingData.endTime}:00.000+00:00`);
           
           const lockResult = await ttlockService.createTimeLimitedPasscode(
             startDateTime,

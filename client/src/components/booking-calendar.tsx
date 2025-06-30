@@ -156,10 +156,10 @@ export function BookingCalendar({
                 <SelectValue placeholder="Select duration" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">1 Hour - $50</SelectItem>
-                <SelectItem value="2">2 Hours - $95</SelectItem>
-                <SelectItem value="3">3 Hours - $135</SelectItem>
-                <SelectItem value="4">4 Hours - $170</SelectItem>
+                <SelectItem value="1">1 Hour - £40</SelectItem>
+                <SelectItem value="2">2 Hours - £75</SelectItem>
+                <SelectItem value="3">3 Hours - £105</SelectItem>
+                <SelectItem value="4">4 Hours - £135</SelectItem>
               </SelectContent>
             </Select>
           </div>
