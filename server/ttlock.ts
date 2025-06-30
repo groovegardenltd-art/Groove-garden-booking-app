@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+
 interface TTLockConfig {
   clientId: string;
   clientSecret: string;
@@ -42,7 +44,7 @@ export class TTLockService {
         client_secret: this.config.clientSecret,
         grant_type: 'password',
         username: this.config.username,
-        password: this.config.password,
+        password: crypto.createHash('md5').update(this.config.password).digest('hex'),
       }),
     });
 
