@@ -35,17 +35,26 @@ function generateSessionId(): string {
 
 function createSession(userId: number): string {
   const sessionId = generateSessionId();
-  const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+  const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
   sessions.set(sessionId, { userId, expires });
+  console.log(`Created session ${sessionId} for user ${userId}, expires: ${expires}`);
   return sessionId;
 }
 
 function getSession(sessionId: string): { userId: number } | null {
   const session = sessions.get(sessionId);
-  if (!session || session.expires < new Date()) {
+  if (!session) {
+    console.log(`Session not found: ${sessionId}`);
+    return null;
+  }
+  
+  if (session.expires < new Date()) {
+    console.log(`Session expired: ${sessionId}`);
     sessions.delete(sessionId);
     return null;
   }
+  
+  console.log(`Valid session found: ${sessionId} for user ${session.userId}`);
   return { userId: session.userId };
 }
 
@@ -285,10 +294,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.status(201).json(booking);
     } catch (error) {
+      console.error('Booking creation error:', error);
+      console.error('Error stack:', error.stack);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
-      res.status(500).json({ message: "Failed to create booking" });
+      res.status(500).json({ message: "Failed to create booking", error: error.message, stack: error.stack });
     }
   });
 
