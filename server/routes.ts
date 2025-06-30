@@ -267,17 +267,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const [endHours, endMinutes = '00'] = bookingData.endTime.split(':');
           const [year, month, day] = bookingData.date.split('-');
           
-          // Adjust for timezone difference - add 2 hours to correct TTLock display
-          const adjustedStartHour = parseInt(startHours) + 2;
-          const adjustedEndHour = parseInt(endHours) + 2;
-          
-          console.log(`DEBUG: Original booking ${startHours}:${startMinutes} - ${endHours}:${endMinutes}`);
-          console.log(`DEBUG: Adjusted hours ${adjustedStartHour} - ${adjustedEndHour}`);
+          // Adjust for timezone difference - subtract 1 hour to correct TTLock display
+          const adjustedStartHour = parseInt(startHours) - 1;
+          const adjustedEndHour = parseInt(endHours) - 1;
           
           const startDateTime = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), adjustedStartHour, parseInt(startMinutes)));
           const endDateTime = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), adjustedEndHour, parseInt(endMinutes)));
-          
-          console.log(`DEBUG: Final datetime objects ${startDateTime.toISOString()} - ${endDateTime.toISOString()}`);
           
           const lockResult = await ttlockService.createTimeLimitedPasscode(
             startDateTime,
