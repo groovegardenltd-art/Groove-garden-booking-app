@@ -13,10 +13,13 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  const authHeaders = getAuthHeaders();
   const headers = {
     ...(data ? { "Content-Type": "application/json" } : {}),
-    ...getAuthHeaders(),
+    ...authHeaders,
   };
+
+  console.log(`Making ${method} request to ${url} with auth headers:`, authHeaders);
 
   const res = await fetch(url, {
     method,
@@ -24,6 +27,10 @@ export async function apiRequest(
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
+
+  if (!res.ok) {
+    console.error(`API request failed: ${res.status} ${res.statusText}`);
+  }
 
   await throwIfResNotOk(res);
   return res;

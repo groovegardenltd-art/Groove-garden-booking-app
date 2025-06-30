@@ -50,13 +50,16 @@ function getSession(sessionId: string): { userId: number } | null {
 }
 
 function requireAuth(req: any, res: any, next: any) {
-  const sessionId = req.headers.authorization?.replace('Bearer ', '');
+  const sessionId = req.headers.authorization?.replace('Bearer ', '') || req.headers['x-session-id'];
+  
   if (!sessionId) {
+    console.log('No session ID found in request headers');
     return res.status(401).json({ message: "Authentication required" });
   }
 
   const session = getSession(sessionId);
   if (!session) {
+    console.log(`Invalid session: ${sessionId}`);
     return res.status(401).json({ message: "Invalid or expired session" });
   }
 
