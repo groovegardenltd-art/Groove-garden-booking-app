@@ -83,17 +83,12 @@ export class TTLockService {
       // Real TTLock API implementation
       const accessToken = await this.getAccessToken();
       const passcode = this.generatePasscode();
-      // Make passcode active immediately (1 minute before booking start)
-      const adjustedStartTime = new Date(startTime.getTime() - 60000);
-      const startTimeMs = adjustedStartTime.getTime();
+      // Use exact booking start time (no adjustment needed)
+      const startTimeMs = startTime.getTime();
       const endTimeMs = endTime.getTime();
 
       console.log(`Sending passcode ${passcode} to TTLock lock ${this.config.lockId} for booking ${bookingId}`);
       console.log(`Valid from ${startTime.toISOString()} to ${endTime.toISOString()}`);
-      console.log(`DEBUG TTLock: Original start: ${startTime.toISOString()} (${startTime.getHours()}:${startTime.getMinutes().toString().padStart(2, '0')})`);
-      console.log(`DEBUG TTLock: Adjusted start: ${adjustedStartTime.toISOString()} (${adjustedStartTime.getHours()}:${adjustedStartTime.getMinutes().toString().padStart(2, '0')})`);
-      console.log(`DEBUG TTLock: End time: ${endTime.toISOString()} (${endTime.getHours()}:${endTime.getMinutes().toString().padStart(2, '0')})`);
-      console.log(`DEBUG TTLock: Start timestamp: ${startTimeMs}, End timestamp: ${endTimeMs}`);
 
       const response = await fetch(`${this.baseUrl}/v3/keyboardPwd/add`, {
         method: 'POST',
