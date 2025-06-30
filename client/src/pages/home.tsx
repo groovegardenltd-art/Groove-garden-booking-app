@@ -198,12 +198,16 @@ export default function Home() {
                         <div className="flex justify-between">
                           <span className="text-gray-600">Date:</span>
                           <span className="font-medium">
-                            {new Date(selectedDate).toLocaleDateString('en-US', { 
-                              weekday: 'long', 
-                              year: 'numeric', 
-                              month: 'long', 
-                              day: 'numeric' 
-                            })}
+                            {(() => {
+                              const [year, month, day] = selectedDate.split('-');
+                              const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                              return date.toLocaleDateString('en-US', { 
+                                weekday: 'long', 
+                                year: 'numeric', 
+                                month: 'long', 
+                                day: 'numeric' 
+                              });
+                            })()}
                           </span>
                         </div>
                         <div className="flex justify-between">
