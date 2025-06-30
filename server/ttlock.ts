@@ -84,7 +84,7 @@ export class TTLockService {
     // For demonstration purposes - generate a working door code
     // In production, this would connect to your actual TTLock hardware
     const passcode = this.generatePasscode();
-    const passcodeId = Date.now() + Math.floor(Math.random() * 1000);
+    const passcodeId = Math.floor(Math.random() * 2147483647); // Within PostgreSQL integer range
     
     console.log(`Demo: Generated smart lock passcode ${passcode} for booking ${bookingId}`);
     console.log(`Valid from ${startTime.toISOString()} to ${endTime.toISOString()}`);

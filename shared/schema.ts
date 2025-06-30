@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, decimal, bigint } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -39,7 +39,7 @@ export const bookings = pgTable("bookings", {
   accessCode: text("access_code").notNull(),
   // TTLock integration fields
   ttlockPasscode: text("ttlock_passcode"),
-  ttlockPasscodeId: integer("ttlock_passcode_id"),
+  ttlockPasscodeId: text("ttlock_passcode_id"),
   lockAccessEnabled: boolean("lock_access_enabled").notNull().default(false),
   // ID verification for self-entry studio
   idNumber: text("id_number"),
