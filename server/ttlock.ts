@@ -83,7 +83,9 @@ export class TTLockService {
       // Real TTLock API implementation
       const accessToken = await this.getAccessToken();
       const passcode = this.generatePasscode();
-      const startTimeMs = startTime.getTime();
+      // Make passcode active immediately (1 minute before booking start)
+      const adjustedStartTime = new Date(startTime.getTime() - 60000);
+      const startTimeMs = adjustedStartTime.getTime();
       const endTimeMs = endTime.getTime();
 
       console.log(`Sending passcode ${passcode} to TTLock lock ${this.config.lockId} for booking ${bookingId}`);
