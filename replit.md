@@ -11,6 +11,7 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - **Smart Lock**: TTLock API integration for automated access control
 
 ## Recent Changes
+- **Jun 30, 2025**: FINAL FIX - TTLock timezone issue resolved by adding 2-hour offset to compensate for app's timezone interpretation
 - **Jun 30, 2025**: Fixed TTLock timing issue - removed 1-minute adjustment that caused "14:59" display instead of "14:00" in TTLock app
 - **Jun 30, 2025**: Updated date parsing to use UTC format preventing timezone conversion errors in passcode transmission
 - **Jun 30, 2025**: TTLock integration fully tested and operational - confirmed real passcodes sent to physical lock

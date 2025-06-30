@@ -267,9 +267,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const [endHours, endMinutes = '00'] = bookingData.endTime.split(':');
           const [year, month, day] = bookingData.date.split('-');
           
-          // Adjust for timezone difference - subtract 3 hours to correct TTLock display
-          const adjustedStartHour = parseInt(startHours) - 3;
-          const adjustedEndHour = parseInt(endHours) - 3;
+          // Adjust for timezone difference - add 2 hours to correct TTLock display
+          const adjustedStartHour = parseInt(startHours) + 2;
+          const adjustedEndHour = parseInt(endHours) + 2;
           
           console.log(`DEBUG: Original booking ${startHours}:${startMinutes} - ${endHours}:${endMinutes}`);
           console.log(`DEBUG: Adjusted hours ${adjustedStartHour} - ${adjustedEndHour}`);
