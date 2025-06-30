@@ -96,10 +96,18 @@ export class TTLockService {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to create passcode: ${response.status}`);
+      const errorText = await response.text();
+      console.error(`TTLock API error: ${response.status} - ${errorText}`);
+      throw new Error(`Failed to create passcode: ${response.status} - ${errorText}`);
     }
 
-    const data: PasscodeResponse = await response.json();
+    const data = await response.json();
+    console.log('TTLock API response:', data);
+    
+    if (data.errcode !== 0) {
+      console.error(`TTLock API returned error: ${data.errcode} - ${data.errmsg}`);
+      throw new Error(`TTLock API error: ${data.errmsg || 'Unknown error'}`);
+    }
     
     return {
       passcode: data.keyboardPwd,
