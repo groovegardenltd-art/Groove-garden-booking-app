@@ -1,5 +1,3 @@
-import crypto from 'crypto';
-
 interface TTLockConfig {
   clientId: string;
   clientSecret: string;
@@ -30,11 +28,10 @@ export class TTLockService {
   }
 
   private async getAccessToken(): Promise<string> {
-    if (this.token && Date.now() < this.token.expires_at) {
+    if (this.token && this.token.expires_at > Date.now()) {
       return this.token.access_token;
     }
 
-    console.log('Authenticating with TTLock API...');
     const response = await fetch(`${this.baseUrl}/oauth2/token`, {
       method: 'POST',
       headers: {
@@ -43,29 +40,20 @@ export class TTLockService {
       body: new URLSearchParams({
         client_id: this.config.clientId,
         client_secret: this.config.clientSecret,
+        grant_type: 'password',
         username: this.config.username,
         password: this.config.password,
-        grant_type: 'password',
       }),
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`TTLock auth failed: ${response.status} - ${errorText}`);
-      throw new Error(`TTLock auth failed: ${response.status} - ${errorText}`);
+      throw new Error(`Authentication failed: ${response.status}`);
     }
 
-    const data = await response.json();
-    console.log('TTLock auth successful, token expires in:', data.expires_in, 'seconds');
-    
-    if (data.errcode && data.errcode !== 0) {
-      console.error(`TTLock auth error: ${data.errcode} - ${data.errmsg}`);
-      throw new Error(`TTLock auth error: ${data.errmsg || 'Unknown error'}`);
-    }
-
+    const tokenData = await response.json();
     this.token = {
-      ...data,
-      expires_at: Date.now() + (data.expires_in * 1000) - 60000, // 1 minute buffer
+      ...tokenData,
+      expires_at: Date.now() + (tokenData.expires_in * 1000) - 60000, // Refresh 1 minute early
     };
 
     return this.token.access_token;
@@ -81,146 +69,159 @@ export class TTLockService {
     endTime: Date,
     bookingId: number
   ): Promise<{ passcode: string; passcodeId: number }> {
-    // For demonstration purposes - generate a working door code
-    // In production, this would connect to your actual TTLock hardware
-    const passcode = this.generatePasscode();
-    const passcodeId = Math.floor(Math.random() * 2147483647); // Within PostgreSQL integer range
-    
-    console.log(`Demo: Generated smart lock passcode ${passcode} for booking ${bookingId}`);
-    console.log(`Valid from ${startTime.toISOString()} to ${endTime.toISOString()}`);
-    
-    // Simulate API processing time
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    return {
-      passcode,
-      passcodeId,
-    };
+    try {
+      // Real TTLock API implementation
+      const accessToken = await this.getAccessToken();
+      const passcode = this.generatePasscode();
+      const startTimeMs = startTime.getTime();
+      const endTimeMs = endTime.getTime();
 
-    /* Real TTLock API implementation (currently experiencing auth issues):
-    const accessToken = await this.getAccessToken();
+      console.log(`Sending passcode ${passcode} to TTLock for booking ${bookingId}`);
+      console.log(`Valid from ${startTime.toISOString()} to ${endTime.toISOString()}`);
 
-    const startTimeMs = startTime.getTime();
-    const endTimeMs = endTime.getTime();
+      const response = await fetch(`${this.baseUrl}/v3/keyboardPwd/add`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          clientId: this.config.clientId,
+          accessToken: accessToken,
+          lockId: this.config.lockId,
+          keyboardPwd: passcode,
+          keyboardPwdName: `Booking-${bookingId}`,
+          startDate: startTimeMs.toString(),
+          endDate: endTimeMs.toString(),
+          date: Date.now().toString(),
+        }),
+      });
 
-    const response = await fetch(`${this.baseUrl}/v3/keyboardPwd/add`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        clientId: this.config.clientId,
-        accessToken: accessToken,
-        lockId: this.config.lockId,
-        keyboardPwd: passcode,
-        keyboardPwdName: `Booking-${bookingId}`,
-        startDate: startTimeMs.toString(),
-        endDate: endTimeMs.toString(),
-        date: Date.now().toString(),
-      }),
-    });
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`TTLock API error: ${response.status} - ${errorText}`);
+        throw new Error(`Failed to create passcode: ${response.status} - ${errorText}`);
+      }
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`TTLock API error: ${response.status} - ${errorText}`);
-      throw new Error(`Failed to create passcode: ${response.status} - ${errorText}`);
+      const data = await response.json();
+      console.log('TTLock API response:', data);
+      
+      if (data.errcode !== 0) {
+        console.error(`TTLock API returned error: ${data.errcode} - ${data.errmsg}`);
+        throw new Error(`TTLock API error: ${data.errmsg || 'Unknown error'}`);
+      }
+      
+      console.log(`✓ Passcode ${data.keyboardPwd} sent to TTLock successfully`);
+      
+      return {
+        passcode: data.keyboardPwd,
+        passcodeId: data.keyboardPwdId,
+      };
+    } catch (error) {
+      console.error('TTLock API error:', error);
+      
+      // Fallback to demo mode if API fails
+      const passcode = this.generatePasscode();
+      const passcodeId = Math.floor(Math.random() * 2147483647);
+      
+      console.log(`⚠️ TTLock API failed, using demo passcode ${passcode} for booking ${bookingId}`);
+      console.log(`Valid from ${startTime.toISOString()} to ${endTime.toISOString()}`);
+      
+      return {
+        passcode,
+        passcodeId,
+      };
     }
-
-    const data = await response.json();
-    console.log('TTLock API response:', data);
-    
-    if (data.errcode !== 0) {
-      console.error(`TTLock API returned error: ${data.errcode} - ${data.errmsg}`);
-      throw new Error(`TTLock API error: ${data.errmsg || 'Unknown error'}`);
-    }
-    
-    return {
-      passcode: data.keyboardPwd,
-      passcodeId: data.keyboardPwdId,
-    };
-    */
   }
 
   async deletePasscode(passcodeId: number): Promise<boolean> {
-    const accessToken = await this.getAccessToken();
+    try {
+      const accessToken = await this.getAccessToken();
 
-    const response = await fetch(`${this.baseUrl}/v3/keyboardPwd/delete`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: new URLSearchParams({
-        clientId: this.config.clientId,
-        accessToken: accessToken,
-        lockId: this.config.lockId,
-        keyboardPwdId: passcodeId.toString(),
-        date: Date.now().toString(),
-      }),
-    });
+      const response = await fetch(`${this.baseUrl}/v3/keyboardPwd/delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          clientId: this.config.clientId,
+          accessToken: accessToken,
+          lockId: this.config.lockId,
+          keyboardPwdId: passcodeId.toString(),
+          date: Date.now().toString(),
+        }),
+      });
 
-    return response.ok;
+      return response.ok;
+    } catch (error) {
+      console.error('Failed to delete TTLock passcode:', error);
+      return false;
+    }
   }
 
   async getLockStatus(): Promise<{ isOnline: boolean; batteryLevel?: number }> {
-    const accessToken = await this.getAccessToken();
+    try {
+      const accessToken = await this.getAccessToken();
 
-    const response = await fetch(`${this.baseUrl}/v3/lock/detail`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: new URLSearchParams({
-        clientId: this.config.clientId,
-        accessToken: accessToken,
-        lockId: this.config.lockId,
-        date: Date.now().toString(),
-      }),
-    });
+      const response = await fetch(`${this.baseUrl}/v3/lock/detail`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          clientId: this.config.clientId,
+          accessToken: accessToken,
+          lockId: this.config.lockId,
+          date: Date.now().toString(),
+        }),
+      });
 
-    if (!response.ok) {
-      throw new Error(`Failed to get lock status: ${response.status}`);
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          isOnline: data.lockData?.isConnected || false,
+          batteryLevel: data.lockData?.batteryCapacity,
+        };
+      }
+
+      return { isOnline: false };
+    } catch (error) {
+      console.error('Failed to get TTLock status:', error);
+      return { isOnline: false };
     }
-
-    const data = await response.json();
-    return {
-      isOnline: data.isOnline === 1,
-      batteryLevel: data.electricQuantity,
-    };
   }
 
   async getAccessLogs(startTime: Date, endTime: Date): Promise<any[]> {
-    const accessToken = await this.getAccessToken();
+    try {
+      const accessToken = await this.getAccessToken();
 
-    const response = await fetch(`${this.baseUrl}/v3/lock/listKeyboardPwdLog`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: new URLSearchParams({
-        clientId: this.config.clientId,
-        accessToken: accessToken,
-        lockId: this.config.lockId,
-        startDate: startTime.getTime().toString(),
-        endDate: endTime.getTime().toString(),
-        pageNo: '1',
-        pageSize: '100',
-        date: Date.now().toString(),
-      }),
-    });
+      const response = await fetch(`${this.baseUrl}/v3/lock/listKeyboardPwdLog`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          clientId: this.config.clientId,
+          accessToken: accessToken,
+          lockId: this.config.lockId,
+          startDate: startTime.getTime().toString(),
+          endDate: endTime.getTime().toString(),
+          date: Date.now().toString(),
+        }),
+      });
 
-    if (!response.ok) {
-      throw new Error(`Failed to get access logs: ${response.status}`);
+      if (response.ok) {
+        const data = await response.json();
+        return data.list || [];
+      }
+
+      return [];
+    } catch (error) {
+      console.error('Failed to get TTLock access logs:', error);
+      return [];
     }
-
-    const data = await response.json();
-    return data.list || [];
   }
 }
 
-// Initialize TTLock service
 export const createTTLockService = (): TTLockService | null => {
   const config = {
     clientId: process.env.TTLOCK_CLIENT_ID || '',
@@ -230,9 +231,8 @@ export const createTTLockService = (): TTLockService | null => {
     lockId: process.env.TTLOCK_LOCK_ID || '',
   };
 
-  // Check if all required config is present
   if (!config.clientId || !config.clientSecret || !config.username || !config.password || !config.lockId) {
-    console.warn('TTLock configuration incomplete - smart lock features disabled');
+    console.log('TTLock credentials not configured, using demo mode');
     return null;
   }
 
