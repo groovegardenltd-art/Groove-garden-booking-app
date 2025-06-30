@@ -262,6 +262,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (ttlockService) {
         try {
+          // Check lock status first
+          const lockStatus = await ttlockService.getLockStatus();
+          
           // Create dates in local timezone (UK is UTC+1 in summer)
           const [startHours, startMinutes = '00'] = bookingData.startTime.split(':');
           const [endHours, endMinutes = '00'] = bookingData.endTime.split(':');
@@ -282,7 +285,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           ttlockPasscode = lockResult.passcode;
           ttlockPasscodeId = lockResult.passcodeId;
-          lockAccessEnabled = true;
+          lockAccessEnabled = lockStatus.isOnline; // Only enable if lock is online
+          
+          if (!lockStatus.isOnline) {
+            console.warn(`WARNING: Lock is OFFLINE - Passcode ${ttlockPasscode} sent to cloud but may not reach physical lock`);
+          }
           
           console.log(`Smart lock passcode created: ${ttlockPasscode} for booking ${bookingData.date} ${bookingData.startTime}-${bookingData.endTime}`);
         } catch (error) {

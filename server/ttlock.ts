@@ -173,7 +173,7 @@ export class TTLockService {
     }
   }
 
-  async getLockStatus(): Promise<{ isOnline: boolean; batteryLevel?: number }> {
+  async getLockStatus(): Promise<{ isOnline: boolean; batteryLevel?: number; lockData?: any }> {
     try {
       const accessToken = await this.getAccessToken();
 
@@ -192,9 +192,17 @@ export class TTLockService {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('📱 TTLock Status Response:', JSON.stringify(data, null, 2));
+        
+        const isOnline = data.lockData?.isConnected || data.lockData?.electricQuantity > 0 || false;
+        const batteryLevel = data.lockData?.batteryCapacity || data.lockData?.electricQuantity;
+        
+        console.log(`🔋 Lock Status: ${isOnline ? 'ONLINE' : 'OFFLINE'}, Battery: ${batteryLevel || 'Unknown'}%`);
+        
         return {
-          isOnline: data.lockData?.isConnected || false,
-          batteryLevel: data.lockData?.batteryCapacity,
+          isOnline,
+          batteryLevel,
+          lockData: data
         };
       }
 
