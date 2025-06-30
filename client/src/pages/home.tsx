@@ -119,7 +119,6 @@ export default function Home() {
 
   const formatTime = (startTime: string, endTime: string) => {
     const formatSingleTime = (timeStr: string) => {
-      console.log('Home formatTime input:', timeStr); // Debug log
       const [hours, minutes = '00'] = timeStr.split(':');
       const hour = parseInt(hours);
       const minute = parseInt(minutes);

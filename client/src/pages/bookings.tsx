@@ -82,7 +82,6 @@ export default function Bookings() {
 
   const formatTime = (startTime: string, endTime: string) => {
     const formatSingleTime = (timeStr: string) => {
-      console.log('Formatting time:', timeStr); // Debug log
       const [hours, minutes = '00'] = timeStr.split(':');
       const hour = parseInt(hours);
       const minute = parseInt(minutes);

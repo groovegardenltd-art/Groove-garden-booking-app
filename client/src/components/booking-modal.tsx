@@ -147,7 +147,6 @@ export function BookingModal({
   };
 
   const formatTime = (timeStr: string) => {
-    console.log('Booking modal formatTime input:', timeStr); // Debug log
     const [hours, minutes = '00'] = timeStr.split(':');
     const hour = parseInt(hours);
     const minute = parseInt(minutes);
