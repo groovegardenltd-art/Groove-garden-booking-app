@@ -262,13 +262,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (ttlockService) {
         try {
-          // Create dates in local timezone without timezone conversion
+          // Create dates using UTC to avoid timezone conversion issues
           const [startHours, startMinutes = '00'] = bookingData.startTime.split(':');
           const [endHours, endMinutes = '00'] = bookingData.endTime.split(':');
           const [year, month, day] = bookingData.date.split('-');
           
-          const startDateTime = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(startHours), parseInt(startMinutes));
-          const endDateTime = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(endHours), parseInt(endMinutes));
+          const startDateTime = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(startHours), parseInt(startMinutes)));
+          const endDateTime = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(endHours), parseInt(endMinutes)));
           
           const lockResult = await ttlockService.createTimeLimitedPasscode(
             startDateTime,

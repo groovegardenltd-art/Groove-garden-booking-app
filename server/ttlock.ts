@@ -90,6 +90,10 @@ export class TTLockService {
 
       console.log(`Sending passcode ${passcode} to TTLock lock ${this.config.lockId} for booking ${bookingId}`);
       console.log(`Valid from ${startTime.toISOString()} to ${endTime.toISOString()}`);
+      console.log(`DEBUG TTLock: Original start: ${startTime.toISOString()} (${startTime.getHours()}:${startTime.getMinutes().toString().padStart(2, '0')})`);
+      console.log(`DEBUG TTLock: Adjusted start: ${adjustedStartTime.toISOString()} (${adjustedStartTime.getHours()}:${adjustedStartTime.getMinutes().toString().padStart(2, '0')})`);
+      console.log(`DEBUG TTLock: End time: ${endTime.toISOString()} (${endTime.getHours()}:${endTime.getMinutes().toString().padStart(2, '0')})`);
+      console.log(`DEBUG TTLock: Start timestamp: ${startTimeMs}, End timestamp: ${endTimeMs}`);
 
       const response = await fetch(`${this.baseUrl}/v3/keyboardPwd/add`, {
         method: 'POST',
