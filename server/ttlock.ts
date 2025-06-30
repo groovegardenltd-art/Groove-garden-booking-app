@@ -115,17 +115,20 @@ export class TTLockService {
       const data = await response.json();
       console.log('TTLock API response:', data);
       
-      if (data.errcode !== 0) {
+      // TTLock returns keyboardPwdId on success, errcode on failure
+      if (data.keyboardPwdId) {
+        console.log(`🔑 SUCCESS: Passcode ${passcode} sent to physical TTLock! ID: ${data.keyboardPwdId}`);
+        
+        return {
+          passcode: passcode,
+          passcodeId: data.keyboardPwdId,
+        };
+      } else if (data.errcode !== undefined && data.errcode !== 0) {
         console.error(`TTLock API returned error: ${data.errcode} - ${data.errmsg}`);
         throw new Error(`TTLock API error: ${data.errmsg || 'Unknown error'}`);
+      } else {
+        throw new Error(`Unexpected TTLock API response: ${JSON.stringify(data)}`);
       }
-      
-      console.log(`✓ Passcode ${data.keyboardPwd} sent to TTLock successfully`);
-      
-      return {
-        passcode: data.keyboardPwd,
-        passcodeId: data.keyboardPwdId,
-      };
     } catch (error) {
       console.error('TTLock API error:', error);
       
