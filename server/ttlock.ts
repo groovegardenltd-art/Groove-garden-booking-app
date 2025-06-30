@@ -53,12 +53,20 @@ export class TTLockService {
     }
 
     const tokenData = await response.json();
-    this.token = {
-      ...tokenData,
-      expires_at: Date.now() + (tokenData.expires_in * 1000) - 60000, // Refresh 1 minute early
-    };
-
-    return this.token.access_token;
+    
+    if (tokenData.access_token) {
+      this.token = {
+        access_token: tokenData.access_token,
+        refresh_token: tokenData.refresh_token,
+        expires_in: tokenData.expires_in,
+        expires_at: Date.now() + (tokenData.expires_in * 1000) - 60000, // Refresh 1 minute early
+      };
+      
+      console.log('TTLock authentication successful, token expires in', tokenData.expires_in, 'seconds');
+      return this.token.access_token;
+    } else {
+      throw new Error(`TTLock authentication failed: ${JSON.stringify(tokenData)}`);
+    }
   }
 
   private generatePasscode(): string {
@@ -78,7 +86,7 @@ export class TTLockService {
       const startTimeMs = startTime.getTime();
       const endTimeMs = endTime.getTime();
 
-      console.log(`Sending passcode ${passcode} to TTLock for booking ${bookingId}`);
+      console.log(`Sending passcode ${passcode} to TTLock lock ${this.config.lockId} for booking ${bookingId}`);
       console.log(`Valid from ${startTime.toISOString()} to ${endTime.toISOString()}`);
 
       const response = await fetch(`${this.baseUrl}/v3/keyboardPwd/add`, {
