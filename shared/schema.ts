@@ -70,6 +70,7 @@ export const insertBookingSchema = createInsertSchema(bookings).omit({
   numberOfPeople: z.number().min(1, "Number of people must be at least 1"),
   idNumber: z.string().min(1, "ID number is required for studio access"),
   idType: z.string().min(1, "ID type is required"),
+  totalPrice: z.union([z.string(), z.number()]).transform(val => String(val)),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

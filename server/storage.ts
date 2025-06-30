@@ -150,6 +150,7 @@ export class DatabaseStorage implements IStorage {
       .insert(bookings)
       .values({
         ...booking,
+        ttlockPasscodeId: booking.ttlockPasscodeId ? String(booking.ttlockPasscodeId) : null,
         status: "confirmed"
       })
       .returning();
