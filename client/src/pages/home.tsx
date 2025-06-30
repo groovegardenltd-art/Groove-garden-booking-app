@@ -219,7 +219,7 @@ export default function Home() {
                         <div className="flex justify-between pt-2 border-t border-gray-200">
                           <span className="text-gray-600">Total:</span>
                           <span className="font-semibold text-music-purple text-lg">
-                            ${calculatePrice(selectedDuration)}
+                            £{calculatePrice(selectedDuration)}
                           </span>
                         </div>
                       </div>

@@ -69,7 +69,9 @@ export default function Bookings() {
   };
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
+    // Parse date as local date to avoid timezone issues
+    const [year, month, day] = dateStr.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
     return date.toLocaleDateString('en-US', { 
       weekday: 'long',
       year: 'numeric',
@@ -106,7 +108,7 @@ export default function Bookings() {
   };
 
   const isUpcoming = (booking: BookingWithRoom) => {
-    const bookingDateTime = new Date(`${booking.date}T${booking.startTime}`);
+    const bookingDateTime = new Date(`${booking.date}T${booking.startTime}:00`);
     return bookingDateTime > new Date() && booking.status === "confirmed";
   };
 
