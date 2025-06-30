@@ -11,13 +11,13 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - **Smart Lock**: TTLock API integration for automated access control
 
 ## Recent Changes
-- **Jun 30, 2025**: ✅ TIMEZONE ISSUE RESOLVED - TTLock app now displays correct booking times (confirmed working with passcode 354185)
+- **Jun 30, 2025**: 🔍 DIAGNOSED LOCK CONNECTIVITY - Physical lock offline (state: 0), passcodes reach cloud but not hardware
+- **Jun 30, 2025**: Added lock status monitoring - system now checks online status before enabling access codes
+- **Jun 30, 2025**: Enhanced diagnostics reveal lock "Front door" (SN534) disconnected from TTLock cloud service
+- **Jun 30, 2025**: ✅ TIMEZONE ISSUE RESOLVED - TTLock app displays correct booking times (passcode 354185 confirmed)
 - **Jun 30, 2025**: Fixed TTLock timezone calculation by subtracting 1 hour to compensate for app's +1 hour interpretation
-- **Jun 30, 2025**: Removed 1-minute timing adjustment that caused ":59" display issues
-- **Jun 30, 2025**: TTLock integration fully operational - real 6-digit passcodes transmitted to physical lock (ID: 23687062)
-- **Jun 30, 2025**: Fixed time display formatting across all booking components
+- **Jun 30, 2025**: TTLock integration operational - real 6-digit passcodes transmitted to cloud (physical lock needs reconnection)
 - **Jun 30, 2025**: Updated pricing to pounds currency (£40/1hr, £75/2hrs, £105/3hrs, £135/4hrs)
-- **Jun 30, 2025**: Configured MD5 password encryption for TTLock authentication
 - **Jun 27, 2025**: Changed currency from dollars to pounds with new pricing structure (1hr-£40, 2hrs-£75, 3hrs-£105, 4hrs-£135)
 - **Jun 27, 2025**: Completed TTLock smart lock integration with automatic passcode generation for booking time slots
 - **Dec 30, 2024**: Added multi-hour booking functionality with bulk pricing discounts
