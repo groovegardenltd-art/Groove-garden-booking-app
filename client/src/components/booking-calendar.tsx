@@ -91,7 +91,7 @@ export function BookingCalendar({
   });
 
   const isTimeSlotAvailable = (time: string, duration: number) => {
-    if (!availability || !availability.bookedSlots) return true;
+    if (!availability || !(availability as any).bookedSlots) return true;
     
     // Check if the time slot and the next (duration-1) hours are available
     for (let i = 0; i < duration; i++) {
@@ -99,7 +99,7 @@ export function BookingCalendar({
       const checkTime = `${currentHour.toString().padStart(2, '0')}:00`;
       
       // Check if this hour is booked
-      const isBooked = availability.bookedSlots.some((slot: { startTime: string; endTime: string }) => {
+      const isBooked = (availability as any).bookedSlots.some((slot: { startTime: string; endTime: string }) => {
         return checkTime >= slot.startTime && checkTime < slot.endTime;
       });
       
@@ -166,7 +166,7 @@ export function BookingCalendar({
           <div className="text-sm text-purple-700">
             {selectedDuration > 1 && (
               <span className="font-medium">
-                Save ${(selectedDuration * 50) - (selectedDuration === 2 ? 95 : selectedDuration === 3 ? 135 : 170)}!
+                Save £{(selectedDuration * 40) - (selectedDuration === 2 ? 75 : selectedDuration === 3 ? 105 : 135)}!
               </span>
             )}
           </div>

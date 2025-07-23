@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,15 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { getAuthState } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { Elements } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+import { PaymentForm } from "./payment-form";
+
+// Initialize Stripe
+if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
+  throw new Error('Missing required Stripe key: VITE_STRIPE_PUBLIC_KEY');
+}
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
 interface BookingModalProps {
   open: boolean;
@@ -41,6 +50,9 @@ export function BookingModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [idNumber, setIdNumber] = useState("");
   const [idType, setIdType] = useState("");
+  const [showPayment, setShowPayment] = useState(false);
+  const [clientSecret, setClientSecret] = useState("");
+  const [paymentIntentId, setPaymentIntentId] = useState("");
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -81,6 +93,20 @@ export function BookingModal({
     setIsSubmitting(false);
     setIdNumber("");
     setIdType("");
+    setShowPayment(false);
+    setClientSecret("");
+    setPaymentIntentId("");
+  };
+
+  // Create payment intent
+  const createPaymentIntent = async () => {
+    const totalPrice = calculatePrice(selectedDuration);
+    const response = await apiRequest("POST", "/api/create-payment-intent", {
+      amount: totalPrice,
+      currency: "gbp"
+    });
+    const data = await response.json();
+    return data;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -113,7 +139,29 @@ export function BookingModal({
       return;
     }
 
+    // Create payment intent and show payment form
+    try {
+      setIsSubmitting(true);
+      const paymentData = await createPaymentIntent();
+      setClientSecret(paymentData.clientSecret);
+      setPaymentIntentId(paymentData.paymentIntentId);
+      setShowPayment(true);
+    } catch (error) {
+      toast({
+        title: "Payment Setup Failed",
+        description: "Failed to initialize payment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePaymentSuccess = async () => {
+    // Create the booking after successful payment
     setIsSubmitting(true);
+
+    if (!selectedRoom || !selectedDate || !selectedTime) return;
 
     const endTime = `${String(parseInt(selectedTime.split(':')[0]) + selectedDuration).padStart(2, '0')}:00`;
     
@@ -129,6 +177,7 @@ export function BookingModal({
       specialRequests: specialRequests || null,
       idNumber,
       idType,
+      paymentIntentId, // Include payment intent ID
     };
 
     bookingMutation.mutate(bookingData);
@@ -185,11 +234,21 @@ export function BookingModal({
       <DialogContent className="sm:max-w-md max-h-screen overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-gray-900">
-            Complete Your Booking
+            {showPayment ? "Payment" : "Complete Your Booking"}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {showPayment && clientSecret ? (
+          <Elements stripe={stripePromise} options={{ clientSecret }}>
+            <PaymentForm
+              amount={calculatePrice(selectedDuration)}
+              onSuccess={handlePaymentSuccess}
+              onCancel={() => setShowPayment(false)}
+            />
+          </Elements>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Booking Details Review */}
           {/* Booking Details Review */}
           <div className="bg-gray-50 rounded-lg p-4">
             <h4 className="font-medium text-gray-900 mb-3">Booking Details</h4>
@@ -384,10 +443,11 @@ export function BookingModal({
               className="flex-1 bg-music-purple hover:bg-music-purple/90"
               disabled={isSubmitting || !acceptedTerms}
             >
-              {isSubmitting ? "Processing..." : "Confirm Booking"}
+              {isSubmitting ? "Processing..." : "Proceed to Payment"}
             </Button>
           </div>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );

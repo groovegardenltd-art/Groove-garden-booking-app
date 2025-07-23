@@ -64,15 +64,15 @@ export default function Home() {
   const calculatePrice = (duration: number) => {
     switch (duration) {
       case 1:
-        return 50;
+        return 40;
       case 2:
-        return 95;
+        return 75;
       case 3:
-        return 135;
+        return 105;
       case 4:
-        return 170;
+        return 135;
       default:
-        return duration * 50;
+        return duration * 40;
     }
   };
 

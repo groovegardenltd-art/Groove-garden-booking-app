@@ -4,6 +4,15 @@ import { storage } from "./storage";
 import { insertUserSchema, loginSchema, insertBookingSchema } from "@shared/schema";
 import { createTTLockService } from "./ttlock";
 import { z } from "zod";
+import Stripe from "stripe";
+
+// Initialize Stripe
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
+}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: "2023-10-16",
+});
 
 // Extend Express Request interface to include userId
 interface AuthenticatedRequest extends Request {
@@ -437,6 +446,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         message: "TTLock connection failed",
         error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Stripe payment routes
+  app.post("/api/create-payment-intent", requireAuth, async (req, res) => {
+    try {
+      const { amount, currency = "gbp" } = req.body;
+      
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ message: "Invalid amount" });
+      }
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert pounds to pence
+        currency,
+        automatic_payment_methods: {
+          enabled: true,
+        },
+        metadata: {
+          userId: (req as AuthenticatedRequest).userId.toString(),
+        },
+      });
+
+      res.json({ 
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        message: "Error creating payment intent: " + error.message 
       });
     }
   });
