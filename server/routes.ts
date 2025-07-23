@@ -1,9 +1,14 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, loginSchema, insertBookingSchema } from "@shared/schema";
 import { createTTLockService } from "./ttlock";
 import { z } from "zod";
+
+// Extend Express Request interface to include userId
+interface AuthenticatedRequest extends Request {
+  userId: number;
+}
 
 // Mock smart lock API
 function generateAccessCode(): string {
@@ -58,8 +63,8 @@ function getSession(sessionId: string): { userId: number } | null {
   return { userId: session.userId };
 }
 
-function requireAuth(req: any, res: any, next: any) {
-  const sessionId = req.headers.authorization?.replace('Bearer ', '') || req.headers['x-session-id'];
+function requireAuth(req: Request, res: Response, next: NextFunction) {
+  const sessionId = (req.headers.authorization?.replace('Bearer ', '') || req.headers['x-session-id']) as string;
   
   if (!sessionId) {
     console.log('No session ID found in request headers');
@@ -72,7 +77,7 @@ function requireAuth(req: any, res: any, next: any) {
     return res.status(401).json({ message: "Invalid or expired session" });
   }
 
-  req.userId = session.userId;
+  (req as AuthenticatedRequest).userId = session.userId;
   next();
 }
 
@@ -142,7 +147,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/me", requireAuth, async (req, res) => {
-    const user = await storage.getUser(req.userId);
+    const authReq = req as AuthenticatedRequest;
+    const user = await storage.getUser(authReq.userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -197,7 +203,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Booking routes
   app.get("/api/bookings", requireAuth, async (req, res) => {
     try {
-      const bookings = await storage.getBookingsByUser(req.userId);
+      const authReq = req as AuthenticatedRequest;
+      const bookings = await storage.getBookingsByUser(authReq.userId);
       res.json(bookings);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch bookings" });
@@ -206,6 +213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/bookings/:id", requireAuth, async (req, res) => {
     try {
+      const authReq = req as AuthenticatedRequest;
       const id = parseInt(req.params.id);
       const booking = await storage.getBooking(id);
       
@@ -213,7 +221,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Booking not found" });
       }
 
-      if (booking.userId !== req.userId) {
+      if (booking.userId !== authReq.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -298,10 +306,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      const authReq = req as AuthenticatedRequest;
       const booking = await storage.createBooking({
         ...bookingData,
         totalPrice: totalPrice.toString(),
-        userId: req.userId,
+        userId: authReq.userId,
         accessCode: ttlockPasscode || accessCode, // Use TTLock passcode if available, fallback to demo code
         ttlockPasscode: ttlockPasscode || undefined,
         ttlockPasscodeId: ttlockPasscodeId || undefined,
@@ -311,16 +320,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(booking);
     } catch (error) {
       console.error('Booking creation error:', error);
-      console.error('Error stack:', error.stack);
+      if (error instanceof Error) {
+        console.error('Error stack:', error.stack);
+      }
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
-      res.status(500).json({ message: "Failed to create booking", error: error.message, stack: error.stack });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      res.status(500).json({ message: "Failed to create booking", error: errorMessage, stack: errorStack });
     }
   });
 
   app.patch("/api/bookings/:id/cancel", requireAuth, async (req, res) => {
     try {
+      const authReq = req as AuthenticatedRequest;
       const id = parseInt(req.params.id);
       const booking = await storage.getBooking(id);
       
@@ -328,7 +342,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Booking not found" });
       }
 
-      if (booking.userId !== req.userId) {
+      if (booking.userId !== authReq.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -339,7 +353,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Delete TTLock passcode if it exists
       if (ttlockService && booking.ttlockPasscodeId && booking.lockAccessEnabled) {
         try {
-          await ttlockService.deletePasscode(booking.ttlockPasscodeId);
+          await ttlockService.deletePasscode(parseInt(booking.ttlockPasscodeId));
           console.log(`Smart lock passcode deleted for cancelled booking ${id}`);
         } catch (error) {
           console.warn('Failed to delete smart lock passcode:', error);
@@ -437,7 +451,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Booking not found" });
       }
 
-      if (booking.userId !== req.userId) {
+      const authReq = req as AuthenticatedRequest;
+      if (booking.userId !== authReq.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
