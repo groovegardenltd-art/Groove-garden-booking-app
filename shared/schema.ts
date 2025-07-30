@@ -21,6 +21,9 @@ export const rooms = pgTable("rooms", {
   pricePerHour: decimal("price_per_hour", { precision: 10, scale: 2 }).notNull(),
   maxCapacity: integer("max_capacity").notNull(),
   isActive: boolean("is_active").notNull().default(true),
+  // TTLock integration
+  lockId: text("lock_id"), // TTLock ID for this room's door
+  lockName: text("lock_name"), // Human-readable lock name
 });
 
 export const bookings = pgTable("bookings", {

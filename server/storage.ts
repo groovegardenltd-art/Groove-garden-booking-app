@@ -43,6 +43,8 @@ export class DatabaseStorage implements IStorage {
             pricePerHour: "40.00",
             maxCapacity: 5,
             isActive: true,
+            lockId: process.env.TTLOCK_LOCK_ID_A || process.env.TTLOCK_LOCK_ID || '',
+            lockName: "Studio A Door",
           },
           {
             name: "Studio B",
@@ -51,6 +53,8 @@ export class DatabaseStorage implements IStorage {
             pricePerHour: "40.00",
             maxCapacity: 8,
             isActive: true,
+            lockId: process.env.TTLOCK_LOCK_ID_B || '',
+            lockName: "Studio B Door",
           },
           {
             name: "Studio C",
@@ -59,6 +63,8 @@ export class DatabaseStorage implements IStorage {
             pricePerHour: "40.00",
             maxCapacity: 12,
             isActive: true,
+            lockId: process.env.TTLOCK_LOCK_ID_C || '',
+            lockName: "Studio C Door",
           },
         ];
 

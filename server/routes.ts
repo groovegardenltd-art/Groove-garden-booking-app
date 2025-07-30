@@ -1,6 +1,9 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { db } from "./db";
+import { rooms } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import { insertUserSchema, loginSchema, insertBookingSchema } from "@shared/schema";
 import { createTTLockService } from "./ttlock";
 import { z } from "zod";
@@ -11,7 +14,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
 }
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2023-10-16",
+  apiVersion: "2024-12-18.acacia",
 });
 
 // Extend Express Request interface to include userId
@@ -279,36 +282,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (ttlockService) {
         try {
-          // Check lock status first
-          const lockStatus = await ttlockService.getLockStatus();
-          
-          // Create dates in local timezone (UK is UTC+1 in summer)
-          const [startHours, startMinutes = '00'] = bookingData.startTime.split(':');
-          const [endHours, endMinutes = '00'] = bookingData.endTime.split(':');
-          const [year, month, day] = bookingData.date.split('-');
-          
-          // Adjust for timezone difference - subtract 1 hour to correct TTLock display
-          const adjustedStartHour = parseInt(startHours) - 1;
-          const adjustedEndHour = parseInt(endHours) - 1;
-          
-          const startDateTime = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), adjustedStartHour, parseInt(startMinutes)));
-          const endDateTime = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), adjustedEndHour, parseInt(endMinutes)));
-          
-          const lockResult = await ttlockService.createTimeLimitedPasscode(
-            startDateTime,
-            endDateTime,
-            Date.now() // temporary booking ID
-          );
-          
-          ttlockPasscode = lockResult.passcode;
-          ttlockPasscodeId = lockResult.passcodeId;
-          lockAccessEnabled = lockStatus.isOnline; // Only enable if lock is online
-          
-          if (!lockStatus.isOnline) {
-            console.warn(`WARNING: Lock is OFFLINE - Passcode ${ttlockPasscode} sent to cloud but may not reach physical lock`);
+          // Get room details to find the lock ID
+          const room = await storage.getRoom(bookingData.roomId);
+          if (!room || !room.lockId) {
+            console.log(`No lock configured for room ${bookingData.roomId}`);
+          } else {
+            // Check lock status first
+            const lockStatus = await ttlockService.getLockStatus(room.lockId);
+            
+            // Create dates in local timezone (UK is UTC+1 in summer)
+            const [startHours, startMinutes = '00'] = bookingData.startTime.split(':');
+            const [endHours, endMinutes = '00'] = bookingData.endTime.split(':');
+            const [year, month, day] = bookingData.date.split('-');
+            
+            // Adjust for timezone difference - subtract 1 hour to correct TTLock display
+            const adjustedStartHour = parseInt(startHours) - 1;
+            const adjustedEndHour = parseInt(endHours) - 1;
+            
+            const startDateTime = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), adjustedStartHour, parseInt(startMinutes)));
+            const endDateTime = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), adjustedEndHour, parseInt(endMinutes)));
+            
+            const lockResult = await ttlockService.createTimeLimitedPasscode(
+              room.lockId,
+              startDateTime,
+              endDateTime,
+              Date.now() // temporary booking ID
+            );
+            
+            ttlockPasscode = lockResult.passcode;
+            ttlockPasscodeId = lockResult.passcodeId;
+            lockAccessEnabled = lockStatus.isOnline; // Only enable if lock is online
+            
+            if (!lockStatus.isOnline) {
+              console.warn(`WARNING: Lock is OFFLINE - Passcode ${ttlockPasscode} sent to cloud but may not reach physical lock`);
+            }
+            
+            console.log(`Smart lock passcode created: ${ttlockPasscode} for booking ${bookingData.date} ${bookingData.startTime}-${bookingData.endTime}`);
           }
-          
-          console.log(`Smart lock passcode created: ${ttlockPasscode} for booking ${bookingData.date} ${bookingData.startTime}-${bookingData.endTime}`);
         } catch (error) {
           console.warn('Failed to create smart lock passcode:', error);
           // Continue with booking creation even if smart lock fails
@@ -322,7 +332,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: authReq.userId,
         accessCode: ttlockPasscode || accessCode, // Use TTLock passcode if available, fallback to demo code
         ttlockPasscode: ttlockPasscode || undefined,
-        ttlockPasscodeId: ttlockPasscodeId || undefined,
+        ttlockPasscodeId: ttlockPasscodeId?.toString() || undefined,
         lockAccessEnabled
       });
 
@@ -362,8 +372,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Delete TTLock passcode if it exists
       if (ttlockService && booking.ttlockPasscodeId && booking.lockAccessEnabled) {
         try {
-          await ttlockService.deletePasscode(parseInt(booking.ttlockPasscodeId));
-          console.log(`Smart lock passcode deleted for cancelled booking ${id}`);
+          // Get room details to find the lock ID
+          const room = await storage.getRoom(booking.roomId);
+          if (room && room.lockId) {
+            await ttlockService.deletePasscode(room.lockId, parseInt(booking.ttlockPasscodeId));
+            console.log(`Smart lock passcode deleted for cancelled booking ${id}`);
+          }
         } catch (error) {
           console.warn('Failed to delete smart lock passcode:', error);
         }
@@ -390,9 +404,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const status = await ttlockService.getLockStatus();
+      // For now, get status of first available lock
+      // TODO: Make this room-specific
+      const rooms = await storage.getAllRooms();
+      const roomWithLock = rooms.find(room => room.lockId);
+      
+      if (!roomWithLock || !roomWithLock.lockId) {
+        return res.status(404).json({ message: "No locks configured" });
+      }
+      
+      const status = await ttlockService.getLockStatus(roomWithLock.lockId);
       res.json({
         configured: true,
+        lockName: roomWithLock.lockName,
+        roomName: roomWithLock.name,
         ...status
       });
     } catch (error) {
@@ -410,7 +435,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const start = startDate ? new Date(startDate as string) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
       const end = endDate ? new Date(endDate as string) : new Date();
 
-      const logs = await ttlockService.getAccessLogs(start, end);
+      // For now, get logs from first available lock
+      // TODO: Make this room-specific or aggregate all rooms
+      const rooms = await storage.getAllRooms();
+      const roomWithLock = rooms.find(room => room.lockId);
+      
+      if (!roomWithLock || !roomWithLock.lockId) {
+        return res.status(404).json({ message: "No locks configured" });
+      }
+      
+      const logs = await ttlockService.getAccessLogs(roomWithLock.lockId, start, end);
       res.json(logs);
     } catch (error) {
       res.status(500).json({ message: "Failed to get access logs" });
@@ -435,18 +469,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const status = await ttlockService.getLockStatus();
+      // Test connection with first available lock
+      const rooms = await storage.getAllRooms();
+      const roomWithLock = rooms.find(room => room.lockId);
+      
+      if (!roomWithLock || !roomWithLock.lockId) {
+        return res.status(404).json({ message: "No locks configured in rooms" });
+      }
+      
+      const status = await ttlockService.getLockStatus(roomWithLock.lockId);
       res.json({
         message: "TTLock connection successful",
         configured: true,
         lock_online: status.isOnline,
-        battery_level: status.batteryLevel
+        battery_level: status.batteryLevel,
+        tested_lock: roomWithLock.name
       });
     } catch (error) {
       res.status(500).json({ 
         message: "TTLock connection failed",
         error: error instanceof Error ? error.message : "Unknown error"
       });
+    }
+  });
+
+  // Room lock management routes
+  app.patch("/api/rooms/:id/lock", requireAuth, async (req, res) => {
+    try {
+      const roomId = parseInt(req.params.id);
+      const { lockId, lockName } = req.body;
+      
+      if (!lockId || !lockName) {
+        return res.status(400).json({ message: "Lock ID and name are required" });
+      }
+
+      const [updatedRoom] = await db
+        .update(rooms)
+        .set({ lockId, lockName })
+        .where(eq(rooms.id, roomId))
+        .returning();
+
+      if (!updatedRoom) {
+        return res.status(404).json({ message: "Room not found" });
+      }
+
+      res.json(updatedRoom);
+    } catch (error) {
+      console.error('Lock update error:', error);
+      res.status(500).json({ message: "Failed to update lock configuration" });
+    }
+  });
+
+  app.delete("/api/rooms/:id/lock", requireAuth, async (req, res) => {
+    try {
+      const roomId = parseInt(req.params.id);
+
+      const [updatedRoom] = await db
+        .update(rooms)
+        .set({ lockId: null, lockName: null })
+        .where(eq(rooms.id, roomId))
+        .returning();
+
+      if (!updatedRoom) {
+        return res.status(404).json({ message: "Room not found" });
+      }
+
+      res.json({ message: "Lock configuration removed" });
+    } catch (error) {
+      console.error('Lock removal error:', error);
+      res.status(500).json({ message: "Failed to remove lock configuration" });
     }
   });
 

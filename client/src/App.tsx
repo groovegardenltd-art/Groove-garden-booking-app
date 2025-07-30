@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "@/pages/home";
 import Bookings from "@/pages/bookings";
 import SmartLock from "@/pages/smart-lock";
+import LockManagement from "@/pages/lock-management";
 import Login from "@/pages/login";
 import NotFound from "@/pages/not-found";
 import Website from "@/pages/website";
@@ -18,6 +19,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/bookings" component={Bookings} />
       <Route path="/smart-lock" component={SmartLock} />
+      <Route path="/lock-management" component={LockManagement} />
       <Route path="/login" component={Login} />
       <Route component={NotFound} />
     </Switch>

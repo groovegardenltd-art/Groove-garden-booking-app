@@ -11,6 +11,11 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - **Smart Lock**: TTLock API integration for automated access control
 
 ## Recent Changes
+- **Jul 30, 2025**: ✅ MULTI-LOCK SYSTEM IMPLEMENTED - Added support for multiple TTLock smart locks
+- **Jul 30, 2025**: Created lock management interface at `/lock-management` for configuring locks per room
+- **Jul 30, 2025**: Updated database schema to store lockId and lockName for each room
+- **Jul 30, 2025**: Modified TTLock service to accept specific lock IDs for each booking
+- **Jul 30, 2025**: Added room-specific lock management API endpoints
 - **Jul 23, 2025**: ✅ PAYMENT INTEGRATION COMPLETED - Added Stripe payment processing for all bookings
 - **Jul 23, 2025**: Fixed all currency display issues - replaced remaining dollar signs with pounds (£)
 - **Jul 23, 2025**: Implemented secure payment-before-booking flow with Stripe Elements
@@ -38,10 +43,12 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - Smart lock integration for secure access
 
 ### Smart Lock Integration (TTLock)
+- **Multi-lock support** - Each room can have its own dedicated smart lock
 - Automatic access code generation for confirmed bookings
 - Time-based access control aligned with booking schedules
 - Remote lock management through TTLock API
-- Access logging and monitoring
+- Lock management interface for easy configuration
+- Room-specific access logging and monitoring
 
 ## User Preferences
 - Focus on security and user experience
@@ -50,6 +57,8 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - Smart lock integration for seamless access control
 
 ## API Integrations
-- TTLock API for smart lock management
-- Booking system generates temporary access codes
+- **TTLock API** for smart lock management (supports multiple locks)
+- **Lock Management System** - Configure locks per room through web interface
+- Booking system generates temporary access codes for specific room locks
 - Access codes are time-limited to booking duration
+- Environment variables: TTLOCK_CLIENT_ID, TTLOCK_CLIENT_SECRET, TTLOCK_USERNAME, TTLOCK_PASSWORD

@@ -5,7 +5,6 @@ interface TTLockConfig {
   clientSecret: string;
   username: string;
   password: string;
-  lockId: string;
 }
 
 interface AccessToken {
@@ -75,6 +74,7 @@ export class TTLockService {
   }
 
   async createTimeLimitedPasscode(
+    lockId: string,
     startTime: Date,
     endTime: Date,
     bookingId: number
@@ -87,7 +87,7 @@ export class TTLockService {
       const startTimeMs = startTime.getTime();
       const endTimeMs = endTime.getTime();
 
-      console.log(`Sending passcode ${passcode} to TTLock lock ${this.config.lockId} for booking ${bookingId}`);
+      console.log(`Sending passcode ${passcode} to TTLock lock ${lockId} for booking ${bookingId}`);
       console.log(`Valid from ${startTime.toISOString()} to ${endTime.toISOString()}`);
       console.log(`TTLock timestamps - Start: ${startTimeMs}, End: ${endTimeMs}`);
 
@@ -99,7 +99,7 @@ export class TTLockService {
         body: new URLSearchParams({
           clientId: this.config.clientId,
           accessToken: accessToken,
-          lockId: this.config.lockId,
+          lockId: lockId,
           keyboardPwd: passcode,
           keyboardPwdName: `Booking-${bookingId}`,
           startDate: startTimeMs.toString(),
@@ -148,7 +148,7 @@ export class TTLockService {
     }
   }
 
-  async deletePasscode(passcodeId: number): Promise<boolean> {
+  async deletePasscode(lockId: string, passcodeId: number): Promise<boolean> {
     try {
       const accessToken = await this.getAccessToken();
 
@@ -160,7 +160,7 @@ export class TTLockService {
         body: new URLSearchParams({
           clientId: this.config.clientId,
           accessToken: accessToken,
-          lockId: this.config.lockId,
+          lockId: lockId,
           keyboardPwdId: passcodeId.toString(),
           date: Date.now().toString(),
         }),
@@ -173,7 +173,7 @@ export class TTLockService {
     }
   }
 
-  async getLockStatus(): Promise<{ isOnline: boolean; batteryLevel?: number; lockData?: any }> {
+  async getLockStatus(lockId: string): Promise<{ isOnline: boolean; batteryLevel?: number; lockData?: any }> {
     try {
       const accessToken = await this.getAccessToken();
 
@@ -185,7 +185,7 @@ export class TTLockService {
         body: new URLSearchParams({
           clientId: this.config.clientId,
           accessToken: accessToken,
-          lockId: this.config.lockId,
+          lockId: lockId,
           date: Date.now().toString(),
         }),
       });
@@ -213,7 +213,7 @@ export class TTLockService {
     }
   }
 
-  async getAccessLogs(startTime: Date, endTime: Date): Promise<any[]> {
+  async getAccessLogs(lockId: string, startTime: Date, endTime: Date): Promise<any[]> {
     try {
       const accessToken = await this.getAccessToken();
 
@@ -225,7 +225,7 @@ export class TTLockService {
         body: new URLSearchParams({
           clientId: this.config.clientId,
           accessToken: accessToken,
-          lockId: this.config.lockId,
+          lockId: lockId,
           startDate: startTime.getTime().toString(),
           endDate: endTime.getTime().toString(),
           date: Date.now().toString(),
@@ -251,10 +251,9 @@ export const createTTLockService = (): TTLockService | null => {
     clientSecret: process.env.TTLOCK_CLIENT_SECRET || '',
     username: process.env.TTLOCK_USERNAME || '',
     password: process.env.TTLOCK_PASSWORD || '',
-    lockId: process.env.TTLOCK_LOCK_ID || '',
   };
 
-  if (!config.clientId || !config.clientSecret || !config.username || !config.password || !config.lockId) {
+  if (!config.clientId || !config.clientSecret || !config.username || !config.password) {
     console.log('TTLock credentials not configured, using demo mode');
     return null;
   }
