@@ -12,7 +12,7 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 
 ## Recent Changes
 - **Jul 30, 2025**: ✅ MULTI-LOCK SYSTEM IMPLEMENTED - Added support for multiple TTLock smart locks
-- **Jul 30, 2025**: ✅ MAIN BUILDING LOCK CONFIGURED - Front door lock (534) now serves as main entrance for all studios
+- **Jul 30, 2025**: ✅ MAIN BUILDING LOCK CONFIGURED - Lock LL609_5aa163 (24518732) now serves as front door for Studios A & B
 - **Jul 30, 2025**: Created lock management interface at `/lock-management` for configuring locks per room
 - **Jul 30, 2025**: Updated database schema to store lockId and lockName for each room
 - **Jul 30, 2025**: Modified TTLock service to accept specific lock IDs for each booking
@@ -21,9 +21,9 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - **Jul 23, 2025**: Fixed all currency display issues - replaced remaining dollar signs with pounds (£)
 - **Jul 23, 2025**: Implemented secure payment-before-booking flow with Stripe Elements
 - **Jul 23, 2025**: Debugged and resolved TypeScript errors in server routes and request handling
-- **Jul 30, 2025**: 🔍 TTLock API PERMISSION ISSUES IDENTIFIED - Error 20002 "not lock admin" and -2018 "Permission Denied"
-- **Jul 30, 2025**: ✅ BOOKING SYSTEM FULLY OPERATIONAL - Demo passcode fallback ensures uninterrupted service
-- **Jul 30, 2025**: Added enhanced TTLock error diagnostics with specific solution guidance
+- **Jul 30, 2025**: ✅ TTLock INTEGRATION FULLY OPERATIONAL - Real passcodes now working with correct lock IDs
+- **Jul 30, 2025**: Fixed lock ID configuration - was using 534 instead of full IDs (24518732, 23687062)
+- **Jul 30, 2025**: Successfully tested passcode creation - API returning keyboardPwdId confirmations
 - **Jun 30, 2025**: Enhanced diagnostics reveal lock "Front door" (SN534) requires admin permissions and API access
 - **Jun 30, 2025**: ✅ TIMEZONE ISSUE RESOLVED - TTLock app displays correct booking times (passcode 354185 confirmed)
 - **Jun 30, 2025**: Fixed TTLock timezone calculation by subtracting 1 hour to compensate for app's +1 hour interpretation
