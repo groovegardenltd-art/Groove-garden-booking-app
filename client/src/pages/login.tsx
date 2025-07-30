@@ -10,7 +10,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { setAuthState } from "@/lib/auth";
 import { useLocation } from "wouter";
-import { Music } from "lucide-react";
+
 import logoImage from "@assets/groove-garden-logo.jpeg";
 
 export default function Login() {
@@ -128,10 +128,7 @@ export default function Login() {
               alt="Groove Garden Studio" 
               className="w-20 h-20 rounded-lg object-cover mb-4 shadow-lg"
             />
-            <div className="flex items-center justify-center space-x-2">
-              <Music className="h-6 w-6 text-green-600" />
-              <h1 className="text-2xl font-bold text-green-600">Groove Garden Studios</h1>
-            </div>
+            <h1 className="text-2xl font-bold text-green-600">Groove Garden Studios</h1>
           </div>
           <h2 className="text-xl text-gray-900">
             Access Your Rehearsal Space
