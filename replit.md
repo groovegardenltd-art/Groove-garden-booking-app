@@ -12,7 +12,7 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 
 ## Recent Changes
 - **Jul 30, 2025**: ✅ MULTI-LOCK SYSTEM IMPLEMENTED - Added support for multiple TTLock smart locks
-- **Jul 30, 2025**: ✅ MAIN BUILDING LOCK CONFIGURED - Lock LL609_5aa163 (24518732) now serves as front door for Studios A & B
+- **Jul 30, 2025**: ✅ UNIFIED ACCESS CONTROL - All studios now use front door lock LL609_5aa163 (24518732) for consistent entry
 - **Jul 30, 2025**: Created lock management interface at `/lock-management` for configuring locks per room
 - **Jul 30, 2025**: Updated database schema to store lockId and lockName for each room
 - **Jul 30, 2025**: Modified TTLock service to accept specific lock IDs for each booking
@@ -45,12 +45,12 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - Smart lock integration for secure access
 
 ### Smart Lock Integration (TTLock)
-- **Multi-lock support** - Each room can have its own dedicated smart lock
+- **Unified front door access** - All studios use single front door lock LL609_5aa163 (24518732)
 - Automatic access code generation for confirmed bookings
 - Time-based access control aligned with booking schedules
 - Remote lock management through TTLock API
 - Lock management interface for easy configuration
-- Room-specific access logging and monitoring
+- Centralized access logging and monitoring
 
 ## User Preferences
 - Focus on security and user experience
