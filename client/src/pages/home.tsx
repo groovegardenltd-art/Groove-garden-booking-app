@@ -37,13 +37,13 @@ export default function Home() {
   }, [user, setLocation]);
 
   // Fetch rooms
-  const { data: rooms = [], isLoading: roomsLoading } = useQuery({
+  const { data: rooms = [], isLoading: roomsLoading } = useQuery<Room[]>({
     queryKey: ["/api/rooms"],
     enabled: !!user,
   });
 
   // Fetch user bookings
-  const { data: userBookings = [], isLoading: bookingsLoading } = useQuery({
+  const { data: userBookings = [], isLoading: bookingsLoading } = useQuery<BookingWithRoom[]>({
     queryKey: ["/api/bookings"],
     enabled: !!user,
   });

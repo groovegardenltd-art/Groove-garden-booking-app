@@ -1,5 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-import { getAuthHeaders } from "./auth";
+import { getAuthHeaders, clearAuthState } from "./auth";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -30,6 +30,14 @@ export async function apiRequest(
 
   if (!res.ok) {
     console.error(`API request failed: ${res.status} ${res.statusText}`);
+    
+    // Handle authentication errors by clearing invalid session
+    if (res.status === 401) {
+      console.log("Clearing expired session and redirecting to login");
+      clearAuthState();
+      window.location.href = "/login";
+      return res;
+    }
   }
 
   await throwIfResNotOk(res);
@@ -47,7 +55,13 @@ export const getQueryFn: <T>(options: {
       credentials: "include",
     });
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+    if (res.status === 401) {
+      console.log("Query failed due to invalid session, clearing auth state");
+      clearAuthState();
+      if (unauthorizedBehavior === "returnNull") {
+        return null;
+      }
+      window.location.href = "/login";
       return null;
     }
 
