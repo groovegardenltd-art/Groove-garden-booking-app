@@ -322,6 +322,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
             
             console.log(`Smart lock passcode created: ${ttlockPasscode} for booking ${bookingData.date} ${bookingData.startTime}-${bookingData.endTime}`);
+            console.log(`📱 BACKUP ACCESS: Initialization passcode 1123334 always works for emergency access`);
           }
         } catch (error) {
           console.warn('Failed to create smart lock passcode:', error);

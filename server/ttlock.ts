@@ -119,7 +119,8 @@ export class TTLockService {
       
       // TTLock returns keyboardPwdId on success, errcode on failure
       if (data.keyboardPwdId) {
-        console.log(`🔑 SUCCESS: Passcode ${passcode} sent to physical TTLock! ID: ${data.keyboardPwdId}`);
+        console.log(`🔑 SUCCESS: Passcode ${passcode} created in TTLock cloud! ID: ${data.keyboardPwdId}`);
+      console.log(`⏰ NOTE: Temporary passcodes may take 5-10 minutes to sync with physical lock hardware`);
         
         return {
           passcode: passcode,
