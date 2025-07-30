@@ -13,7 +13,7 @@ import { Room, BookingWithRoom } from "@shared/schema";
 import { getAuthState } from "@/lib/auth";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import grooveGardenLogo from "@/assets/groove-garden-logo.jpeg";
+import grooveGardenLogo from "@assets/groove-garden-logo.jpeg";
 
 export default function Home() {
   const [, setLocation] = useLocation();
