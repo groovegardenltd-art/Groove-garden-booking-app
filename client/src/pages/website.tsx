@@ -88,7 +88,7 @@ export default function Website() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
@@ -109,7 +109,7 @@ export default function Website() {
                 <Button variant="outline">Login</Button>
               </Link>
               <Link href="/">
-                <Button className="bg-music-purple hover:bg-music-purple/90">
+                <Button className="bg-green-600 hover:bg-green-700">
                   Book Now
                 </Button>
               </Link>
@@ -130,7 +130,7 @@ export default function Website() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/">
-              <Button size="lg" className="bg-music-purple hover:bg-music-purple/90">
+              <Button size="lg" className="bg-green-600 hover:bg-green-700">
                 <Music className="w-5 h-5 mr-2" />
                 Start Booking
               </Button>
@@ -156,7 +156,7 @@ export default function Website() {
             {features.map((feature, index) => (
               <Card key={index} className="text-center border-0 shadow-lg">
                 <CardHeader>
-                  <div className="mx-auto w-12 h-12 bg-music-purple/10 rounded-lg flex items-center justify-center text-music-purple mb-4">
+                  <div className="mx-auto w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center text-green-600 mb-4">
                     {feature.icon}
                   </div>
                   <CardTitle className="text-lg">{feature.title}</CardTitle>
@@ -186,7 +186,7 @@ export default function Website() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-2xl font-bold text-music-purple">{studio.price}</span>
+                    <span className="text-2xl font-bold text-green-600">{studio.price}</span>
                     <Badge variant="secondary">{studio.capacity}</Badge>
                   </div>
                   <div>
@@ -198,7 +198,7 @@ export default function Website() {
                     </ul>
                   </div>
                   <Link href="/">
-                    <Button className="w-full bg-music-purple hover:bg-music-purple/90">
+                    <Button className="w-full bg-green-600 hover:bg-green-700">
                       Book {studio.name}
                     </Button>
                   </Link>
@@ -220,15 +220,15 @@ export default function Website() {
           </p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-4xl mx-auto">
             {pricing.map((tier, index) => (
-              <Card key={index} className={`relative ${tier.popular ? 'ring-2 ring-music-purple shadow-lg' : ''}`}>
+              <Card key={index} className={`relative ${tier.popular ? 'ring-2 ring-green-600 shadow-lg' : ''}`}>
                 {tier.popular && (
-                  <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-music-purple">
+                  <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-green-600">
                     Most Popular
                   </Badge>
                 )}
                 <CardHeader className="text-center">
                   <CardTitle className="text-lg">{tier.duration}</CardTitle>
-                  <div className="text-3xl font-bold text-music-purple">{tier.price}</div>
+                  <div className="text-3xl font-bold text-green-600">{tier.price}</div>
                   {tier.savings && (
                     <Badge variant="secondary" className="text-green-600">
                       {tier.savings}
@@ -280,17 +280,17 @@ export default function Website() {
           </h3>
           <div className="grid md:grid-cols-3 gap-8 max-w-3xl mx-auto">
             <div className="flex flex-col items-center">
-              <MapPin className="w-8 h-8 text-music-purple mb-3" />
+              <MapPin className="w-8 h-8 text-green-600 mb-3" />
               <h4 className="font-semibold mb-2">Location</h4>
               <p className="text-gray-600">123 Music Street<br />London, UK</p>
             </div>
             <div className="flex flex-col items-center">
-              <Phone className="w-8 h-8 text-music-purple mb-3" />
+              <Phone className="w-8 h-8 text-green-600 mb-3" />
               <h4 className="font-semibold mb-2">Phone</h4>
               <p className="text-gray-600">+44 20 1234 5678</p>
             </div>
             <div className="flex flex-col items-center">
-              <Mail className="w-8 h-8 text-music-purple mb-3" />
+              <Mail className="w-8 h-8 text-green-600 mb-3" />
               <h4 className="font-semibold mb-2">Email</h4>
               <p className="text-gray-600">hello@groovegarden.co.uk</p>
             </div>
