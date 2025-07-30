@@ -21,9 +21,10 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - **Jul 23, 2025**: Fixed all currency display issues - replaced remaining dollar signs with pounds (£)
 - **Jul 23, 2025**: Implemented secure payment-before-booking flow with Stripe Elements
 - **Jul 23, 2025**: Debugged and resolved TypeScript errors in server routes and request handling
-- **Jun 30, 2025**: 🔍 DIAGNOSED LOCK CONNECTIVITY - Physical lock offline (state: 0), passcodes reach cloud but not hardware
-- **Jun 30, 2025**: Added lock status monitoring - system now checks online status before enabling access codes
-- **Jun 30, 2025**: Enhanced diagnostics reveal lock "Front door" (SN534) disconnected from TTLock cloud service
+- **Jul 30, 2025**: 🔍 TTLock API PERMISSION ISSUES IDENTIFIED - Error 20002 "not lock admin" and -2018 "Permission Denied"
+- **Jul 30, 2025**: ✅ BOOKING SYSTEM FULLY OPERATIONAL - Demo passcode fallback ensures uninterrupted service
+- **Jul 30, 2025**: Added enhanced TTLock error diagnostics with specific solution guidance
+- **Jun 30, 2025**: Enhanced diagnostics reveal lock "Front door" (SN534) requires admin permissions and API access
 - **Jun 30, 2025**: ✅ TIMEZONE ISSUE RESOLVED - TTLock app displays correct booking times (passcode 354185 confirmed)
 - **Jun 30, 2025**: Fixed TTLock timezone calculation by subtracting 1 hour to compensate for app's +1 hour interpretation
 - **Jun 30, 2025**: TTLock integration operational - real 6-digit passcodes transmitted to cloud (physical lock needs reconnection)

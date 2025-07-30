@@ -59,11 +59,30 @@ TTLOCK_LOCK_ID=your_lock_device_id
 
 ## Troubleshooting
 
-**Common Issues:**
+**Critical Permission Issues:**
+
+- **Error 20002 "not lock admin"**: 
+  - SOLUTION: The TTLock account must be granted admin privileges for each lock
+  - In TTLock mobile app: Settings → Lock Management → Add User → Grant Admin Access
+  - Contact your lock owner to add your developer account as lock admin
+
+- **Error -2018 "Permission Denied"**: 
+  - SOLUTION: Developer account lacks API permissions for passcode management
+  - Contact TTLock Developer Support: developer@ttlock.com
+  - Request "Passcode Management API" permissions for your application
+  - May require business verification or special approval
+
+**Other Common Issues:**
 - **Lock Offline**: Ensure lock has WiFi connection and is powered
 - **Authentication Failed**: Double-check username/password
 - **Invalid Lock ID**: Verify the ID from TTLock mobile app
 - **API Rate Limits**: TTLock has rate limits - wait if you get errors
+
+**Current Status:**
+- ✅ Booking system working with fallback demo passcodes
+- ⚠️ TTLock API integration pending permission resolution
+- 📱 Demo passcodes: 6-digit codes generated for each booking
+- 🔋 Lock status monitoring operational
 
 **Getting Help:**
 - TTLock Developer Support: developer@ttlock.com

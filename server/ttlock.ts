@@ -127,6 +127,16 @@ export class TTLockService {
         };
       } else if (data.errcode !== undefined && data.errcode !== 0) {
         console.error(`TTLock API returned error: ${data.errcode} - ${data.errmsg}`);
+        
+        // Provide specific guidance for common permission errors
+        if (data.errcode === 20002) {
+          console.error('⚠️ PERMISSION ISSUE: Account is not lock admin for lock', lockId);
+          console.error('📋 SOLUTION: The TTLock account needs to be granted admin access to this lock');
+        } else if (data.errcode === -2018) {
+          console.error('⚠️ API PERMISSION ISSUE: Client credentials lack passcode creation permissions');
+          console.error('📋 SOLUTION: Contact TTLock support to enable passcode API permissions for your developer account');
+        }
+        
         throw new Error(`TTLock API error: ${data.errmsg || 'Unknown error'}`);
       } else {
         throw new Error(`Unexpected TTLock API response: ${JSON.stringify(data)}`);
