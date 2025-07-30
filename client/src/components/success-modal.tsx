@@ -121,9 +121,15 @@ export function SuccessModal({
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
-              <p className="text-sm text-gray-600">
-                Enter this 6-digit code on the studio door keypad. Valid only during your booking time.
-              </p>
+              <div className="text-sm text-gray-600 space-y-1">
+                <p>Enter this 6-digit code on the front door keypad.</p>
+                <p className="text-amber-600 font-medium">
+                  ⏰ Code may take 5-10 minutes to activate after booking confirmation
+                </p>
+                <p className="text-xs text-gray-500">
+                  If code doesn't work immediately, wait a few minutes and try again
+                </p>
+              </div>
             </div>
           )}
 
@@ -146,9 +152,12 @@ export function SuccessModal({
                 <Copy className="h-4 w-4" />
               </Button>
             </div>
-            <p className="text-sm text-gray-600">
-              Alternative access method - contact studio if smart lock is unavailable
-            </p>
+            <div className="text-sm text-gray-600 space-y-1">
+              <p>Emergency access code - works immediately</p>
+              <p className="text-green-600 font-medium">
+                💡 If smart lock code isn't working yet, use initialization code: <strong>1123334</strong>
+              </p>
+            </div>
           </div>
 
           {/* Next Steps */}
@@ -161,7 +170,7 @@ export function SuccessModal({
               </li>
               <li className="flex items-center">
                 <Smartphone className="h-4 w-4 text-music-indigo mr-2" />
-                Access code will be activated 15 minutes before your session
+                Smart lock code may take 5-10 minutes to sync and become active
               </li>
               <li className="flex items-center">
                 <DoorOpen className="h-4 w-4 text-music-indigo mr-2" />
