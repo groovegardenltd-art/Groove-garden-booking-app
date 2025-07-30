@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Music, Clock, Shield, CreditCard, Users, MapPin, Phone, Mail, Star } from "lucide-react";
+import { Music, Clock, Shield, CreditCard, Users, MapPin, Phone, Mail, Star, Leaf, Flower2, TreePine } from "lucide-react";
 import grooveGardenLogo from "@/assets/groove-garden-logo.jpeg";
 
 export default function Website() {
@@ -119,11 +119,29 @@ export default function Website() {
       </header>
 
       {/* Hero Section */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto text-center">
-          <h2 className="text-5xl font-bold text-gray-900 mb-6">
-            Professional Music Rehearsal Studios
-          </h2>
+      <section className="py-20 px-4 relative overflow-hidden">
+        {/* Decorative plants */}
+        <div className="absolute top-10 left-10 text-green-200/30">
+          <Leaf className="w-16 h-16 rotate-45" />
+        </div>
+        <div className="absolute top-20 right-20 text-green-300/40">
+          <Flower2 className="w-12 h-12 rotate-12" />
+        </div>
+        <div className="absolute bottom-10 left-1/4 text-emerald-200/30">
+          <TreePine className="w-20 h-20 -rotate-12" />
+        </div>
+        <div className="absolute bottom-20 right-10 text-green-200/40">
+          <Leaf className="w-14 h-14 rotate-90" />
+        </div>
+        
+        <div className="container mx-auto text-center relative z-10">
+          <div className="flex items-center justify-center mb-6">
+            <Leaf className="w-8 h-8 text-green-600 mr-3 rotate-45" />
+            <h2 className="text-5xl font-bold text-gray-900">
+              Professional Music Rehearsal Studios
+            </h2>
+            <Flower2 className="w-8 h-8 text-green-600 ml-3" />
+          </div>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
             Book premium rehearsal spaces with state-of-the-art equipment, secure access, 
             and flexible scheduling. Perfect for bands, solo artists, and music creators.
@@ -147,11 +165,23 @@ export default function Website() {
       </section>
 
       {/* Features Section */}
-      <section className="py-16 px-4 bg-white/50">
-        <div className="container mx-auto">
-          <h3 className="text-3xl font-bold text-center text-gray-900 mb-12">
-            Why Choose Groove Garden?
-          </h3>
+      <section className="py-16 px-4 bg-white/50 relative">
+        {/* Decorative flowers */}
+        <div className="absolute top-10 right-10 text-green-200/20">
+          <Flower2 className="w-24 h-24 rotate-45" />
+        </div>
+        <div className="absolute bottom-10 left-10 text-emerald-200/20">
+          <Leaf className="w-20 h-20 -rotate-45" />
+        </div>
+        
+        <div className="container mx-auto relative z-10">
+          <div className="flex items-center justify-center mb-12">
+            <TreePine className="w-6 h-6 text-green-600 mr-3" />
+            <h3 className="text-3xl font-bold text-center text-gray-900">
+              Why Choose Groove Garden?
+            </h3>
+            <Leaf className="w-6 h-6 text-green-600 ml-3 rotate-12" />
+          </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {features.map((feature, index) => (
               <Card key={index} className="text-center border-0 shadow-lg">
@@ -171,17 +201,43 @@ export default function Website() {
       </section>
 
       {/* Studios Section */}
-      <section id="studios" className="py-16 px-4">
-        <div className="container mx-auto">
-          <h3 className="text-3xl font-bold text-center text-gray-900 mb-12">
-            Our Studios
-          </h3>
+      <section id="studios" className="py-16 px-4 relative">
+        {/* Garden elements around studios */}
+        <div className="absolute top-0 left-20 text-green-200/30">
+          <Flower2 className="w-16 h-16 rotate-12" />
+        </div>
+        <div className="absolute top-40 right-0 text-emerald-200/25">
+          <TreePine className="w-18 h-18" />
+        </div>
+        <div className="absolute bottom-20 left-0 text-green-300/30">
+          <Leaf className="w-12 h-12 rotate-45" />
+        </div>
+        
+        <div className="container mx-auto relative z-10">
+          <div className="flex items-center justify-center mb-12">
+            <Flower2 className="w-6 h-6 text-green-600 mr-3 rotate-12" />
+            <h3 className="text-3xl font-bold text-center text-gray-900">
+              Our Studios
+            </h3>
+            <TreePine className="w-6 h-6 text-green-600 ml-3" />
+          </div>
           <div className="grid md:grid-cols-3 gap-8">
             {studios.map((studio, index) => (
-              <Card key={index} className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
+              <Card key={index} className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow relative group">
+                {/* Small decorative plants on cards */}
+                <div className="absolute top-2 right-2 text-green-200/40 group-hover:text-green-300/60 transition-colors">
+                  {index % 3 === 0 && <Leaf className="w-4 h-4 rotate-45" />}
+                  {index % 3 === 1 && <Flower2 className="w-4 h-4" />}
+                  {index % 3 === 2 && <TreePine className="w-4 h-4" />}
+                </div>
                 <CardHeader className="text-center">
                   <div className="text-6xl mb-4">{studio.image}</div>
-                  <CardTitle className="text-xl">{studio.name}</CardTitle>
+                  <CardTitle className="text-xl flex items-center justify-center">
+                    {studio.name}
+                    {index === 0 && <Leaf className="w-4 h-4 text-green-500 ml-2 rotate-12" />}
+                    {index === 1 && <Flower2 className="w-4 h-4 text-green-500 ml-2" />}
+                    {index === 2 && <TreePine className="w-4 h-4 text-green-500 ml-2" />}
+                  </CardTitle>
                   <CardDescription>{studio.description}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -273,11 +329,29 @@ export default function Website() {
       </section>
 
       {/* Contact Section */}
-      <section className="py-16 px-4 bg-white/50">
-        <div className="container mx-auto text-center">
-          <h3 className="text-3xl font-bold text-gray-900 mb-8">
-            Get In Touch
-          </h3>
+      <section className="py-16 px-4 bg-white/50 relative">
+        {/* Garden border elements */}
+        <div className="absolute top-5 left-5 text-green-200/30">
+          <Flower2 className="w-10 h-10 rotate-45" />
+        </div>
+        <div className="absolute top-5 right-5 text-emerald-200/30">
+          <Leaf className="w-12 h-12 -rotate-12" />
+        </div>
+        <div className="absolute bottom-5 left-1/3 text-green-300/30">
+          <TreePine className="w-8 h-8" />
+        </div>
+        <div className="absolute bottom-5 right-1/3 text-green-200/30">
+          <Flower2 className="w-10 h-10 rotate-90" />
+        </div>
+        
+        <div className="container mx-auto text-center relative z-10">
+          <div className="flex items-center justify-center mb-8">
+            <Leaf className="w-6 h-6 text-green-600 mr-3 rotate-45" />
+            <h3 className="text-3xl font-bold text-gray-900">
+              Get In Touch
+            </h3>
+            <Flower2 className="w-6 h-6 text-green-600 ml-3" />
+          </div>
           <div className="grid md:grid-cols-3 gap-8 max-w-3xl mx-auto">
             <div className="flex flex-col items-center">
               <MapPin className="w-8 h-8 text-green-600 mb-3" />
@@ -310,8 +384,14 @@ export default function Website() {
                   className="w-10 h-10 rounded-lg object-cover"
                 />
                 <div>
-                  <h4 className="font-bold">Groove Garden</h4>
-                  <p className="text-sm text-gray-400">Music Rehearsal Studios</p>
+                  <h4 className="font-bold flex items-center">
+                    Groove Garden
+                    <Leaf className="w-4 h-4 text-green-500 ml-2 rotate-12" />
+                  </h4>
+                  <p className="text-sm text-gray-400 flex items-center">
+                    Music Rehearsal Studios
+                    <Flower2 className="w-3 h-3 text-green-400 ml-2" />
+                  </p>
                 </div>
               </div>
               <p className="text-gray-400 text-sm">
