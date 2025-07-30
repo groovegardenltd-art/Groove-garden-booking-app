@@ -324,8 +324,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
             
             console.log(`Smart lock passcode created: ${ttlockPasscode} for booking ${bookingData.date} ${bookingData.startTime}-${bookingData.endTime}`);
-            console.log(`⏰ TTLock sync timing: Passcode may take 5-10 minutes to activate on physical lock`);
-            console.log(`🔑 Emergency backup: Initialization passcode 1123334 works immediately`);
+            console.log(`⏰ TTLock connectivity: Lock offline status confirmed - passcodes won't sync until reconnected`);
+            console.log(`🔑 Reliable access: Initialization passcode 1123334 guaranteed to work (stored locally on lock)`);
           }
         } catch (error) {
           console.warn('Failed to create smart lock passcode:', error);

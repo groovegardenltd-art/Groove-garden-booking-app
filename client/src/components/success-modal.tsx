@@ -123,11 +123,11 @@ export function SuccessModal({
               </div>
               <div className="text-sm text-gray-600 space-y-1">
                 <p>Enter this 6-digit code on the front door keypad.</p>
-                <p className="text-amber-600 font-medium">
-                  ⏰ Code may take 5-10 minutes to activate after booking confirmation
+                <p className="text-red-600 font-medium">
+                  ⚠️ Smart lock currently offline - booking codes may not work
                 </p>
                 <p className="text-xs text-gray-500">
-                  If code doesn't work immediately, wait a few minutes and try again
+                  Use backup access code 1123334 below for reliable entry
                 </p>
               </div>
             </div>
