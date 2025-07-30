@@ -19,7 +19,7 @@ export interface IStorage {
   getBookingsByUser(userId: number): Promise<BookingWithRoom[]>;
   getBooking(id: number): Promise<Booking | undefined>;
   getBookingsByRoomAndDate(roomId: number, date: string): Promise<Booking[]>;
-  createBooking(booking: InsertBooking & { userId: number; accessCode: string }): Promise<Booking>;
+  createBooking(booking: InsertBooking & { userId: number; accessCode: string; ttlockPasscode?: string; ttlockPasscodeId?: string; lockAccessEnabled?: boolean }): Promise<Booking>;
   updateBookingStatus(id: number, status: string): Promise<Booking | undefined>;
   cancelBooking(id: number): Promise<boolean>;
 }
@@ -151,12 +151,12 @@ export class DatabaseStorage implements IStorage {
       );
   }
 
-  async createBooking(booking: InsertBooking & { userId: number; accessCode: string; ttlockPasscode?: string; ttlockPasscodeId?: number; lockAccessEnabled?: boolean }): Promise<Booking> {
+  async createBooking(booking: InsertBooking & { userId: number; accessCode: string; ttlockPasscode?: string; ttlockPasscodeId?: string; lockAccessEnabled?: boolean }): Promise<Booking> {
     const [newBooking] = await db
       .insert(bookings)
       .values({
         ...booking,
-        ttlockPasscodeId: booking.ttlockPasscodeId ? String(booking.ttlockPasscodeId) : null,
+        ttlockPasscodeId: booking.ttlockPasscodeId || null,
         status: "confirmed"
       })
       .returning();

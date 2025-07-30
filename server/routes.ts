@@ -14,7 +14,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
 }
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2024-12-18.acacia",
+  apiVersion: "2025-06-30.basil",
 });
 
 // Extend Express Request interface to include userId
@@ -332,7 +332,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: authReq.userId,
         accessCode: ttlockPasscode || accessCode, // Use TTLock passcode if available, fallback to demo code
         ttlockPasscode: ttlockPasscode || undefined,
-        ttlockPasscodeId: ttlockPasscodeId?.toString() || undefined,
+        ttlockPasscodeId: ttlockPasscodeId ? ttlockPasscodeId.toString() : undefined,
         lockAccessEnabled
       });
 
