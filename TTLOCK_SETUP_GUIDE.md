@@ -87,10 +87,20 @@ TTLOCK_LOCK_ID=your_lock_device_id
   - If battery-powered: Replace batteries with fresh ones
   - Low power can cause connectivity issues
 
-**Temporary Workaround:**
-- Passcodes ARE being created in TTLock cloud system
-- Once lock reconnects, all pending passcodes should sync automatically
-- Users can manually unlock using TTLock mobile app as backup
+**Current Issue - Physical Lock Not Responding:**
+The booking system is working perfectly and creating real TTLock passcodes (e.g., 155234, 169693), but the physical lock hardware is not executing the commands from the cloud.
+
+**Immediate Troubleshooting Steps:**
+1. **Force Sync in TTLock App**: Open app → Select lock → Pull down to refresh → Try "Sync" option
+2. **Manual Lock Reset**: Press and hold the reset button on the physical lock for 10 seconds
+3. **Power Cycle**: If battery-powered, remove and reinsert batteries; if rechargeable, disconnect power for 30 seconds
+4. **Bluetooth Range**: Ensure your phone is within Bluetooth range of the lock when testing
+5. **Gateway Check**: Verify the G2 gateway device has power and WiFi connection
+
+**Cloud vs Hardware Status:**
+- ✅ TTLock Cloud: Receiving and storing passcodes successfully
+- ✅ Gateway: Online and connected to "Groove Garden Studios" WiFi  
+- ❌ Physical Lock: Not executing commands despite cloud connectivity
 
 **Other Issues:**
 - **Authentication Failed**: Double-check username/password
