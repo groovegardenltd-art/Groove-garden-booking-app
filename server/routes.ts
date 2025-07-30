@@ -318,7 +318,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             lockAccessEnabled = lockStatus.isOnline; // Only enable if lock is online
             
             if (!lockStatus.isOnline) {
-              console.warn(`WARNING: Lock is OFFLINE - Passcode ${ttlockPasscode} sent to cloud but may not reach physical lock`);
+              console.warn(`🚨 CRITICAL: Lock is OFFLINE - Passcode ${ttlockPasscode} will NOT work until lock reconnects to WiFi`);
+              console.warn(`🔧 IMMEDIATE SOLUTION: Use initialization passcode 1123334 for access`);
+              console.warn(`🛠️  LOCK TROUBLESHOOTING: Power cycle lock, check WiFi connectivity, ensure gateway proximity`);
             }
             
             console.log(`Smart lock passcode created: ${ttlockPasscode} for booking ${bookingData.date} ${bookingData.startTime}-${bookingData.endTime}`);

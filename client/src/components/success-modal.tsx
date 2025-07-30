@@ -155,7 +155,10 @@ export function SuccessModal({
             <div className="text-sm text-gray-600 space-y-1">
               <p>Emergency access code - works immediately</p>
               <p className="text-green-600 font-medium">
-                💡 If smart lock code isn't working yet, use initialization code: <strong>1123334</strong>
+                💡 If smart lock code isn't working, use reliable access code: <strong>1123334</strong>
+              </p>
+              <p className="text-xs text-gray-500">
+                This backup code works even when smart lock is offline
               </p>
             </div>
           </div>
