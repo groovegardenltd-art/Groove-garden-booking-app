@@ -9,13 +9,17 @@ import { createTTLockService } from "./ttlock";
 import { z } from "zod";
 import Stripe from "stripe";
 
+// Test mode configuration
+const TEST_MODE = process.env.NODE_ENV === 'development' || process.env.ENABLE_TEST_MODE === 'true';
+
 // Initialize Stripe
-if (!process.env.STRIPE_SECRET_KEY) {
+if (!process.env.STRIPE_SECRET_KEY && !TEST_MODE) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
 }
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2025-06-30.basil",
-});
+}) : null;
 
 // Extend Express Request interface to include userId
 interface AuthenticatedRequest extends Request {
@@ -548,6 +552,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!amount || amount <= 0) {
         return res.status(400).json({ message: "Invalid amount" });
+      }
+
+      // In test mode, return a mock payment intent
+      if (TEST_MODE) {
+        console.log(`TEST MODE: Mock payment intent created for £${amount}`);
+        res.json({ 
+          clientSecret: "pi_test_mock_client_secret",
+          paymentIntentId: "pi_test_mock_payment_intent",
+          testMode: true
+        });
+        return;
+      }
+
+      // Production mode - use real Stripe
+      if (!stripe) {
+        return res.status(503).json({ message: "Payment service not configured" });
       }
 
       const paymentIntent = await stripe.paymentIntents.create({

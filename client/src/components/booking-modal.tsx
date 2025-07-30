@@ -16,12 +16,15 @@ import { useToast } from "@/hooks/use-toast";
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { PaymentForm } from "./payment-form";
+import { TestPaymentForm } from "./test-payment-form";
 
-// Initialize Stripe
-if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
-  throw new Error('Missing required Stripe key: VITE_STRIPE_PUBLIC_KEY');
-}
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+// Test mode configuration
+const TEST_MODE = import.meta.env.DEV || import.meta.env.VITE_ENABLE_TEST_MODE === 'true';
+
+// Initialize Stripe (only if not in test mode and key is available)
+const stripePromise = (!TEST_MODE && import.meta.env.VITE_STRIPE_PUBLIC_KEY) 
+  ? loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY)
+  : null;
 
 interface BookingModalProps {
   open: boolean;
@@ -239,13 +242,25 @@ export function BookingModal({
         </DialogHeader>
 
         {showPayment && clientSecret ? (
-          <Elements stripe={stripePromise} options={{ clientSecret }}>
-            <PaymentForm
+          TEST_MODE ? (
+            <TestPaymentForm
               amount={calculatePrice(selectedDuration)}
               onSuccess={handlePaymentSuccess}
               onCancel={() => setShowPayment(false)}
             />
-          </Elements>
+          ) : stripePromise ? (
+            <Elements stripe={stripePromise} options={{ clientSecret }}>
+              <PaymentForm
+                amount={calculatePrice(selectedDuration)}
+                onSuccess={handlePaymentSuccess}
+                onCancel={() => setShowPayment(false)}
+              />
+            </Elements>
+          ) : (
+            <div className="text-center p-8">
+              <p className="text-red-600">Payment service not configured</p>
+            </div>
+          )
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Booking Details Review */}
