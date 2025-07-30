@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import grooveGardenLogo from "@assets/groove-garden-logo.jpeg";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { setAuthState } from "@/lib/auth";
@@ -121,9 +122,16 @@ export default function Login() {
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <Music className="h-8 w-8 text-music-purple" />
-            <h1 className="text-2xl font-bold text-music-purple">Groove Garden Studios</h1>
+          <div className="flex flex-col items-center mb-4">
+            <img 
+              src={grooveGardenLogo} 
+              alt="Groove Garden Studio" 
+              className="w-20 h-20 rounded-lg object-cover mb-4 shadow-lg"
+            />
+            <div className="flex items-center justify-center space-x-2">
+              <Music className="h-6 w-6 text-green-600" />
+              <h1 className="text-2xl font-bold text-green-600">Groove Garden Studios</h1>
+            </div>
           </div>
           <h2 className="text-xl text-gray-900">
             Access Your Rehearsal Space
@@ -168,7 +176,7 @@ export default function Login() {
                   </div>
                   <Button
                     type="submit"
-                    className="w-full bg-music-purple hover:bg-music-purple/90"
+                    className="w-full bg-green-600 hover:bg-green-700"
                     disabled={loginMutation.isPending}
                   >
                     {loginMutation.isPending ? "Signing In..." : "Sign In"}
