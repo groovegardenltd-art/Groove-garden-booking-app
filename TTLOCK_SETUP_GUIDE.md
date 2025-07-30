@@ -72,17 +72,36 @@ TTLOCK_LOCK_ID=your_lock_device_id
   - Request "Passcode Management API" permissions for your application
   - May require business verification or special approval
 
-**Other Common Issues:**
-- **Lock Offline**: Ensure lock has WiFi connection and is powered
+**Physical Lock Connectivity Issues:**
+
+- **Lock OFFLINE (Current Issue)**: 
+  - IMMEDIATE FIX: Reset lock's WiFi connection using TTLock mobile app
+  - Go to TTLock app → Select Lock → Settings → WiFi Settings → Reconnect Network
+  - Ensure lock is within WiFi range and password is correct
+  - Try "Wake Up" function in TTLock app to ping the lock
+  - Check if gateway device (if used) is powered and connected
+
+- **Power/Battery Issues**:
+  - Battery at 80% (dropped from 100%) - may need charging
+  - If rechargeable: Connect charging cable for 2-4 hours
+  - If battery-powered: Replace batteries with fresh ones
+  - Low power can cause connectivity issues
+
+**Temporary Workaround:**
+- Passcodes ARE being created in TTLock cloud system
+- Once lock reconnects, all pending passcodes should sync automatically
+- Users can manually unlock using TTLock mobile app as backup
+
+**Other Issues:**
 - **Authentication Failed**: Double-check username/password
-- **Invalid Lock ID**: Verify the ID from TTLock mobile app
+- **Invalid Lock ID**: Verify the ID from TTLock mobile app  
 - **API Rate Limits**: TTLock has rate limits - wait if you get errors
 
 **Current Status:**
-- ✅ Booking system working with fallback demo passcodes
-- ⚠️ TTLock API integration pending permission resolution
-- 📱 Demo passcodes: 6-digit codes generated for each booking
-- 🔋 Lock status monitoring operational
+- ✅ TTLock API integration fully operational - passcodes reaching cloud service
+- ⚠️ Physical lock OFFLINE - passcodes sent to cloud but not reaching hardware
+- 🔋 Lock battery: 100% (hardware powered but disconnected from network)
+- 📱 Real passcodes: 6-digit codes successfully created (e.g., 169693, ID: 10579764)
 
 **Getting Help:**
 - TTLock Developer Support: developer@ttlock.com
