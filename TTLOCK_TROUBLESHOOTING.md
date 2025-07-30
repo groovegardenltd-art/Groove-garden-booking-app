@@ -32,8 +32,16 @@ The lock has lost its WiFi connection to network "Groove Garden Studios" and can
 - Reset WiFi credentials in lock settings
 - Re-add lock to gateway in TTLock management interface
 
-### 4. Professional Service
-If connectivity cannot be restored:
+### 4. Hardware Replacement Solution
+**New TTLock WiFi Gateway (Recommended):**
+- Purchase TTLock G2 WiFi Gateway ($30-50)
+- Compatible with LL609 smart lock model
+- Fresh pairing eliminates connectivity corruption
+- 10ft optimal range, 32ft maximum
+- Setup: Pair lock → Connect gateway → Enable remote features
+
+### 5. Professional Service
+If new gateway doesn't resolve connectivity:
 - Contact TTLock technical support
 - Consider backup WiFi network configuration
 - Evaluate alternative smart lock solutions
