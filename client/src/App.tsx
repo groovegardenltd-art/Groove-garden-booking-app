@@ -8,10 +8,13 @@ import Bookings from "@/pages/bookings";
 import SmartLock from "@/pages/smart-lock";
 import Login from "@/pages/login";
 import NotFound from "@/pages/not-found";
+import Website from "@/pages/website";
 
 function Router() {
   return (
     <Switch>
+      <Route path="/website" component={Website} />
+      <Route path="/app" component={Home} />
       <Route path="/" component={Home} />
       <Route path="/bookings" component={Bookings} />
       <Route path="/smart-lock" component={SmartLock} />
