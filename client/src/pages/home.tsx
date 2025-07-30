@@ -13,6 +13,7 @@ import { Room, BookingWithRoom } from "@shared/schema";
 import { getAuthState } from "@/lib/auth";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import grooveGardenLogo from "@/assets/groove-garden-logo.jpeg";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -156,7 +157,17 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Book Your Rehearsal Space</h2>
+          <div className="flex items-center mb-4">
+            <img 
+              src={grooveGardenLogo} 
+              alt="Groove Garden Studio" 
+              className="w-16 h-16 rounded-lg object-cover mr-4 shadow-md"
+            />
+            <div>
+              <h2 className="text-3xl font-bold text-gray-900 mb-1">Book Your Rehearsal Space</h2>
+              <p className="text-lg text-green-600 font-medium">Groove Garden Studios</p>
+            </div>
+          </div>
           <p className="text-gray-600">
             Choose from our professional-grade rehearsal rooms equipped with top-tier audio equipment.
           </p>
