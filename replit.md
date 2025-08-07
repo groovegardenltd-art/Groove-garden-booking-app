@@ -21,7 +21,7 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - **Jul 23, 2025**: Fixed all currency display issues - replaced remaining dollar signs with pounds (£)
 - **Jul 23, 2025**: Implemented secure payment-before-booking flow with Stripe Elements
 - **Jul 23, 2025**: Debugged and resolved TypeScript errors in server routes and request handling
-- **Aug 07, 2025**: ❌ NEW GATEWAY CONNECTED BUT LOCK STILL OFFLINE - Test passcode 555666 failed, investigating gateway-lock pairing
+- **Aug 07, 2025**: 🔄 GATEWAY TROUBLESHOOTING - Old gateway removed, test codes 555666, 777888 still failing, attempting remote unlock
 - **Jul 30, 2025**: Fixed lock ID configuration - was using 534 instead of full IDs (24518732, 23687062)
 - **Jul 30, 2025**: Successfully tested passcode creation - API returning keyboardPwdId confirmations
 - **Jun 30, 2025**: Enhanced diagnostics reveal lock "Front door" (SN534) requires admin permissions and API access
