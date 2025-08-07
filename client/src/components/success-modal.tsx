@@ -101,8 +101,8 @@ export function SuccessModal({
             </div>
           </div>
 
-          {/* Smart Lock Passcode */}
-          {booking.ttlockPasscode && booking.lockAccessEnabled && (
+          {/* Smart Lock Passcode - Currently Disabled Due to Sync Issues */}
+          {booking.ttlockPasscode && false && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
               <div className="flex items-center gap-2 mb-2">
                 <DoorOpen className="h-5 w-5 text-green-600" />

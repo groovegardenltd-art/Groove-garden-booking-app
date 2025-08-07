@@ -315,12 +315,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             ttlockPasscode = lockResult.passcode;
             ttlockPasscodeId = lockResult.passcodeId;
-            lockAccessEnabled = lockStatus.isOnline; // Only enable if lock is online
+            lockAccessEnabled = false; // Disable smart lock due to persistent sync issues
             
             if (!lockStatus.isOnline) {
-              console.warn(`🚨 CRITICAL: Lock is OFFLINE - Passcode ${ttlockPasscode} will NOT work until lock reconnects to WiFi`);
-              console.warn(`🔧 IMMEDIATE SOLUTION: Use initialization passcode 1123334 for access`);
-              console.warn(`🛠️  LOCK TROUBLESHOOTING: Power cycle lock, check WiFi connectivity, ensure gateway proximity`);
+              console.warn(`🚨 TTLock SYNC ISSUE: Temporary passcodes not reaching lock hardware despite gateway connectivity`);
+              console.warn(`🔧 RELIABLE ACCESS: Use initialization passcode 1123334 - works independently of gateway`);
+              console.warn(`📋 STATUS: Remote unlock works but temporary passcode sync remains broken`);
             }
             
             console.log(`Smart lock passcode created: ${ttlockPasscode} for booking ${bookingData.date} ${bookingData.startTime}-${bookingData.endTime}`);
