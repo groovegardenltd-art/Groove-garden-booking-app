@@ -124,7 +124,7 @@ export function SuccessModal({
               <div className="text-sm text-gray-600 space-y-1">
                 <p>Enter this 6-digit code on the front door keypad.</p>
                 <p className="text-red-600 font-medium">
-                  ⚠️ Smart lock currently offline - booking codes may not work
+                  ⚠️ Smart lock connectivity issue - use backup access code below
                 </p>
                 <p className="text-xs text-gray-500">
                   Use backup access code 1123334 below for reliable entry
