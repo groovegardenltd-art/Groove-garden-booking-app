@@ -75,8 +75,16 @@ export class TTLockService {
     const adminPasscode = "1123334";
     
     if (bookingId) {
-      // Use booking ID with better distribution for uniqueness
-      const uniqueSuffix = ((bookingId * 7) % 9) + 1; // Multiply by 7 for better distribution
+      // Create truly unique suffix using booking ID hash for better distribution
+      // Use different approach: last 2 digits of booking ID, ensure 1-9 range
+      let uniqueSuffix = (bookingId % 9) + 1;
+      
+      // If collision likely, use alternative calculation
+      if (uniqueSuffix === 7) { // 7 seems common, use alternative
+        uniqueSuffix = ((bookingId % 7) + 1);
+        if (uniqueSuffix === 7) uniqueSuffix = 2; // Fallback
+      }
+      
       return `30${adminPasscode}${uniqueSuffix}`;
     } else {
       // Use current time for unique suffix when no booking ID

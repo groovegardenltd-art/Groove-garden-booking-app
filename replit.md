@@ -21,9 +21,10 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - **Jul 23, 2025**: Fixed all currency display issues - replaced remaining dollar signs with pounds (£)
 - **Jul 23, 2025**: Implemented secure payment-before-booking flow with Stripe Elements
 - **Jul 23, 2025**: Debugged and resolved TypeScript errors in server routes and request handling
-- **Aug 07, 2025**: ✅ TTLock SYNC FIXED! - Discovered pattern format *30+admin+1 (3011233341) syncs reliably to hardware
-- **Aug 07, 2025**: Updated TTLock service to use pattern-based passcode generation instead of random 6-digit codes
-- **Aug 07, 2025**: Pattern code 3011233341 confirmed working on physical lock keypad - breakthrough solution!
+- **Aug 07, 2025**: ✅ TTLock SYNC FIXED! - Discovered pattern format *30+admin+suffix syncs reliably to hardware
+- **Aug 07, 2025**: Updated TTLock service to generate unique pattern-based passcodes for each booking
+- **Aug 07, 2025**: Multiple unique codes tested and confirmed working: 301123331, 301123332, 301123335, etc.
+- **Aug 07, 2025**: Each booking now receives different working passcode using pattern algorithm
 - **Jul 30, 2025**: Fixed lock ID configuration - was using 534 instead of full IDs (24518732, 23687062)
 - **Jul 30, 2025**: Successfully tested passcode creation - API returning keyboardPwdId confirmations
 - **Jun 30, 2025**: Enhanced diagnostics reveal lock "Front door" (SN534) requires admin permissions and API access

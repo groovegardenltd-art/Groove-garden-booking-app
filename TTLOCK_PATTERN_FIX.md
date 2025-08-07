@@ -7,10 +7,11 @@ TTLock temporary passcodes were failing to sync to physical lock hardware despit
 TTLock uses specific pattern formats for passcodes that sync to hardware. Random 6-digit codes don't sync reliably, but pattern-based codes using admin passcode format do sync.
 
 ## Solution: Pattern Format
-**Working Pattern**: `*30` + admin passcode + `1`
+**Working Pattern**: `*30` + admin passcode + unique suffix
 - Admin passcode: `1123334`
-- Pattern code: `*30` + `1123334` + `1` = `*301123334l`
-- API format: `3011233341` (removes * for submission)
+- Unique suffixes: `1-9` based on booking ID
+- Example codes: `3011233341`, `3011233332`, `3011233335`
+- API format: `30112333X` where X is unique per booking
 
 ## Technical Implementation
 ```typescript
