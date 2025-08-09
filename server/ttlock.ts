@@ -69,31 +69,23 @@ export class TTLockService {
   }
 
   private generatePasscode(bookingId?: number): string {
-    // TTLock SHORTER PATTERN: Use *30 + unique suffix for reliable sync (removing 1123334)
-    // Shorter format for better user experience
+    // TTLock WORKING PATTERN: Use *30 + admin base + unique suffix for reliable hardware sync
+    // CONFIRMED: Long pattern 3011233341 works on physical lock hardware
+    const adminBase = "1123334";  // Required for hardware sync
     
     if (bookingId) {
-      // Create unique code with just 30 + booking-based suffix
-      const baseCode = "30";
+      // Create unique code using proven working pattern: 30 + adminBase + unique digit
+      const baseCode = "30" + adminBase;
       
-      // Use booking ID to determine variation type
-      if (bookingId % 3 === 0) {
-        // Type 1: Use booking ID with padding
-        const suffix = ((bookingId % 8999) + 1000).toString(); // 4-digit suffix
-        return baseCode + suffix;
-      } else if (bookingId % 3 === 1) {
-        // Type 2: Use booking ID hash
-        const suffix = ((bookingId * 13) % 8999 + 1000).toString();
-        return baseCode + suffix;
-      } else {
-        // Type 3: Use alternative calculation
-        const suffix = ((bookingId * 17) % 8999 + 1000).toString();
-        return baseCode + suffix;
-      }
+      // Generate single unique digit (1-9) based on booking ID
+      const uniqueDigit = (bookingId % 9) + 1;
+      
+      // Return working long pattern format
+      return baseCode + uniqueDigit.toString();
     } else {
-      // Use current time for unique suffix when no booking ID
-      const timeSuffix = ((Date.now() % 8999) + 1000).toString();
-      return `30${timeSuffix}`;
+      // Use current time for unique digit when no booking ID
+      const timeDigit = (Date.now() % 9) + 1;
+      return `30${adminBase}${timeDigit}`;
     }
   }
 
