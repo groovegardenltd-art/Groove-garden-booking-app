@@ -37,34 +37,34 @@ export class DatabaseStorage implements IStorage {
       if (existingRooms.length === 0) {
         const sampleRooms: InsertRoom[] = [
           {
-            name: "Studio A",
+            name: "Pod 1",
             description: "Full drum kit, 4-channel mixer, vocal mics",
             equipment: ["Full drum kit", "4-channel mixer", "Vocal microphones", "Amplifiers"],
             pricePerHour: "40.00",
             maxCapacity: 5,
             isActive: true,
             lockId: process.env.TTLOCK_LOCK_ID_A || process.env.TTLOCK_LOCK_ID || '',
-            lockName: "Studio A Door",
+            lockName: "Pod 1 Door",
           },
           {
-            name: "Studio B",
+            name: "Pod 2",
             description: "Piano, acoustic treatment, recording setup",
             equipment: ["Yamaha P-125 Digital Piano", "Audio Interface & Monitors", "Condenser Microphones", "Acoustic Treatment"],
             pricePerHour: "40.00",
             maxCapacity: 8,
             isActive: true,
             lockId: process.env.TTLOCK_LOCK_ID_B || '',
-            lockName: "Studio B Door",
+            lockName: "Pod 2 Door",
           },
           {
-            name: "Studio C",
+            name: "Pod 3",
             description: "Large space, full backline, PA system",
             equipment: ["Full backline", "PA system", "Lighting rig", "Stage monitors"],
             pricePerHour: "40.00",
             maxCapacity: 12,
             isActive: true,
             lockId: process.env.TTLOCK_LOCK_ID_C || '',
-            lockName: "Studio C Door",
+            lockName: "Pod 3 Door",
           },
         ];
 

@@ -11,7 +11,7 @@ export default function Website() {
 
   const studios = [
     {
-      name: "Studio A",
+      name: "Pod 1",
       description: "Perfect for bands and loud rehearsals",
       equipment: ["Full drum kit", "4-channel mixer", "Vocal microphones", "Amplifiers"],
       price: "£40/hour",
@@ -19,7 +19,7 @@ export default function Website() {
       image: "🥁"
     },
     {
-      name: "Studio B", 
+      name: "Pod 2", 
       description: "Ideal for acoustic sessions and recording",
       equipment: ["Yamaha P-125 Digital Piano", "Audio Interface & Monitors", "Condenser Microphones", "Acoustic Treatment"],
       price: "£40/hour",
@@ -27,7 +27,7 @@ export default function Website() {
       image: "🎹"
     },
     {
-      name: "Studio C",
+      name: "Pod 3",
       description: "Large space for bigger bands and performances",
       equipment: ["Full backline", "PA system", "Lighting rig", "Stage monitors"],
       price: "£40/hour", 
