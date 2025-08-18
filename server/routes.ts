@@ -31,20 +31,53 @@ function generateAccessCode(): string {
   return Math.floor(1000 + Math.random() * 9000).toString();
 }
 
-// Calculate booking price in pounds based on duration
-function calculateBookingPrice(duration: number): number {
+// Calculate booking price with time-based pricing support
+function calculateBookingPrice(room: any, startTime: string, endTime: string, duration: number): number {
+  // Check if room has time-based pricing (Pod 1 & Pod 2)
+  if (room.dayPricePerHour && room.eveningPricePerHour) {
+    return calculateTimeBasedPricing(room, startTime, endTime, duration);
+  }
+  
+  // Default pricing for Live Room (multi-hour discounts)
+  const basePrice = parseFloat(room.pricePerHour || "40");
+  
   switch (duration) {
     case 1:
-      return 40;
+      return basePrice;
     case 2:
-      return 75;
+      return basePrice * 2 * 0.9375; // Save £5 (75/80)
     case 3:
-      return 105;
+      return basePrice * 3 * 0.875; // Save £15 (105/120)  
     case 4:
-      return 135;
+      return basePrice * 4 * 0.84375; // Save £25 (135/160)
     default:
-      return duration * 40;
+      return duration * basePrice;
   }
+}
+
+function calculateTimeBasedPricing(room: any, startTime: string, endTime: string, duration: number): number {
+  const dayPrice = parseFloat(room.dayPricePerHour || "8");
+  const eveningPrice = parseFloat(room.eveningPricePerHour || "10");
+  const dayStart = room.dayHoursStart || "06:00";
+  const dayEnd = room.dayHoursEnd || "17:00";
+  
+  const [startHour] = startTime.split(':').map(Number);
+  const [endHour] = endTime.split(':').map(Number);
+  const [dayStartHour] = dayStart.split(':').map(Number);
+  const [dayEndHour] = dayEnd.split(':').map(Number);
+  
+  let totalPrice = 0;
+  
+  // Calculate hour by hour
+  for (let hour = startHour; hour < endHour; hour++) {
+    if (hour >= dayStartHour && hour < dayEndHour) {
+      totalPrice += dayPrice; // Day rate: £8 (6:00-17:00)
+    } else {
+      totalPrice += eveningPrice; // Evening rate: £10 (17:00-midnight)
+    }
+  }
+  
+  return totalPrice;
 }
 
 // Simple session management
@@ -270,11 +303,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Time slot is already booked" });
       }
 
+      // Get room details for pricing calculation
+      const room = await storage.getRoom(bookingData.roomId);
+      if (!room) {
+        return res.status(404).json({ message: "Room not found" });
+      }
+
       // Calculate duration and total price
       const startHour = parseInt(bookingData.startTime.split(':')[0]);
       const endHour = parseInt(bookingData.endTime.split(':')[0]);
       const duration = endHour - startHour;
-      const totalPrice = calculateBookingPrice(duration);
+      const totalPrice = calculateBookingPrice(room, bookingData.startTime, bookingData.endTime, duration);
 
       // Generate access code
       const accessCode = generateAccessCode();
@@ -286,9 +325,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (ttlockService) {
         try {
-          // Get room details to find the lock ID
-          const room = await storage.getRoom(bookingData.roomId);
-          if (!room || !room.lockId) {
+          // Room details already fetched above for pricing
+          if (!room.lockId) {
             console.log(`No lock configured for room ${bookingData.roomId}`);
           } else {
             // Check lock status first

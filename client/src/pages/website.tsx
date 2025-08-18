@@ -14,7 +14,7 @@ export default function Website() {
       name: "Pod 1",
       description: "Perfect for bands and loud rehearsals",
       equipment: ["Full drum kit", "4-channel mixer", "Vocal microphones", "Amplifiers"],
-      price: "£40/hour",
+      price: "£8/hr (6am-5pm) • £10/hr (5pm-midnight)",
       capacity: "Up to 5 people",
       image: "🥁"
     },
@@ -22,7 +22,7 @@ export default function Website() {
       name: "Pod 2", 
       description: "Ideal for acoustic sessions and recording",
       equipment: ["Yamaha P-125 Digital Piano", "Audio Interface & Monitors", "Condenser Microphones", "Acoustic Treatment"],
-      price: "£40/hour",
+      price: "£8/hr (6am-5pm) • £10/hr (5pm-midnight)",
       capacity: "Up to 8 people",
       image: "🎹"
     },
@@ -37,10 +37,24 @@ export default function Website() {
   ];
 
   const pricing = [
-    { duration: "1 Hour", price: "£40", popular: false },
-    { duration: "2 Hours", price: "£75", savings: "Save £5", popular: true },
-    { duration: "3 Hours", price: "£105", savings: "Save £15", popular: false },
-    { duration: "4 Hours", price: "£135", savings: "Save £25", popular: false }
+    { 
+      title: "Pod 1 & 2", 
+      description: "Time-based pricing",
+      rates: [
+        { time: "6am - 5pm", price: "£8/hour", type: "day" },
+        { time: "5pm - midnight", price: "£10/hour", type: "evening" }
+      ]
+    },
+    { 
+      title: "Live Room", 
+      description: "Bulk discount pricing",
+      rates: [
+        { duration: "1 Hour", price: "£40" },
+        { duration: "2 Hours", price: "£75", savings: "Save £5" },
+        { duration: "3 Hours", price: "£105", savings: "Save £15" },
+        { duration: "4 Hours", price: "£135", savings: "Save £25" }
+      ]
+    }
   ];
 
   const features = [
@@ -272,25 +286,34 @@ export default function Website() {
             Transparent Pricing
           </h3>
           <p className="text-center text-gray-600 mb-12">
-            Book longer sessions and save with our bulk pricing discounts
+            Time-based rates for Pods 1 & 2, bulk discounts for Live Room
           </p>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-4xl mx-auto">
-            {pricing.map((tier, index) => (
-              <Card key={index} className={`relative ${tier.popular ? 'ring-2 ring-green-600 shadow-lg' : ''}`}>
-                {tier.popular && (
-                  <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-green-600">
-                    Most Popular
-                  </Badge>
-                )}
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {pricing.map((section, index) => (
+              <Card key={index} className="shadow-lg">
                 <CardHeader className="text-center">
-                  <CardTitle className="text-lg">{tier.duration}</CardTitle>
-                  <div className="text-3xl font-bold text-green-600">{tier.price}</div>
-                  {tier.savings && (
-                    <Badge variant="secondary" className="text-green-600">
-                      {tier.savings}
-                    </Badge>
-                  )}
+                  <CardTitle className="text-xl text-green-600">{section.title}</CardTitle>
+                  <CardDescription>{section.description}</CardDescription>
                 </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {section.rates.map((rate, rateIndex) => (
+                      <div key={rateIndex} className="flex justify-between items-center p-3 rounded-lg bg-gray-50">
+                        <span className="font-medium">
+                          {'time' in rate ? rate.time : rate.duration}
+                        </span>
+                        <div className="text-right">
+                          <div className="font-bold text-green-600">{rate.price}</div>
+                          {'savings' in rate && rate.savings && (
+                            <Badge variant="secondary" className="text-xs">
+                              {rate.savings}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
               </Card>
             ))}
           </div>
