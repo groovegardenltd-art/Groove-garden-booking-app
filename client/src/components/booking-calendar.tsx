@@ -52,6 +52,30 @@ export function BookingCalendar({
 }: BookingCalendarProps) {
   const [currentWeek, setCurrentWeek] = useState(new Date());
 
+  // Check if a time slot is during evening hours (5pm onwards)
+  const isEveningTime = (time: string) => {
+    const hour = parseInt(time.split(':')[0]);
+    return hour >= 17; // 5pm or later
+  };
+
+  // Get available duration options based on selected time
+  const getDurationOptions = () => {
+    const isEvening = selectedTime ? isEveningTime(selectedTime) : false;
+    const options = [];
+    
+    // For evening bookings, minimum 3 hours
+    const minDuration = isEvening ? 3 : 1;
+    
+    for (let i = minDuration; i <= 12; i++) {
+      options.push({
+        value: i,
+        label: `${i} Hour${i > 1 ? 's' : ''}`
+      });
+    }
+    
+    return options;
+  };
+
   // Get the start of the current week (Monday)
   const getWeekStart = (date: Date) => {
     const d = new Date(date);
@@ -140,6 +164,11 @@ export function BookingCalendar({
   const handleTimeClick = (time: string) => {
     if (selectedRoom && selectedDate && isTimeSlotAvailable(time, selectedDuration)) {
       onTimeSelect(time);
+      
+      // Auto-adjust duration for evening bookings if current duration is less than 3 hours
+      if (isEveningTime(time) && selectedDuration < 3) {
+        onDurationChange(3);
+      }
     }
   };
 
@@ -158,24 +187,20 @@ export function BookingCalendar({
                 <SelectValue placeholder="Select duration" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">1 Hour</SelectItem>
-                <SelectItem value="2">2 Hours</SelectItem>
-                <SelectItem value="3">3 Hours</SelectItem>
-                <SelectItem value="4">4 Hours</SelectItem>
-                <SelectItem value="5">5 Hours</SelectItem>
-                <SelectItem value="6">6 Hours</SelectItem>
-                <SelectItem value="7">7 Hours</SelectItem>
-                <SelectItem value="8">8 Hours</SelectItem>
-                <SelectItem value="9">9 Hours</SelectItem>
-                <SelectItem value="10">10 Hours</SelectItem>
-                <SelectItem value="11">11 Hours</SelectItem>
-                <SelectItem value="12">12 Hours</SelectItem>
+                {getDurationOptions().map(option => (
+                  <SelectItem key={option.value} value={option.value.toString()}>
+                    {option.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div className="text-sm text-purple-700">
             <span className="font-medium">
               {selectedDuration} hour{selectedDuration > 1 ? 's' : ''} selected
+              {selectedTime && isEveningTime(selectedTime) && (
+                <span className="block text-blue-600 text-xs">Evening booking (minimum 3 hours)</span>
+              )}
               {selectedDuration > 4 && (
                 <span className="block text-green-600">10% discount applied!</span>
               )}
