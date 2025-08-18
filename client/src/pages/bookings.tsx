@@ -211,7 +211,7 @@ export default function Bookings() {
                           <div className="text-sm font-medium text-gray-900 mb-2">Access Code</div>
                           <div className="flex items-center justify-between">
                             <code className="bg-music-indigo text-white px-3 py-1 rounded text-lg font-mono">
-                              {booking.accessCode}
+                              {booking.accessCode}#
                             </code>
                             <Button
                               variant="ghost"
@@ -286,7 +286,7 @@ export default function Bookings() {
                           {booking.status !== "cancelled" && (
                             <div className="ml-4 flex items-center space-x-2">
                               <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">
-                                {booking.accessCode}
+                                {booking.accessCode}#
                               </code>
                               <Button
                                 variant="ghost"

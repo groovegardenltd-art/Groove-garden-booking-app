@@ -124,10 +124,7 @@ export function SuccessModal({
               <div className="text-sm text-gray-600 space-y-1">
                 <p>Enter this 6-digit code on the front door keypad.</p>
                 <p className="text-red-600 font-medium">
-                  ⚠️ Smart lock connectivity issue - use backup access code below
-                </p>
-                <p className="text-xs text-gray-500">
-                  Use backup access code 1123334 below for reliable entry
+                  ⚠️ Smart lock connectivity issue - use access code below
                 </p>
               </div>
             </div>
@@ -141,7 +138,7 @@ export function SuccessModal({
             </div>
             <div className="flex items-center justify-center space-x-2 mb-2">
               <code className="bg-music-indigo text-white px-4 py-2 rounded-lg text-2xl font-mono tracking-wider">
-                {booking.accessCode}
+                {booking.accessCode}#
               </code>
               <Button
                 variant="ghost"
@@ -153,12 +150,9 @@ export function SuccessModal({
               </Button>
             </div>
             <div className="text-sm text-gray-600 space-y-1">
-              <p>Emergency access code - works immediately</p>
-              <p className="text-green-600 font-medium">
-                💡 If smart lock code isn't working, use reliable access code: <strong>1123334</strong>
-              </p>
+              <p>Enter this code on the front door keypad</p>
               <p className="text-xs text-gray-500">
-                This backup code works even when smart lock is offline
+                Available during your booking time
               </p>
             </div>
           </div>
