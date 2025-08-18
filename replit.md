@@ -32,10 +32,11 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - **Jun 30, 2025**: Fixed TTLock timezone calculation by subtracting 1 hour to compensate for app's +1 hour interpretation
 - **Jun 30, 2025**: TTLock integration operational - real 6-digit passcodes transmitted to cloud (physical lock needs reconnection)
 - **Aug 18, 2025**: ✅ BULK DISCOUNT IMPLEMENTED - 10% off all bookings over 4 hours
-- **Aug 18, 2025**: ✅ EXTENDED BOOKING HOURS - Users can now book up to 12 hours (6am-6am next day)
+- **Aug 18, 2025**: ✅ BUSINESS HOURS UPDATED - Studios open 9am-midnight, Monday-Saturday
+- **Aug 18, 2025**: ✅ EXTENDED BOOKING HOURS - Users can now book up to 12 hours maximum
 - **Aug 18, 2025**: ✅ TIME-BASED PRICING IMPLEMENTED - All rooms now use hourly rates based on time of day
-- **Aug 18, 2025**: Pod 1 & Pod 2: £8/hr (6am-5pm), £10/hr (5pm-midnight)
-- **Aug 18, 2025**: Live Room: £13/hr (6am-5pm), £19/hr (5pm-midnight)
+- **Aug 18, 2025**: Pod 1 & Pod 2: £8/hr (9am-5pm), £10/hr (5pm-midnight)
+- **Aug 18, 2025**: Live Room: £13/hr (9am-5pm), £19/hr (5pm-midnight)
 - **Jun 30, 2025**: Updated pricing to pounds currency (£40/1hr, £75/2hrs, £105/3hrs, £135/4hrs)
 - **Jun 27, 2025**: Changed currency from dollars to pounds with new pricing structure (1hr-£40, 2hrs-£75, 3hrs-£105, 4hrs-£135)
 - **Jun 27, 2025**: Completed TTLock smart lock integration with automatic passcode generation for booking time slots

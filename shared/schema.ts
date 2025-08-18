@@ -24,7 +24,7 @@ export const rooms = pgTable("rooms", {
   // Time-based pricing
   dayPricePerHour: decimal("day_price_per_hour", { precision: 10, scale: 2 }),
   eveningPricePerHour: decimal("evening_price_per_hour", { precision: 10, scale: 2 }),
-  dayHoursStart: text("day_hours_start").default("06:00"),
+  dayHoursStart: text("day_hours_start").default("09:00"),
   dayHoursEnd: text("day_hours_end").default("17:00"),
   // TTLock integration
   lockId: text("lock_id"), // TTLock ID for this room's door

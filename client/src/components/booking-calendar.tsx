@@ -24,9 +24,6 @@ interface TimeSlot {
 }
 
 const BUSINESS_HOURS = [
-  { time: "06:00", label: "6:00 AM" },
-  { time: "07:00", label: "7:00 AM" },
-  { time: "08:00", label: "8:00 AM" },
   { time: "09:00", label: "9:00 AM" },
   { time: "10:00", label: "10:00 AM" },
   { time: "11:00", label: "11:00 AM" },

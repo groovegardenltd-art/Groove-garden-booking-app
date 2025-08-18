@@ -438,9 +438,9 @@ export default function Website() {
             <div>
               <h4 className="font-semibold mb-4">Hours</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li>Monday - Friday: 9AM - 11PM</li>
-                <li>Saturday: 10AM - 11PM</li>
-                <li>Sunday: 10AM - 9PM</li>
+                <li>Monday - Friday: 9AM - Midnight</li>
+                <li>Saturday: 9AM - Midnight</li>
+                <li>Sunday: Closed</li>
               </ul>
             </div>
           </div>
