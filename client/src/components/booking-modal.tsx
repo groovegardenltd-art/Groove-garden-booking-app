@@ -141,6 +141,21 @@ export function BookingModal({
       return;
     }
 
+    if (!contactPhone) {
+      toast({
+        title: "Phone Number Required",
+        description: "Please provide your phone number.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // In test mode, directly process the booking without payment steps
+    if (TEST_MODE) {
+      await handleDirectBooking();
+      return;
+    }
+
     // Create payment intent and show payment form
     try {
       setIsSubmitting(true);
@@ -157,6 +172,29 @@ export function BookingModal({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleDirectBooking = async () => {
+    setIsSubmitting(true);
+
+    if (!selectedRoom || !selectedDate || !selectedTime) return;
+
+    const endTime = `${String(parseInt(selectedTime.split(':')[0]) + selectedDuration).padStart(2, '0')}:00`;
+    
+    const bookingData = {
+      roomId: selectedRoom.id,
+      date: selectedDate,
+      startTime: selectedTime,
+      endTime: endTime,
+      duration: selectedDuration,
+      totalPrice: calculatePrice(selectedDuration),
+      contactPhone,
+      idNumber,
+      idType,
+      paymentIntentId: "test_mode_booking", // Test mode identifier
+    };
+
+    bookingMutation.mutate(bookingData);
   };
 
   const handlePaymentSuccess = async () => {
@@ -462,7 +500,7 @@ export function BookingModal({
               className="flex-1 bg-music-purple hover:bg-music-purple/90"
               disabled={isSubmitting || !acceptedTerms}
             >
-              {isSubmitting ? "Processing..." : "Proceed to Payment"}
+              {isSubmitting ? "Processing..." : TEST_MODE ? "Confirm Booking" : "Proceed to Payment"}
             </Button>
           </div>
         </form>
