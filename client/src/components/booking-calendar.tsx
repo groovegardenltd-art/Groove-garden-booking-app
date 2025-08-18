@@ -178,6 +178,9 @@ export function BookingCalendar({
           <div className="text-sm text-purple-700">
             <span className="font-medium">
               {selectedDuration} hour{selectedDuration > 1 ? 's' : ''} selected
+              {selectedDuration > 4 && (
+                <span className="block text-green-600">10% discount applied!</span>
+              )}
             </span>
           </div>
         </div>

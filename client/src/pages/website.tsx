@@ -69,7 +69,7 @@ export default function Website() {
     {
       icon: <Clock className="w-6 h-6" />,
       title: "Flexible Booking",
-      description: "Book 1-4 hours with bulk discounts for longer sessions"
+      description: "Book 1-12 hours with 10% discount on sessions over 4 hours"
     },
     {
       icon: <Users className="w-6 h-6" />,
@@ -284,7 +284,7 @@ export default function Website() {
             Transparent Pricing
           </h3>
           <p className="text-center text-gray-600 mb-12">
-            Time-based rates for Pods 1 & 2, bulk discounts for Live Room
+            Time-based hourly rates • 10% discount on bookings over 4 hours
           </p>
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {pricing.map((section, index) => (

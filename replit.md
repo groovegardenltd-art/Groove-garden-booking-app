@@ -31,6 +31,7 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - **Jun 30, 2025**: ✅ TIMEZONE ISSUE RESOLVED - TTLock app displays correct booking times (passcode 354185 confirmed)
 - **Jun 30, 2025**: Fixed TTLock timezone calculation by subtracting 1 hour to compensate for app's +1 hour interpretation
 - **Jun 30, 2025**: TTLock integration operational - real 6-digit passcodes transmitted to cloud (physical lock needs reconnection)
+- **Aug 18, 2025**: ✅ BULK DISCOUNT IMPLEMENTED - 10% off all bookings over 4 hours
 - **Aug 18, 2025**: ✅ EXTENDED BOOKING HOURS - Users can now book up to 12 hours (6am-6am next day)
 - **Aug 18, 2025**: ✅ TIME-BASED PRICING IMPLEMENTED - All rooms now use hourly rates based on time of day
 - **Aug 18, 2025**: Pod 1 & Pod 2: £8/hr (6am-5pm), £10/hr (5pm-midnight)

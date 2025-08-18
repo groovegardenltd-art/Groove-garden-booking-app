@@ -72,7 +72,14 @@ export default function Home() {
     }
     
     // For rooms without time-based pricing, use standard hourly rate
-    return duration * parseFloat(room.pricePerHour || "40");
+    let totalPrice = duration * parseFloat(room.pricePerHour || "40");
+    
+    // Apply 10% discount for bookings over 4 hours
+    if (duration > 4) {
+      totalPrice = totalPrice * 0.9; // 10% discount
+    }
+    
+    return totalPrice;
   };
 
   const calculateTimeBasedPrice = (room: any, startTime: string, duration: number) => {
@@ -94,6 +101,11 @@ export default function Home() {
       } else {
         totalPrice += eveningPrice; // Evening rate
       }
+    }
+    
+    // Apply 10% discount for bookings over 4 hours
+    if (duration > 4) {
+      totalPrice = totalPrice * 0.9; // 10% discount
     }
     
     return totalPrice;
