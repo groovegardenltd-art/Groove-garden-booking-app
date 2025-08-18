@@ -57,14 +57,14 @@ export class DatabaseStorage implements IStorage {
             lockName: "Pod 2 Door",
           },
           {
-            name: "Pod 3",
+            name: "Live Room",
             description: "Large space, full backline, PA system",
             equipment: ["Full backline", "PA system", "Lighting rig", "Stage monitors"],
             pricePerHour: "40.00",
             maxCapacity: 12,
             isActive: true,
             lockId: process.env.TTLOCK_LOCK_ID_C || '',
-            lockName: "Pod 3 Door",
+            lockName: "Live Room Door",
           },
         ];
 

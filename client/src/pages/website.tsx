@@ -27,7 +27,7 @@ export default function Website() {
       image: "🎹"
     },
     {
-      name: "Pod 3",
+      name: "Live Room",
       description: "Large space for bigger bands and performances",
       equipment: ["Full backline", "PA system", "Lighting rig", "Stage monitors"],
       price: "£40/hour", 
