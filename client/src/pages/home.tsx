@@ -62,19 +62,52 @@ export default function Home() {
     setSelectedTime(time);
   };
 
-  const calculatePrice = (duration: number) => {
+  const calculatePrice = (duration: number, startTime: string = "09:00") => {
+    if (!selectedRoom) return 0;
+
+    // Check if room has time-based pricing
+    const room = selectedRoom as any;
+    if (room.dayPricePerHour && room.eveningPricePerHour) {
+      return calculateTimeBasedPrice(room, startTime, duration);
+    }
+    
+    // Fallback to old pricing for rooms without time-based pricing
     switch (duration) {
       case 1:
-        return 40;
+        return parseFloat(room.pricePerHour || "40");
       case 2:
-        return 75;
+        return parseFloat(room.pricePerHour || "40") * 2 * 0.9375; // Save £5
       case 3:
-        return 105;
+        return parseFloat(room.pricePerHour || "40") * 3 * 0.875; // Save £15
       case 4:
-        return 135;
+        return parseFloat(room.pricePerHour || "40") * 4 * 0.84375; // Save £25
       default:
-        return duration * 40;
+        return duration * parseFloat(room.pricePerHour || "40");
     }
+  };
+
+  const calculateTimeBasedPrice = (room: any, startTime: string, duration: number) => {
+    const dayPrice = parseFloat(room.dayPricePerHour || "8");
+    const eveningPrice = parseFloat(room.eveningPricePerHour || "10");
+    const dayStart = room.dayHoursStart || "06:00";
+    const dayEnd = room.dayHoursEnd || "17:00";
+    
+    const [startHour] = startTime.split(':').map(Number);
+    const [dayStartHour] = dayStart.split(':').map(Number);
+    const [dayEndHour] = dayEnd.split(':').map(Number);
+    
+    let totalPrice = 0;
+    
+    // Calculate hour by hour
+    for (let hour = startHour; hour < startHour + duration; hour++) {
+      if (hour >= dayStartHour && hour < dayEndHour) {
+        totalPrice += dayPrice; // Day rate
+      } else {
+        totalPrice += eveningPrice; // Evening rate
+      }
+    }
+    
+    return totalPrice;
   };
 
   const handleBookingSuccess = (booking: any) => {
@@ -235,7 +268,7 @@ export default function Home() {
                         <div className="flex justify-between pt-2 border-t border-gray-200">
                           <span className="text-gray-600">Total:</span>
                           <span className="font-semibold text-music-purple text-lg">
-                            £{calculatePrice(selectedDuration)}
+                            £{calculatePrice(selectedDuration, selectedTime || "09:00").toFixed(2)}
                           </span>
                         </div>
                       </div>

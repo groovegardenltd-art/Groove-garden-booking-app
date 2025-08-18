@@ -58,7 +58,14 @@ export function RoomSelection({
                 <p className="text-sm text-gray-600 mb-3">{room.description}</p>
                 <div className="flex items-center justify-between">
                   <span className={`font-semibold ${isOccupied ? "text-gray-400" : "text-music-purple"}`}>
-                    £{room.pricePerHour}/hour
+                    {(room as any).dayPricePerHour ? (
+                      <div className="text-xs">
+                        <div>£{parseFloat((room as any).dayPricePerHour)}/hr (6am-5pm)</div>
+                        <div>£{parseFloat((room as any).eveningPricePerHour)}/hr (5pm-midnight)</div>
+                      </div>
+                    ) : (
+                      `£${room.pricePerHour}/hour`
+                    )}
                   </span>
                   <div className="flex items-center text-sm text-gray-500">
                     <Users className="w-4 h-4 mr-1" />
