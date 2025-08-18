@@ -133,11 +133,11 @@ export function SuccessModal({
             </div>
           )}
 
-          {/* Backup Access Code */}
+          {/* Access Code */}
           <div className="bg-music-indigo/5 border border-music-indigo/20 rounded-lg p-4 mb-6">
             <div className="flex items-center gap-2 mb-2">
               <RectangleEllipsis className="h-5 w-5 text-music-indigo" />
-              <h4 className="font-medium text-gray-900">Backup Access Code</h4>
+              <h4 className="font-medium text-gray-900">Access Code</h4>
             </div>
             <div className="flex items-center justify-center space-x-2 mb-2">
               <code className="bg-music-indigo text-white px-4 py-2 rounded-lg text-2xl font-mono tracking-wider">

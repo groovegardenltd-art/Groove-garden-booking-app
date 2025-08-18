@@ -47,7 +47,7 @@ export function BookingModal({
 }: BookingModalProps) {
   const [contactPhone, setContactPhone] = useState("");
 
-  const [specialRequests, setSpecialRequests] = useState("");
+
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -89,7 +89,7 @@ export function BookingModal({
 
   const resetForm = () => {
     setContactPhone("");
-    setSpecialRequests("");
+
     setPaymentMethod("card");
     setAcceptedTerms(false);
     setIsSubmitting(false);
@@ -176,7 +176,7 @@ export function BookingModal({
       totalPrice: calculatePrice(selectedDuration),
       contactPhone,
 
-      specialRequests: specialRequests || null,
+
       idNumber,
       idType,
       paymentIntentId, // Include payment intent ID
@@ -404,20 +404,7 @@ export function BookingModal({
             </div>
           </div>
 
-          {/* Special Requests */}
-          <div>
-            <Label htmlFor="requests" className="text-sm font-medium text-gray-700">
-              Special Requests
-            </Label>
-            <Textarea
-              id="requests"
-              placeholder="Any special equipment needs or requests..."
-              value={specialRequests}
-              onChange={(e) => setSpecialRequests(e.target.value)}
-              rows={3}
-              className="mt-1"
-            />
-          </div>
+
 
           {/* Payment Method */}
           <div>
