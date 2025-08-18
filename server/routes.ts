@@ -38,21 +38,9 @@ function calculateBookingPrice(room: any, startTime: string, endTime: string, du
     return calculateTimeBasedPricing(room, startTime, endTime, duration);
   }
   
-  // Default pricing for Live Room (multi-hour discounts)
+  // For rooms without time-based pricing, use standard hourly rate
   const basePrice = parseFloat(room.pricePerHour || "40");
-  
-  switch (duration) {
-    case 1:
-      return basePrice;
-    case 2:
-      return basePrice * 2 * 0.9375; // Save £5 (75/80)
-    case 3:
-      return basePrice * 3 * 0.875; // Save £15 (105/120)  
-    case 4:
-      return basePrice * 4 * 0.84375; // Save £25 (135/160)
-    default:
-      return duration * basePrice;
-  }
+  return duration * basePrice;
 }
 
 function calculateTimeBasedPricing(room: any, startTime: string, endTime: string, duration: number): number {

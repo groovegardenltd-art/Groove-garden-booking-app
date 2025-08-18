@@ -24,6 +24,9 @@ interface TimeSlot {
 }
 
 const BUSINESS_HOURS = [
+  { time: "06:00", label: "6:00 AM" },
+  { time: "07:00", label: "7:00 AM" },
+  { time: "08:00", label: "8:00 AM" },
   { time: "09:00", label: "9:00 AM" },
   { time: "10:00", label: "10:00 AM" },
   { time: "11:00", label: "11:00 AM" },
@@ -38,6 +41,7 @@ const BUSINESS_HOURS = [
   { time: "20:00", label: "8:00 PM" },
   { time: "21:00", label: "9:00 PM" },
   { time: "22:00", label: "10:00 PM" },
+  { time: "23:00", label: "11:00 PM" },
 ];
 
 export function BookingCalendar({
@@ -156,19 +160,25 @@ export function BookingCalendar({
                 <SelectValue placeholder="Select duration" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">1 Hour - £40</SelectItem>
-                <SelectItem value="2">2 Hours - £75</SelectItem>
-                <SelectItem value="3">3 Hours - £105</SelectItem>
-                <SelectItem value="4">4 Hours - £135</SelectItem>
+                <SelectItem value="1">1 Hour</SelectItem>
+                <SelectItem value="2">2 Hours</SelectItem>
+                <SelectItem value="3">3 Hours</SelectItem>
+                <SelectItem value="4">4 Hours</SelectItem>
+                <SelectItem value="5">5 Hours</SelectItem>
+                <SelectItem value="6">6 Hours</SelectItem>
+                <SelectItem value="7">7 Hours</SelectItem>
+                <SelectItem value="8">8 Hours</SelectItem>
+                <SelectItem value="9">9 Hours</SelectItem>
+                <SelectItem value="10">10 Hours</SelectItem>
+                <SelectItem value="11">11 Hours</SelectItem>
+                <SelectItem value="12">12 Hours</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="text-sm text-purple-700">
-            {selectedDuration > 1 && (
-              <span className="font-medium">
-                Save £{(selectedDuration * 40) - (selectedDuration === 2 ? 75 : selectedDuration === 3 ? 105 : 135)}!
-              </span>
-            )}
+            <span className="font-medium">
+              {selectedDuration} hour{selectedDuration > 1 ? 's' : ''} selected
+            </span>
           </div>
         </div>
       </div>

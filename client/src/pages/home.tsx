@@ -71,19 +71,8 @@ export default function Home() {
       return calculateTimeBasedPrice(room, startTime, duration);
     }
     
-    // Fallback to old pricing for rooms without time-based pricing
-    switch (duration) {
-      case 1:
-        return parseFloat(room.pricePerHour || "40");
-      case 2:
-        return parseFloat(room.pricePerHour || "40") * 2 * 0.9375; // Save £5
-      case 3:
-        return parseFloat(room.pricePerHour || "40") * 3 * 0.875; // Save £15
-      case 4:
-        return parseFloat(room.pricePerHour || "40") * 4 * 0.84375; // Save £25
-      default:
-        return duration * parseFloat(room.pricePerHour || "40");
-    }
+    // For rooms without time-based pricing, use standard hourly rate
+    return duration * parseFloat(room.pricePerHour || "40");
   };
 
   const calculateTimeBasedPrice = (room: any, startTime: string, duration: number) => {
