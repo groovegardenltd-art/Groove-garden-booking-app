@@ -4,7 +4,7 @@ import { Header } from "@/components/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Calendar, Clock, MapPin, Phone, Users } from "lucide-react";
+import { Copy, Calendar, Clock, MapPin, Phone } from "lucide-react";
 import { BookingWithRoom } from "@shared/schema";
 import { getAuthState } from "@/lib/auth";
 import { useLocation } from "wouter";
@@ -197,10 +197,7 @@ export default function Bookings() {
                             <MapPin className="h-4 w-4 mr-2" />
                             {booking.room.description}
                           </div>
-                          <div className="flex items-center text-gray-600">
-                            <Users className="h-4 w-4 mr-2" />
-                            {booking.numberOfPeople} {booking.numberOfPeople === 1 ? 'person' : 'people'}
-                          </div>
+
                           {booking.contactPhone && (
                             <div className="flex items-center text-gray-600">
                               <Phone className="h-4 w-4 mr-2" />
@@ -275,10 +272,7 @@ export default function Bookings() {
                                 <Clock className="h-4 w-4 mr-2" />
                                 {formatTime(booking.startTime, booking.endTime)}
                               </div>
-                              <div className="flex items-center">
-                                <Users className="h-4 w-4 mr-2" />
-                                {booking.numberOfPeople} {booking.numberOfPeople === 1 ? 'person' : 'people'}
-                              </div>
+
                               <div className="font-semibold text-music-purple">
                                 £{booking.totalPrice}
                               </div>

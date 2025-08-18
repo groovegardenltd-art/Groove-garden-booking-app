@@ -19,7 +19,7 @@ export const rooms = pgTable("rooms", {
   description: text("description").notNull(),
   equipment: text("equipment").array().notNull().default([]),
   pricePerHour: decimal("price_per_hour", { precision: 10, scale: 2 }).notNull(),
-  maxCapacity: integer("max_capacity").notNull(),
+
   isActive: boolean("is_active").notNull().default(true),
   // Time-based pricing
   dayPricePerHour: decimal("day_price_per_hour", { precision: 10, scale: 2 }),
@@ -42,7 +42,7 @@ export const bookings = pgTable("bookings", {
   totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
   status: text("status").notNull().default("confirmed"), // confirmed, cancelled, completed
   contactPhone: text("contact_phone"),
-  numberOfPeople: integer("number_of_people").notNull().default(1),
+
   specialRequests: text("special_requests"),
   accessCode: text("access_code").notNull(),
   // TTLock integration fields
@@ -75,7 +75,6 @@ export const insertBookingSchema = createInsertSchema(bookings).omit({
   createdAt: true,
 }).extend({
   contactPhone: z.string().min(1, "Phone number is required"),
-  numberOfPeople: z.number().min(1, "Number of people must be at least 1"),
   idNumber: z.string().min(1, "ID number is required for studio access"),
   idType: z.string().min(1, "ID type is required"),
   totalPrice: z.union([z.string(), z.number()]).transform(val => String(val)),

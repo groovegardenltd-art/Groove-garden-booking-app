@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Check } from "lucide-react";
+import { Check } from "lucide-react";
 import { Room } from "@shared/schema";
 
 interface RoomSelectionProps {
@@ -56,21 +56,17 @@ export function RoomSelection({
                   </Badge>
                 </div>
                 <p className="text-sm text-gray-600 mb-3">{room.description}</p>
-                <div className="flex items-center justify-between">
+                <div>
                   <span className={`font-semibold ${isOccupied ? "text-gray-400" : "text-music-purple"}`}>
                     {(room as any).dayPricePerHour ? (
                       <div className="text-xs">
-                        <div>£{parseFloat((room as any).dayPricePerHour)}/hr (6am-5pm)</div>
+                        <div>£{parseFloat((room as any).dayPricePerHour)}/hr (9am-5pm)</div>
                         <div>£{parseFloat((room as any).eveningPricePerHour)}/hr (5pm-midnight)</div>
                       </div>
                     ) : (
                       `£${room.pricePerHour}/hour`
                     )}
                   </span>
-                  <div className="flex items-center text-sm text-gray-500">
-                    <Users className="w-4 h-4 mr-1" />
-                    <span>Up to {room.maxCapacity} people</span>
-                  </div>
                 </div>
               </CardContent>
             </Card>

@@ -46,7 +46,7 @@ export function BookingModal({
   onBookingSuccess,
 }: BookingModalProps) {
   const [contactPhone, setContactPhone] = useState("");
-  const [numberOfPeople, setNumberOfPeople] = useState("1");
+
   const [specialRequests, setSpecialRequests] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -89,7 +89,6 @@ export function BookingModal({
 
   const resetForm = () => {
     setContactPhone("");
-    setNumberOfPeople("1");
     setSpecialRequests("");
     setPaymentMethod("card");
     setAcceptedTerms(false);
@@ -176,7 +175,7 @@ export function BookingModal({
       duration: selectedDuration,
       totalPrice: calculatePrice(selectedDuration),
       contactPhone,
-      numberOfPeople: parseInt(numberOfPeople),
+
       specialRequests: specialRequests || null,
       idNumber,
       idType,
@@ -327,23 +326,7 @@ export function BookingModal({
                   className="mt-1"
                 />
               </div>
-              <div>
-                <Label htmlFor="people" className="text-sm font-medium text-gray-700">
-                  Number of People
-                </Label>
-                <Select value={numberOfPeople} onValueChange={setNumberOfPeople}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1 person</SelectItem>
-                    <SelectItem value="2">2 people</SelectItem>
-                    <SelectItem value="3">3 people</SelectItem>
-                    <SelectItem value="4">4 people</SelectItem>
-                    <SelectItem value="5">5+ people</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+
             </div>
           </div>
 
