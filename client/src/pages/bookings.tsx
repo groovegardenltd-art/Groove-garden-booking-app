@@ -27,7 +27,7 @@ export default function Bookings() {
   }, [user, setLocation]);
 
   // Fetch user bookings
-  const { data: bookings = [], isLoading } = useQuery({
+  const { data: bookings = [], isLoading } = useQuery<BookingWithRoom[]>({
     queryKey: ["/api/bookings"],
     enabled: !!user,
   });

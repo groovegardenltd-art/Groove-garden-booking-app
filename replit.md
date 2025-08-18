@@ -37,6 +37,8 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - **Aug 18, 2025**: ✅ TIME-BASED PRICING IMPLEMENTED - All rooms now use hourly rates based on time of day
 - **Aug 18, 2025**: Pod 1 & Pod 2: £8/hr (9am-5pm), £10/hr (5pm-midnight)
 - **Aug 18, 2025**: Live Room: £13/hr (9am-5pm), £19/hr (5pm-midnight)
+- **Aug 18, 2025**: ✅ CAPACITY TRACKING REMOVED - Eliminated room capacity limits and people count requirements
+- **Aug 18, 2025**: ✅ PRICING TIME UPDATED - Changed day rate hours from 6am-5pm to 9am-5pm throughout system
 - **Jun 30, 2025**: Updated pricing to pounds currency (£40/1hr, £75/2hrs, £105/3hrs, £135/4hrs)
 - **Jun 27, 2025**: Changed currency from dollars to pounds with new pricing structure (1hr-£40, 2hrs-£75, 3hrs-£105, 4hrs-£135)
 - **Jun 27, 2025**: Completed TTLock smart lock integration with automatic passcode generation for booking time slots
