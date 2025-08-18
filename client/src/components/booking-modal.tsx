@@ -215,18 +215,52 @@ export function BookingModal({
   };
 
   const calculatePrice = (duration: number) => {
-    switch (duration) {
-      case 1:
-        return 40;
-      case 2:
-        return 75;
-      case 3:
-        return 105;
-      case 4:
-        return 135;
-      default:
-        return duration * 40;
+    if (!selectedRoom || !selectedTime) return 0;
+
+    // Check if room has time-based pricing
+    const room = selectedRoom as any;
+    if (room.dayPricePerHour && room.eveningPricePerHour) {
+      return calculateTimeBasedPrice(room, selectedTime, duration);
     }
+    
+    // For rooms without time-based pricing, use standard hourly rate
+    let totalPrice = duration * parseFloat(room.pricePerHour || "40");
+    
+    // Apply 10% discount for bookings over 4 hours
+    if (duration > 4) {
+      totalPrice = totalPrice * 0.9; // 10% discount
+    }
+    
+    return totalPrice;
+  };
+
+  const calculateTimeBasedPrice = (room: any, startTime: string, duration: number) => {
+    const dayPrice = parseFloat(room.dayPricePerHour || "8");
+    const eveningPrice = parseFloat(room.eveningPricePerHour || "10");
+    const dayStart = room.dayHoursStart || "09:00";
+    const dayEnd = room.dayHoursEnd || "17:00";
+    
+    const [startHour] = startTime.split(':').map(Number);
+    const [dayStartHour] = dayStart.split(':').map(Number);
+    const [dayEndHour] = dayEnd.split(':').map(Number);
+    
+    let totalPrice = 0;
+    
+    // Calculate hour by hour
+    for (let hour = startHour; hour < startHour + duration; hour++) {
+      if (hour >= dayStartHour && hour < dayEndHour) {
+        totalPrice += dayPrice; // Day rate
+      } else {
+        totalPrice += eveningPrice; // Evening rate
+      }
+    }
+    
+    // Apply 10% discount for bookings over 4 hours
+    if (duration > 4) {
+      totalPrice = totalPrice * 0.9; // 10% discount
+    }
+    
+    return totalPrice;
   };
 
   const { user } = getAuthState();

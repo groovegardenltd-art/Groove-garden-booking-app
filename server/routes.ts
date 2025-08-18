@@ -66,7 +66,7 @@ function calculateTimeBasedPricing(room: any, startTime: string, endTime: string
   // Calculate hour by hour
   for (let hour = startHour; hour < endHour; hour++) {
     if (hour >= dayStartHour && hour < dayEndHour) {
-      totalPrice += dayPrice; // Day rate: £8 (6:00-17:00)
+      totalPrice += dayPrice; // Day rate: £8 (9:00-17:00)
     } else {
       totalPrice += eveningPrice; // Evening rate: £10 (17:00-midnight)
     }
