@@ -106,8 +106,9 @@ export function BookingCalendar({
       
       if (isBooked) return false;
       
-      // Check if we're going beyond business hours
-      if (currentHour >= 23) return false;
+      // Check if we're going beyond business hours (midnight = 24:00, but we need to handle wrap-around)
+      // Allow bookings that end at or before midnight (hour 24)
+      if (currentHour >= 24) return false;
     }
     
     return true;
@@ -271,7 +272,7 @@ export function BookingCalendar({
                       disabled = true;
                     } else if (!isAvailable && dateStr === selectedDate) {
                       buttonClass += "bg-red-100 border-red-200 text-red-700 cursor-not-allowed";
-                      buttonText = selectedDuration > 1 ? `${selectedDuration}h blocked` : "Booked";
+                      buttonText = "Unavailable";
                       disabled = true;
                     } else if (isSelectedSlot) {
                       buttonClass += "bg-music-indigo border-music-indigo text-white";
