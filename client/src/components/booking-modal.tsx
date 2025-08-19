@@ -46,7 +46,10 @@ export function BookingModal({
   onBookingSuccess,
 }: BookingModalProps) {
   const [contactPhone, setContactPhone] = useState("");
-
+  const [promoCode, setPromoCode] = useState("");
+  const [appliedPromoCode, setAppliedPromoCode] = useState<any>(null);
+  const [promoCodeError, setPromoCodeError] = useState("");
+  const [isValidatingPromo, setIsValidatingPromo] = useState(false);
 
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -89,7 +92,10 @@ export function BookingModal({
 
   const resetForm = () => {
     setContactPhone("");
-
+    setPromoCode("");
+    setAppliedPromoCode(null);
+    setPromoCodeError("");
+    setIsValidatingPromo(false);
     setPaymentMethod("card");
     setAcceptedTerms(false);
     setIsSubmitting(false);
@@ -100,11 +106,48 @@ export function BookingModal({
     setPaymentIntentId("");
   };
 
+  // Validate promo code
+  const validatePromoCode = async () => {
+    if (!promoCode.trim()) {
+      setPromoCodeError("Please enter a promo code");
+      return;
+    }
+
+    setIsValidatingPromo(true);
+    setPromoCodeError("");
+
+    try {
+      const originalPrice = calculatePrice(selectedDuration);
+      const response = await apiRequest("POST", "/api/validate-promo-code", {
+        code: promoCode.trim(),
+        bookingAmount: originalPrice
+      });
+      
+      const data = await response.json();
+      setAppliedPromoCode(data);
+      toast({
+        title: "Promo Code Applied!",
+        description: `You saved £${data.discountAmount}!`,
+      });
+    } catch (error: any) {
+      setPromoCodeError(error.message || "Invalid promo code");
+      setAppliedPromoCode(null);
+    } finally {
+      setIsValidatingPromo(false);
+    }
+  };
+
+  const removePromoCode = () => {
+    setPromoCode("");
+    setAppliedPromoCode(null);
+    setPromoCodeError("");
+  };
+
   // Create payment intent
   const createPaymentIntent = async () => {
-    const totalPrice = calculatePrice(selectedDuration);
+    const finalAmount = appliedPromoCode ? Number(appliedPromoCode.finalAmount) : calculatePrice(selectedDuration);
     const response = await apiRequest("POST", "/api/create-payment-intent", {
-      amount: totalPrice,
+      amount: finalAmount,
       currency: "gbp"
     });
     const data = await response.json();
@@ -315,14 +358,14 @@ export function BookingModal({
         {showPayment && clientSecret ? (
           TEST_MODE ? (
             <TestPaymentForm
-              amount={calculatePrice(selectedDuration)}
+              amount={appliedPromoCode ? Number(appliedPromoCode.finalAmount) : calculatePrice(selectedDuration)}
               onSuccess={handlePaymentSuccess}
               onCancel={() => setShowPayment(false)}
             />
           ) : stripePromise ? (
             <Elements stripe={stripePromise} options={{ clientSecret }}>
               <PaymentForm
-                amount={calculatePrice(selectedDuration)}
+                amount={appliedPromoCode ? Number(appliedPromoCode.finalAmount) : calculatePrice(selectedDuration)}
                 onSuccess={handlePaymentSuccess}
                 onCancel={() => setShowPayment(false)}
               />
@@ -359,13 +402,83 @@ export function BookingModal({
                 <span className="text-gray-600">Duration:</span>
                 <span className="font-medium">{selectedDuration} {selectedDuration === 1 ? 'hour' : 'hours'}</span>
               </div>
+              {appliedPromoCode && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Subtotal:</span>
+                  <span className="font-medium">£{calculatePrice(selectedDuration).toFixed(2)}</span>
+                </div>
+              )}
+              {appliedPromoCode && (
+                <div className="flex justify-between">
+                  <span className="text-green-600">
+                    Discount ({appliedPromoCode.promoCode.code}):
+                  </span>
+                  <span className="font-medium text-green-600">
+                    -£{appliedPromoCode.discountAmount}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between pt-2 border-t border-gray-200">
                 <span className="text-gray-600">Total:</span>
                 <span className="font-semibold text-music-purple text-lg">
-                  £{calculatePrice(selectedDuration)}
+                  £{appliedPromoCode ? appliedPromoCode.finalAmount : calculatePrice(selectedDuration).toFixed(2)}
                 </span>
               </div>
             </div>
+          </div>
+
+          {/* Promo Code Section */}
+          <div>
+            <h4 className="font-medium text-gray-900 mb-3">Promo Code</h4>
+            {!appliedPromoCode ? (
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Input
+                    type="text"
+                    placeholder="Enter promo code"
+                    value={promoCode}
+                    onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                    className={promoCodeError ? "border-red-300" : ""}
+                  />
+                  {promoCodeError && (
+                    <p className="text-red-600 text-sm mt-1">{promoCodeError}</p>
+                  )}
+                </div>
+                <Button
+                  type="button"
+                  onClick={validatePromoCode}
+                  disabled={isValidatingPromo || !promoCode.trim()}
+                  className="bg-music-purple hover:bg-music-purple/90"
+                >
+                  {isValidatingPromo ? "Checking..." : "Apply"}
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <div>
+                    <p className="font-medium text-green-800">
+                      {appliedPromoCode.promoCode.code} applied
+                    </p>
+                    {appliedPromoCode.promoCode.description && (
+                      <p className="text-sm text-green-600">
+                        {appliedPromoCode.promoCode.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={removePromoCode}
+                  className="text-green-700 hover:text-green-800"
+                >
+                  Remove
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Contact Information */}

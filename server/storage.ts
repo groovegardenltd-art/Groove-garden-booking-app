@@ -1,4 +1,4 @@
-import { users, rooms, bookings, type User, type InsertUser, type Room, type InsertRoom, type Booking, type InsertBooking, type BookingWithRoom } from "@shared/schema";
+import { users, rooms, bookings, promoCodes, type User, type InsertUser, type Room, type InsertRoom, type Booking, type InsertBooking, type BookingWithRoom, type PromoCode, type InsertPromoCode } from "@shared/schema";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
 
@@ -19,9 +19,14 @@ export interface IStorage {
   getBookingsByUser(userId: number): Promise<BookingWithRoom[]>;
   getBooking(id: number): Promise<Booking | undefined>;
   getBookingsByRoomAndDate(roomId: number, date: string): Promise<Booking[]>;
-  createBooking(booking: InsertBooking & { userId: number; accessCode: string; ttlockPasscode?: string; ttlockPasscodeId?: string; lockAccessEnabled?: boolean }): Promise<Booking>;
+  createBooking(booking: InsertBooking & { userId: number; accessCode: string; ttlockPasscode?: string; ttlockPasscodeId?: string; lockAccessEnabled?: boolean; promoCodeId?: number; originalPrice?: string; discountAmount?: string }): Promise<Booking>;
   updateBookingStatus(id: number, status: string): Promise<Booking | undefined>;
   cancelBooking(id: number): Promise<boolean>;
+
+  // Promo code methods
+  getPromoCodeByCode(code: string): Promise<PromoCode | undefined>;
+  validatePromoCode(code: string, bookingAmount: number): Promise<{ valid: boolean; promoCode?: PromoCode; error?: string }>;
+  incrementPromoCodeUsage(promoCodeId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -157,7 +162,7 @@ export class DatabaseStorage implements IStorage {
       );
   }
 
-  async createBooking(booking: InsertBooking & { userId: number; accessCode: string; ttlockPasscode?: string; ttlockPasscodeId?: string; lockAccessEnabled?: boolean }): Promise<Booking> {
+  async createBooking(booking: InsertBooking & { userId: number; accessCode: string; ttlockPasscode?: string; ttlockPasscodeId?: string; lockAccessEnabled?: boolean; promoCodeId?: number; originalPrice?: string; discountAmount?: string }): Promise<Booking> {
     const [newBooking] = await db
       .insert(bookings)
       .values({
@@ -185,6 +190,53 @@ export class DatabaseStorage implements IStorage {
       .where(eq(bookings.id, id))
       .returning();
     return result.length > 0;
+  }
+
+  async getPromoCodeByCode(code: string): Promise<PromoCode | undefined> {
+    const [promoCode] = await db
+      .select()
+      .from(promoCodes)
+      .where(eq(promoCodes.code, code.toUpperCase()));
+    return promoCode || undefined;
+  }
+
+  async validatePromoCode(code: string, bookingAmount: number): Promise<{ valid: boolean; promoCode?: PromoCode; error?: string }> {
+    const promoCode = await this.getPromoCodeByCode(code);
+    
+    if (!promoCode) {
+      return { valid: false, error: "Promo code not found" };
+    }
+
+    if (!promoCode.isActive) {
+      return { valid: false, error: "Promo code is no longer active" };
+    }
+
+    const now = new Date();
+    
+    if (promoCode.validFrom && new Date(promoCode.validFrom) > now) {
+      return { valid: false, error: "Promo code is not yet valid" };
+    }
+
+    if (promoCode.validTo && new Date(promoCode.validTo) < now) {
+      return { valid: false, error: "Promo code has expired" };
+    }
+
+    if (promoCode.usageLimit && promoCode.currentUsage >= promoCode.usageLimit) {
+      return { valid: false, error: "Promo code usage limit reached" };
+    }
+
+    if (promoCode.minBookingAmount && bookingAmount < Number(promoCode.minBookingAmount)) {
+      return { valid: false, error: `Minimum booking amount of £${promoCode.minBookingAmount} required` };
+    }
+
+    return { valid: true, promoCode };
+  }
+
+  async incrementPromoCodeUsage(promoCodeId: number): Promise<void> {
+    await db
+      .update(promoCodes)
+      .set({ currentUsage: promoCodes.currentUsage + 1 })
+      .where(eq(promoCodes.id, promoCodeId));
   }
 }
 

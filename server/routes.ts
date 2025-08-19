@@ -662,6 +662,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Promo code validation
+  app.post("/api/validate-promo-code", requireAuth, async (req, res) => {
+    try {
+      const { code, bookingAmount } = req.body;
+      
+      if (!code || typeof code !== 'string') {
+        return res.status(400).json({ message: "Promo code is required" });
+      }
+      
+      if (!bookingAmount || bookingAmount <= 0) {
+        return res.status(400).json({ message: "Valid booking amount is required" });
+      }
+
+      const validation = await storage.validatePromoCode(code.trim(), Number(bookingAmount));
+      
+      if (!validation.valid) {
+        return res.status(400).json({ message: validation.error });
+      }
+
+      const promoCode = validation.promoCode!;
+      let discountAmount = 0;
+
+      if (promoCode.discountType === 'percentage') {
+        discountAmount = Number(bookingAmount) * (Number(promoCode.discountValue) / 100);
+        if (promoCode.maxDiscountAmount) {
+          discountAmount = Math.min(discountAmount, Number(promoCode.maxDiscountAmount));
+        }
+      } else {
+        discountAmount = Number(promoCode.discountValue);
+      }
+
+      const finalAmount = Math.max(0, Number(bookingAmount) - discountAmount);
+
+      res.json({
+        valid: true,
+        promoCode: {
+          id: promoCode.id,
+          code: promoCode.code,
+          description: promoCode.description,
+          discountType: promoCode.discountType,
+          discountValue: promoCode.discountValue,
+        },
+        discountAmount: discountAmount.toFixed(2),
+        finalAmount: finalAmount.toFixed(2),
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error validating promo code: " + error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

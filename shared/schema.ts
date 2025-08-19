@@ -31,6 +31,22 @@ export const rooms = pgTable("rooms", {
   lockName: text("lock_name"), // Human-readable lock name
 });
 
+export const promoCodes = pgTable("promo_codes", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  description: text("description"),
+  discountType: text("discount_type").notNull(), // "percentage" or "fixed"
+  discountValue: decimal("discount_value", { precision: 10, scale: 2 }).notNull(),
+  minBookingAmount: decimal("min_booking_amount", { precision: 10, scale: 2 }),
+  maxDiscountAmount: decimal("max_discount_amount", { precision: 10, scale: 2 }),
+  usageLimit: integer("usage_limit"), // null = unlimited
+  currentUsage: integer("current_usage").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  validFrom: timestamp("valid_from"),
+  validTo: timestamp("valid_to"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const bookings = pgTable("bookings", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
@@ -40,6 +56,9 @@ export const bookings = pgTable("bookings", {
   endTime: text("end_time").notNull(), // HH:MM format
   duration: integer("duration").notNull(), // in hours
   totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
+  originalPrice: decimal("original_price", { precision: 10, scale: 2 }),
+  promoCodeId: integer("promo_code_id"),
+  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }),
   status: text("status").notNull().default("confirmed"), // confirmed, cancelled, completed
   contactPhone: text("contact_phone"),
 
@@ -68,6 +87,12 @@ export const insertRoomSchema = createInsertSchema(rooms).omit({
   id: true,
 });
 
+export const insertPromoCodeSchema = createInsertSchema(promoCodes).omit({
+  id: true,
+  currentUsage: true,
+  createdAt: true,
+});
+
 export const insertBookingSchema = createInsertSchema(bookings).omit({
   id: true,
   userId: true,
@@ -78,6 +103,7 @@ export const insertBookingSchema = createInsertSchema(bookings).omit({
   idNumber: z.string().min(1, "ID number is required for studio access"),
   idType: z.string().min(1, "ID type is required"),
   totalPrice: z.union([z.string(), z.number()]).transform(val => String(val)),
+  promoCode: z.string().optional(),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -85,6 +111,8 @@ export type LoginUser = z.infer<typeof loginSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertRoom = z.infer<typeof insertRoomSchema>;
 export type Room = typeof rooms.$inferSelect;
+export type InsertPromoCode = z.infer<typeof insertPromoCodeSchema>;
+export type PromoCode = typeof promoCodes.$inferSelect;
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
 export type Booking = typeof bookings.$inferSelect;
 
