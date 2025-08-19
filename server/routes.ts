@@ -376,7 +376,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...bookingData,
         totalPrice: totalPrice.toString(),
         userId: authReq.userId,
-        accessCode: ttlockPasscode || accessCode, // Use TTLock passcode if available, fallback to demo code
+        accessCode: ttlockPasscode || accessCode, // Use TTLock passcode if available, fallback to generated code
         ttlockPasscode: ttlockPasscode || undefined,
         ttlockPasscodeId: ttlockPasscodeId ? ttlockPasscodeId.toString() : undefined,
         lockAccessEnabled

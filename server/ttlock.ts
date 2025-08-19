@@ -161,11 +161,11 @@ export class TTLockService {
     } catch (error) {
       console.error('TTLock API error:', error);
       
-      // Fallback to demo mode if API fails
+      // Fallback to generated passcode if API fails
       const passcode = this.generatePasscode(bookingId);
       const passcodeId = Math.floor(Math.random() * 2147483647);
       
-      console.log(`⚠️ TTLock API failed, using demo passcode ${passcode} for booking ${bookingId}`);
+      console.log(`⚠️ TTLock API failed, using generated passcode ${passcode} for booking ${bookingId}`);
       console.log(`Valid from ${startTime.toISOString()} to ${endTime.toISOString()}`);
       
       return {
@@ -281,7 +281,7 @@ export const createTTLockService = (): TTLockService | null => {
   };
 
   if (!config.clientId || !config.clientSecret || !config.username || !config.password) {
-    console.log('TTLock credentials not configured, using demo mode');
+    console.log('TTLock credentials not configured, using fallback access codes');
     return null;
   }
 

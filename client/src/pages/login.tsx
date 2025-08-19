@@ -180,13 +180,7 @@ export default function Login() {
                   </Button>
                 </form>
 
-                {/* Demo Credentials */}
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-blue-800 font-medium mb-2">Demo Account:</p>
-                  <p className="text-xs text-blue-700">
-                    Create a new account to get started, or use the registration form above.
-                  </p>
-                </div>
+
               </TabsContent>
 
               <TabsContent value="register" className="space-y-4">
