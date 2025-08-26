@@ -74,16 +74,6 @@ export function Header({ onLogout }: HeaderProps) {
                 >
                   My Bookings
                 </Link>
-                <Link
-                  href="/smart-lock"
-                  className={`transition-colors ${
-                    isActive("/smart-lock")
-                      ? "text-music-purple font-medium border-b-2 border-music-purple pb-1"
-                      : "text-gray-600 hover:text-music-purple"
-                  }`}
-                >
-                  Smart Lock
-                </Link>
               </nav>
             )}
           </div>

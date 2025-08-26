@@ -11,6 +11,8 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - **Smart Lock**: TTLock API integration for automated access control
 
 ## Recent Changes
+- **Aug 26, 2025**: ✅ UI SIMPLIFICATION - Removed Smart Lock tab from navigation (functionality remains in backend for automated access)
+- **Aug 26, 2025**: ✅ PROMO CODE SYSTEM COMPLETED - Full promo code functionality with validation, discount calculation, and checkout integration
 - **Jul 30, 2025**: ✅ MULTI-LOCK SYSTEM IMPLEMENTED - Added support for multiple TTLock smart locks
 - **Jul 30, 2025**: ✅ UNIFIED ACCESS CONTROL - All studios now use front door lock LL609_5aa163 (24518732) for consistent entry
 - **Jul 30, 2025**: Created lock management interface at `/lock-management` for configuring locks per room
