@@ -587,11 +587,11 @@ export function BookingModal({
             />
             <Label htmlFor="terms" className="text-sm text-gray-600 leading-relaxed">
               I agree to the{" "}
-              <a href="#" className="text-music-indigo hover:underline">
+              <a href="/terms" target="_blank" className="text-music-indigo hover:underline">
                 terms and conditions
               </a>{" "}
               and{" "}
-              <a href="#" className="text-music-indigo hover:underline">
+              <a href="/cancellation-policy" target="_blank" className="text-music-indigo hover:underline">
                 cancellation policy
               </a>
             </Label>

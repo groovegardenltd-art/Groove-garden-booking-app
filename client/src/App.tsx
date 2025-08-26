@@ -9,6 +9,8 @@ import LockManagement from "@/pages/lock-management";
 import Login from "@/pages/login";
 import NotFound from "@/pages/not-found";
 import Website from "@/pages/website";
+import Terms from "@/pages/terms";
+import CancellationPolicy from "@/pages/cancellation-policy";
 
 function Router() {
   return (
@@ -18,6 +20,8 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/bookings" component={Bookings} />
       <Route path="/lock-management" component={LockManagement} />
+      <Route path="/terms" component={Terms} />
+      <Route path="/cancellation-policy" component={CancellationPolicy} />
       <Route path="/login" component={Login} />
       <Route component={NotFound} />
     </Switch>
