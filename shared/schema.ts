@@ -11,6 +11,9 @@ export const users = pgTable("users", {
   phone: text("phone"),
   idNumber: text("id_number"),
   idType: text("id_type"), // "drivers_license", "passport", "state_id", etc.
+  idPhotoUrl: text("id_photo_url"), // URL to uploaded ID photo
+  idVerificationStatus: text("id_verification_status").default("pending"), // "pending", "verified", "rejected"
+  idVerifiedAt: timestamp("id_verified_at"),
 });
 
 export const rooms = pgTable("rooms", {
@@ -71,6 +74,7 @@ export const bookings = pgTable("bookings", {
   // ID verification for self-entry studio
   idNumber: text("id_number"),
   idType: text("id_type"), // "drivers_license", "passport", "state_id", etc.
+  idPhotoUrl: text("id_photo_url"), // URL to uploaded ID photo for this booking
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

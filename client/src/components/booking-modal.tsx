@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Room } from "@shared/schema";
-import { CreditCard, Coins } from "lucide-react";
+import { CreditCard, Coins, Upload, X } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { getAuthState } from "@/lib/auth";
@@ -56,6 +56,8 @@ export function BookingModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [idNumber, setIdNumber] = useState("");
   const [idType, setIdType] = useState("");
+  const [idPhoto, setIdPhoto] = useState<File | null>(null);
+  const [idPhotoPreview, setIdPhotoPreview] = useState<string | null>(null);
   const [showPayment, setShowPayment] = useState(false);
   const [clientSecret, setClientSecret] = useState("");
   const [paymentIntentId, setPaymentIntentId] = useState("");
@@ -101,6 +103,8 @@ export function BookingModal({
     setIsSubmitting(false);
     setIdNumber("");
     setIdType("");
+    setIdPhoto(null);
+    setIdPhotoPreview(null);
     setShowPayment(false);
     setClientSecret("");
     setPaymentIntentId("");
@@ -143,6 +147,46 @@ export function BookingModal({
     setPromoCodeError("");
   };
 
+  // Handle ID photo upload
+  const handleIdPhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid File Type",
+          description: "Please upload an image file (JPG, PNG, etc.)",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File Too Large",
+          description: "Please upload an image smaller than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setIdPhoto(file);
+      
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setIdPhotoPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeIdPhoto = () => {
+    setIdPhoto(null);
+    setIdPhotoPreview(null);
+  };
+
   // Create payment intent
   const createPaymentIntent = async () => {
     const finalAmount = appliedPromoCode ? Number(appliedPromoCode.finalAmount) : calculatePrice(selectedDuration);
@@ -179,6 +223,15 @@ export function BookingModal({
       toast({
         title: "ID Verification Required",
         description: "Please provide your ID information for studio access.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!idPhoto) {
+      toast({
+        title: "ID Photo Required",
+        description: "Please upload a clear photo of your ID for verification.",
         variant: "destructive",
       });
       return;
@@ -551,6 +604,57 @@ export function BookingModal({
                 <p className="text-xs text-gray-500 mt-1">
                   Required for studio access verification and security
                 </p>
+              </div>
+              
+              {/* ID Photo Upload */}
+              <div>
+                <Label className="text-sm font-medium text-gray-700">
+                  Upload ID Photo *
+                </Label>
+                <div className="mt-2">
+                  {!idPhotoPreview ? (
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleIdPhotoChange}
+                        className="hidden"
+                        id="id-photo-upload"
+                      />
+                      <label 
+                        htmlFor="id-photo-upload" 
+                        className="cursor-pointer flex flex-col items-center gap-2"
+                      >
+                        <Upload className="h-8 w-8 text-gray-400" />
+                        <span className="text-sm text-gray-600">
+                          Click to upload your ID photo
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          PNG, JPG up to 5MB
+                        </span>
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <img 
+                        src={idPhotoPreview} 
+                        alt="ID Preview" 
+                        className="w-full max-w-sm h-40 object-cover rounded-lg border border-gray-300"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeIdPhoto}
+                        className="absolute top-2 right-2 p-1 bg-red-100 rounded-full hover:bg-red-200 transition-colors"
+                      >
+                        <X className="h-4 w-4 text-red-600" />
+                      </button>
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-500 mt-2">
+                    Upload a clear photo of your government-issued ID for verification. 
+                    This helps ensure studio security and protects all users.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
