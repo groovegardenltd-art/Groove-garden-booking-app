@@ -58,13 +58,14 @@ export function BookingCalendar({
     return hour >= 17; // 5pm or later
   };
 
-  // Get available duration options based on selected time
+  // Get available duration options based on selected time and room
   const getDurationOptions = () => {
     const isEvening = selectedTime ? isEveningTime(selectedTime) : false;
+    const isLiveRoom = selectedRoom?.name === "Live Room";
     const options = [];
     
-    // For evening bookings, minimum 3 hours
-    const minDuration = isEvening ? 3 : 1;
+    // For Live Room evening bookings, minimum 3 hours. Pods have no evening minimum.
+    const minDuration = (isEvening && isLiveRoom) ? 3 : 1;
     
     for (let i = minDuration; i <= 12; i++) {
       options.push({
@@ -165,8 +166,9 @@ export function BookingCalendar({
     if (selectedRoom && selectedDate && isTimeSlotAvailable(time, selectedDuration)) {
       onTimeSelect(time);
       
-      // Auto-adjust duration for evening bookings if current duration is less than 3 hours
-      if (isEveningTime(time) && selectedDuration < 3) {
+      // Auto-adjust duration for Live Room evening bookings if current duration is less than 3 hours
+      const isLiveRoom = selectedRoom?.name === "Live Room";
+      if (isEveningTime(time) && isLiveRoom && selectedDuration < 3) {
         onDurationChange(3);
       }
     }

@@ -35,7 +35,7 @@ export default function Terms() {
               <h2 className="text-xl font-semibold text-gray-900 mb-3">3. Studio Usage Rules</h2>
               <div className="space-y-2">
                 <p>• Maximum booking duration: 12 hours per session.</p>
-                <p>• Minimum booking for evening sessions (5 PM onwards): 3 hours.</p>
+                <p>• Minimum booking for Live Room evening sessions (5 PM onwards): 3 hours. Pods have no minimum.</p>
                 <p>• You are responsible for any damage to equipment or facilities.</p>
                 <p>• No smoking, food, or drinks (except water) in the studios.</p>
                 <p>• Clean up after your session and return equipment to proper locations.</p>

@@ -44,6 +44,7 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - **Aug 26, 2025**: ✅ PRICING UPDATED - Live Room: £13/hr (9am-5pm), £18/hr (5pm-midnight)
 - **Aug 18, 2025**: ✅ CAPACITY TRACKING REMOVED - Eliminated room capacity limits and people count requirements
 - **Aug 18, 2025**: ✅ PRICING TIME UPDATED - Changed day rate hours from 6am-5pm to 9am-5pm throughout system
+- **Sep 01, 2025**: ✅ LIVE ROOM MINIMUM UPDATED - 3-hour evening minimum now applies only to Live Room, pods have no minimum
 - **Aug 18, 2025**: ✅ EVENING MINIMUM BOOKING - Implemented 3-hour minimum for all evening bookings (5pm onwards)
 - **Aug 18, 2025**: ✅ SINGLE-CLICK BOOKING - Streamlined booking process to one-click confirmation in test mode
 - **Aug 18, 2025**: ✅ UI IMPROVEMENTS - Removed special requests section, changed "backup access code" to "access code", added # symbol to codes
