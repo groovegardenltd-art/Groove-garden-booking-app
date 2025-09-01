@@ -240,9 +240,9 @@ export function BookingCalendar({
       {/* Calendar Grid */}
       <div className="overflow-x-auto">
         <div className="min-w-[700px] lg:min-w-full">
-          {/* Calendar Days Header */}
-          <div className="grid grid-cols-8 gap-1 mb-2">
-            <div className="p-2 min-w-[80px]"></div>
+          {/* Calendar Days Header - Sticky on mobile */}
+          <div className="grid grid-cols-8 gap-1 mb-2 sticky top-0 bg-white z-10 border-b border-gray-100 pb-2 shadow-sm">
+            <div className="p-2 min-w-[70px] sm:min-w-[80px] text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 rounded">Time</div>
             {weekDays.map((date, index) => {
               const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
               const isSelected = selectedDate === formatDate(date);
@@ -251,19 +251,22 @@ export function BookingCalendar({
               return (
                 <div
                   key={index}
-                  className={`p-2 text-center text-xs sm:text-sm font-medium cursor-pointer rounded transition-colors min-w-[75px] ${
+                  className={`p-1 sm:p-2 text-center text-xs sm:text-sm font-medium cursor-pointer rounded transition-colors min-w-[70px] sm:min-w-[75px] ${
                     isSelected
-                      ? "bg-music-indigo text-white"
+                      ? "bg-music-indigo text-white shadow-md ring-2 ring-music-indigo/20"
                       : past
                       ? "text-gray-400"
                       : isToday(date)
-                      ? "text-music-purple"
-                      : "text-gray-600 hover:bg-gray-100"
+                      ? "text-music-purple bg-purple-50 border border-purple-200"
+                      : "text-gray-600 hover:bg-gray-100 border border-transparent"
                   }`}
                   onClick={() => handleDateClick(date)}
                 >
                   <div className="font-semibold">{dayNames[index]}</div>
                   <div className="text-xs mt-1">{date.getDate()}</div>
+                  {isSelected && (
+                    <div className="text-xs text-white/80 mt-1">Selected</div>
+                  )}
                 </div>
               );
             })}
@@ -274,8 +277,9 @@ export function BookingCalendar({
             <div className="space-y-1">
               {BUSINESS_HOURS.map((hour) => (
                 <div key={hour.time} className="grid grid-cols-8 gap-1">
-                  <div className="p-2 text-xs sm:text-sm text-gray-600 font-medium min-w-[80px] flex items-center">
-                    {hour.label}
+                  <div className="p-1 sm:p-2 text-xs sm:text-sm text-gray-600 font-medium min-w-[70px] sm:min-w-[80px] flex items-center bg-gray-50/50 rounded">
+                    <span className="sm:hidden">{hour.time}</span>
+                    <span className="hidden sm:block">{hour.label}</span>
                   </div>
                   {weekDays.map((date, dayIndex) => {
                     const dateStr = formatDate(date);
@@ -284,7 +288,7 @@ export function BookingCalendar({
                     const isPast = isPastDate(date);
                     const isClosed = date.getDay() === 0; // Sunday
                     
-                    let buttonClass = "p-1 sm:p-2 border rounded text-xs sm:text-sm transition-colors min-h-[35px] flex items-center justify-center min-w-[75px] ";
+                    let buttonClass = "p-1 sm:p-2 border rounded text-xs sm:text-sm transition-colors min-h-[40px] sm:min-h-[35px] flex items-center justify-center min-w-[70px] sm:min-w-[75px] ";
                     let buttonText = "•";
                     let disabled = false;
 
@@ -301,10 +305,10 @@ export function BookingCalendar({
                       buttonText = "×";
                       disabled = true;
                     } else if (isSelectedSlot) {
-                      buttonClass += "bg-music-indigo border-music-indigo text-white";
+                      buttonClass += "bg-music-indigo border-music-indigo text-white font-semibold";
                       buttonText = "✓";
                     } else if (dateStr === selectedDate) {
-                      buttonClass += "border-gray-200 hover:bg-music-indigo hover:text-white";
+                      buttonClass += "border-music-indigo bg-music-indigo/5 hover:bg-music-indigo hover:text-white cursor-pointer";
                       buttonText = "•";
                     } else {
                       buttonClass += "border-gray-200 text-gray-400";
@@ -320,9 +324,10 @@ export function BookingCalendar({
                         onClick={() => !disabled && dateStr === selectedDate && handleTimeClick(hour.time)}
                         title={buttonText === "•" ? "Available" : buttonText === "✓" ? "Selected" : buttonText === "×" ? (isClosed ? "Closed" : isPast ? "Past" : "Unavailable") : ""}
                       >
-                        <span className="sm:hidden">{buttonText}</span>
-                        <span className="hidden sm:block">
-                          {buttonText === "•" ? "Available" : buttonText === "✓" ? "Selected" : buttonText === "×" ? (isClosed ? "Closed" : isPast ? "Past" : "Unavailable") : buttonText}
+                        <span className="block">
+                          {buttonText === "•" ? (dateStr === selectedDate ? "○" : "•") : 
+                           buttonText === "✓" ? "✓" : 
+                           buttonText === "×" ? "×" : buttonText}
                         </span>
                       </button>
                     );

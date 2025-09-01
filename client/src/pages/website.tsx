@@ -298,13 +298,13 @@ export default function Website() {
                     {section.rates.map((rate, rateIndex) => (
                       <div key={rateIndex} className="flex justify-between items-center p-3 rounded-lg bg-gray-50">
                         <span className="font-medium">
-                          {'time' in rate ? rate.time : rate.duration}
+                          {(rate as any).time || (rate as any).duration}
                         </span>
                         <div className="text-right">
                           <div className="font-bold text-green-600">{rate.price}</div>
-                          {'savings' in rate && rate.savings && (
+                          {(rate as any).savings && (
                             <Badge variant="secondary" className="text-xs">
-                              {rate.savings}
+                              {(rate as any).savings}
                             </Badge>
                           )}
                         </div>
