@@ -11,6 +11,9 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - **Smart Lock**: TTLock API integration for automated access control
 
 ## Recent Changes
+- **Sep 01, 2025**: ✅ ONE-TIME ID VERIFICATION SYSTEM - Manual staff review with photo upload, permanent user verification status
+- **Sep 01, 2025**: ✅ ADMIN INTERFACE COMPLETED - Dedicated ID verification review page at /admin/id-verification for staff
+- **Sep 01, 2025**: ✅ ENHANCED SECURITY - Photo ID upload with file validation, cross-reference verification, audit trail
 - **Aug 26, 2025**: ✅ UI SIMPLIFICATION - Removed Smart Lock tab from navigation (functionality remains in backend for automated access)
 - **Aug 26, 2025**: ✅ PROMO CODE SYSTEM COMPLETED - Full promo code functionality with validation, discount calculation, and checkout integration
 - **Jul 30, 2025**: ✅ MULTI-LOCK SYSTEM IMPLEMENTED - Added support for multiple TTLock smart locks
@@ -55,7 +58,8 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 ### Core Features
 - Room selection and availability checking
 - Multi-hour booking with dynamic pricing
-- User authentication and ID verification
+- User authentication and **one-time ID verification**
+- **Manual staff review system** - Photo ID upload with permanent verification status
 - **Stripe payment processing** - Secure card payments required before booking confirmation
 - Real-time booking management
 - Smart lock integration for secure access
@@ -77,6 +81,14 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 ## API Integrations
 - **TTLock API** for smart lock management (supports multiple locks)
 - **Lock Management System** - Configure locks per room through web interface
+- **ID Verification System** - Manual staff review with photo upload and permanent user status
 - Booking system generates temporary access codes for specific room locks
 - Access codes are time-limited to booking duration
 - Environment variables: TTLOCK_CLIENT_ID, TTLOCK_CLIENT_SECRET, TTLOCK_USERNAME, TTLOCK_PASSWORD
+
+## Security Features
+- **One-time ID verification** - Users upload photo ID once, staff manually review
+- **Permanent verification status** - Verified users skip ID requirements for all future bookings
+- **Admin review interface** - Dedicated page at /admin/id-verification for staff approval/rejection
+- **Photo validation** - File type and size limits with preview functionality
+- **Audit trail** - Verification timestamps and status tracking for security compliance
