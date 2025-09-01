@@ -50,7 +50,7 @@ export function Header({ onLogout }: HeaderProps) {
                 alt="Groove Garden Studios" 
                 className="h-10 w-10 rounded-full object-cover"
               />
-              <h1 className="text-xl font-bold text-music-purple">Groove Garden Studios</h1>
+              <h1 className="text-lg sm:text-xl font-bold text-music-purple">Groove Garden Studios</h1>
             </div>
             {user && (
               <nav className="hidden md:flex space-x-8 ml-8">

@@ -62,7 +62,7 @@ export default function Login() {
       setAuthState({ user: data.user, sessionId: data.sessionId });
       toast({
         title: "Account Created!",
-        description: "Welcome to Harmony Studios!",
+        description: "Welcome to Groove Garden Studios!",
       });
       setLocation("/");
     },
@@ -128,7 +128,7 @@ export default function Login() {
               alt="Groove Garden Studio" 
               className="w-20 h-20 rounded-lg object-cover mb-4 shadow-lg"
             />
-            <h1 className="text-2xl font-bold text-green-600">Groove Garden Studios</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-green-600">Groove Garden Studios</h1>
           </div>
           <h2 className="text-xl text-gray-900">
             Access Your Rehearsal Space
