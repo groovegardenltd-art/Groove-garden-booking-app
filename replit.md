@@ -11,7 +11,7 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - **Smart Lock**: TTLock API integration for automated access control
 
 ## Recent Changes
-- **Sep 01, 2025**: ✅ ONE-TIME MOBILE PHONE COLLECTION - Smart auto-formatting, UK validation, stored in user profile for future bookings
+- **Sep 01, 2025**: ✅ MOBILE PHONE COLLECTION ON REGISTRATION - Required field during account signup with UK formatting and validation
 - **Sep 01, 2025**: ✅ ONE-TIME ID VERIFICATION SYSTEM - Manual staff review with photo upload, permanent user verification status
 - **Sep 01, 2025**: ✅ ADMIN INTERFACE COMPLETED - Dedicated ID verification review page at /admin/id-verification for staff
 - **Sep 01, 2025**: ✅ ENHANCED SECURITY - Photo ID upload with file validation, cross-reference verification, audit trail

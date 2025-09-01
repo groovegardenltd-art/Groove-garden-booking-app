@@ -80,7 +80,8 @@ export const bookings = pgTable("bookings", {
 
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
-  phone: true, // Phone is collected during first booking, not registration
+}).extend({
+  phone: z.string().min(1, "Mobile phone number is required"),
 });
 
 export const loginSchema = z.object({

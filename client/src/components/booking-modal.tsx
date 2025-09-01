@@ -275,29 +275,14 @@ export function BookingModal({
       }
     }
 
-    // Use saved phone number or require new one
-    const phoneToUse = user?.phone || contactPhone;
-    
-    if (!phoneToUse) {
+    // User phone is always available from registration
+    if (!user?.phone) {
       toast({
-        title: "Mobile Phone Required",
-        description: "Please provide a mobile phone number for booking confirmation and access instructions.",
+        title: "Phone Number Missing",
+        description: "User phone number not found. Please contact support.",
         variant: "destructive",
       });
       return;
-    }
-
-    // Only validate format if using a new phone number (not saved one)
-    if (!user?.phone) {
-      const phoneRegex = /^(\+44|0)(7\d{9})$/;
-      if (!phoneRegex.test(contactPhone.replace(/\s/g, ''))) {
-        toast({
-          title: "Invalid Mobile Number",
-          description: "Please enter a valid UK mobile number (e.g., 07123 456789).",
-          variant: "destructive",
-        });
-        return;
-      }
     }
 
     // In test mode, directly process the booking without payment steps
@@ -331,15 +316,6 @@ export function BookingModal({
 
     const endTime = `${String(parseInt(selectedTime.split(':')[0]) + selectedDuration).padStart(2, '0')}:00`;
     
-    // Save phone number to user profile if it's new
-    if (user && !user.phone && contactPhone) {
-      try {
-        await apiRequest("/api/user/phone", "PATCH", { phone: contactPhone });
-      } catch (error) {
-        console.warn('Failed to save user phone number:', error);
-      }
-    }
-
     const bookingData = {
       roomId: selectedRoom.id,
       date: selectedDate,
@@ -347,7 +323,7 @@ export function BookingModal({
       endTime: endTime,
       duration: selectedDuration,
       totalPrice: calculatePrice(selectedDuration),
-      contactPhone: user?.phone || contactPhone,
+      contactPhone: user?.phone,
       idNumber,
       idType,
       paymentIntentId: "test_mode_booking", // Test mode identifier
@@ -364,15 +340,6 @@ export function BookingModal({
 
     const endTime = `${String(parseInt(selectedTime.split(':')[0]) + selectedDuration).padStart(2, '0')}:00`;
     
-    // Save phone number to user profile if it's new
-    if (user && !user.phone && contactPhone) {
-      try {
-        await apiRequest("/api/user/phone", "PATCH", { phone: contactPhone });
-      } catch (error) {
-        console.warn('Failed to save user phone number:', error);
-      }
-    }
-
     const bookingData = {
       roomId: selectedRoom.id,
       date: selectedDate,
@@ -380,7 +347,7 @@ export function BookingModal({
       endTime: endTime,
       duration: selectedDuration,
       totalPrice: calculatePrice(selectedDuration),
-      contactPhone: user?.phone || contactPhone,
+      contactPhone: user?.phone,
       idNumber,
       idType,
       paymentIntentId, // Include payment intent ID
@@ -618,54 +585,16 @@ export function BookingModal({
                   className="mt-1"
                 />
               </div>
-              {/* Only show phone input if user doesn't have phone saved */}
-              {!user?.phone ? (
-                <div>
-                  <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
-                    Mobile Phone Number *
-                  </Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="07123 456789"
-                    value={contactPhone}
-                    onChange={(e) => {
-                      // Auto-format the phone number as user types
-                      let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
-                      if (value.startsWith('44')) {
-                        value = value.substring(2); // Remove country code if included
-                      }
-                      if (value.startsWith('7') && value.length <= 10) {
-                        value = '0' + value; // Add leading 0 for UK mobile
-                      }
-                      if (value.length > 11) {
-                        value = value.substring(0, 11); // Limit to 11 digits
-                      }
-                      // Add spacing for readability: 07123 456789
-                      if (value.length > 5) {
-                        value = value.substring(0, 5) + ' ' + value.substring(5);
-                      }
-                      setContactPhone(value);
-                    }}
-                    required
-                    className="mt-1"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    We'll use this to contact you about your booking and send access instructions via SMS
-                  </p>
-                </div>
-              ) : (
-                /* Show saved phone number */
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-sm text-green-800 font-medium">Mobile Number on File</span>
-                  </div>
-                  <p className="text-sm text-green-700 mt-1">
-                    We'll send booking confirmation and access instructions to: <strong>{user.phone}</strong>
-                  </p>
-                </div>
-              )}
+              {/* Show saved phone number from registration */}
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-sm text-green-800 font-medium">Mobile Number on File</span>
+              </div>
+              <p className="text-sm text-green-700 mt-1">
+                We'll send booking confirmation and access instructions to: <strong>{user?.phone}</strong>
+              </p>
+            </div>
 
             </div>
           </div>

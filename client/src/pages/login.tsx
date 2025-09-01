@@ -28,6 +28,7 @@ export default function Login() {
     name: "",
     password: "",
     confirmPassword: "",
+    phone: "",
   });
 
   const loginMutation = useMutation({
@@ -219,7 +220,37 @@ export default function Login() {
                       required
                     />
                   </div>
-
+                  <div>
+                    <Label htmlFor="register-phone">Mobile Phone Number *</Label>
+                    <Input
+                      id="register-phone"
+                      type="tel"
+                      value={registerData.phone}
+                      onChange={(e) => {
+                        // Auto-format the phone number as user types
+                        let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+                        if (value.startsWith('44')) {
+                          value = value.substring(2); // Remove country code if included
+                        }
+                        if (value.startsWith('7') && value.length <= 10) {
+                          value = '0' + value; // Add leading 0 for UK mobile
+                        }
+                        if (value.length > 11) {
+                          value = value.substring(0, 11); // Limit to 11 digits
+                        }
+                        // Add spacing for readability: 07123 456789
+                        if (value.length > 5) {
+                          value = value.substring(0, 5) + ' ' + value.substring(5);
+                        }
+                        updateRegisterData("phone", value);
+                      }}
+                      placeholder="07123 456789"
+                      required
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      We'll use this for booking confirmations and access instructions
+                    </p>
+                  </div>
                   <div>
                     <Label htmlFor="register-password">Password</Label>
                     <Input
