@@ -13,6 +13,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { getAuthState } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import React from "react";
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { PaymentForm } from "./payment-form";
@@ -64,6 +65,16 @@ export function BookingModal({
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Get current user and prefill phone number
+  const { user } = getAuthState();
+  
+  // Initialize phone number from user profile
+  React.useEffect(() => {
+    if (user?.phone && !contactPhone) {
+      setContactPhone(user.phone);
+    }
+  }, [user?.phone, contactPhone]);
 
   const bookingMutation = useMutation({
     mutationFn: async (bookingData: any) => {
@@ -93,7 +104,8 @@ export function BookingModal({
   });
 
   const resetForm = () => {
-    setContactPhone("");
+    const { user } = getAuthState();
+    setContactPhone(user?.phone || "");
     setPromoCode("");
     setAppliedPromoCode(null);
     setPromoCodeError("");
@@ -314,6 +326,15 @@ export function BookingModal({
 
     const endTime = `${String(parseInt(selectedTime.split(':')[0]) + selectedDuration).padStart(2, '0')}:00`;
     
+    // Save phone number to user profile if it's new or different
+    if (user && contactPhone && (!user.phone || user.phone !== contactPhone)) {
+      try {
+        await apiRequest("/api/user/phone", "PATCH", { phone: contactPhone });
+      } catch (error) {
+        console.warn('Failed to update user phone number:', error);
+      }
+    }
+
     const bookingData = {
       roomId: selectedRoom.id,
       date: selectedDate,
@@ -338,6 +359,15 @@ export function BookingModal({
 
     const endTime = `${String(parseInt(selectedTime.split(':')[0]) + selectedDuration).padStart(2, '0')}:00`;
     
+    // Save phone number to user profile if it's new or different
+    if (user && contactPhone && (!user.phone || user.phone !== contactPhone)) {
+      try {
+        await apiRequest("/api/user/phone", "PATCH", { phone: contactPhone });
+      } catch (error) {
+        console.warn('Failed to update user phone number:', error);
+      }
+    }
+
     const bookingData = {
       roomId: selectedRoom.id,
       date: selectedDate,
@@ -346,8 +376,6 @@ export function BookingModal({
       duration: selectedDuration,
       totalPrice: calculatePrice(selectedDuration),
       contactPhone,
-
-
       idNumber,
       idType,
       paymentIntentId, // Include payment intent ID
@@ -433,8 +461,6 @@ export function BookingModal({
     
     return totalPrice;
   };
-
-  const { user } = getAuthState();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -117,6 +117,15 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
+  async updateUserPhone(id: number, phone: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ phone })
+      .where(eq(users.id, id))
+      .returning();
+    return user || undefined;
+  }
+
   async getUsersPendingVerification(): Promise<User[]> {
     return await db
       .select()

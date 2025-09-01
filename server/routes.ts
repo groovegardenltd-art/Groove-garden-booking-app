@@ -207,10 +207,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       username: user.username, 
       email: user.email, 
       name: user.name,
+      phone: user.phone,
       idVerificationStatus: user.idVerificationStatus,
       idType: user.idType,
       idNumber: user.idNumber
     });
+  });
+
+  // Update user phone number
+  app.patch("/api/user/phone", requireAuth, async (req, res) => {
+    const authReq = req as AuthenticatedRequest;
+    const { phone } = req.body;
+    
+    try {
+      const updatedUser = await storage.updateUserPhone(authReq.userId, phone);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json({ message: "Phone number updated successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update phone number" });
+    }
   });
 
   // Room routes

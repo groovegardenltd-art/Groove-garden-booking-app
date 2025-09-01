@@ -8,7 +8,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
   name: text("name").notNull(),
-  phone: text("phone"),
+  phone: text("phone"), // User's mobile phone number
   idNumber: text("id_number"),
   idType: text("id_type"), // "drivers_license", "passport", "state_id", etc.
   idPhotoUrl: text("id_photo_url"), // URL to uploaded ID photo
