@@ -36,16 +36,18 @@ export default function Home() {
     }
   }, [user, setLocation]);
 
-  // Fetch rooms
+  // Fetch rooms with better caching
   const { data: rooms = [], isLoading: roomsLoading } = useQuery<Room[]>({
     queryKey: ["/api/rooms"],
     enabled: !!user,
+    staleTime: 10 * 60 * 1000, // Rooms don't change often, cache for 10 minutes
   });
 
-  // Fetch user bookings
+  // Fetch user bookings with better caching
   const { data: userBookings = [], isLoading: bookingsLoading } = useQuery<BookingWithRoom[]>({
     queryKey: ["/api/bookings"],
     enabled: !!user,
+    staleTime: 2 * 60 * 1000, // Bookings change more often, cache for 2 minutes
   });
 
   const handleRoomSelect = (room: Room) => {

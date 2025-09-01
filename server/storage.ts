@@ -48,7 +48,6 @@ export class DatabaseStorage implements IStorage {
             pricePerHour: "8.00",
             dayPricePerHour: "8.00",
             eveningPricePerHour: "10.00",
-            maxCapacity: 5,
             isActive: true,
             lockId: process.env.TTLOCK_LOCK_ID_A || process.env.TTLOCK_LOCK_ID || '',
             lockName: "Pod 1 Door",
@@ -60,7 +59,6 @@ export class DatabaseStorage implements IStorage {
             pricePerHour: "8.00",
             dayPricePerHour: "8.00",
             eveningPricePerHour: "10.00",
-            maxCapacity: 8,
             isActive: true,
             lockId: process.env.TTLOCK_LOCK_ID_B || '',
             lockName: "Pod 2 Door",
@@ -72,7 +70,6 @@ export class DatabaseStorage implements IStorage {
             pricePerHour: "13.00",
             dayPricePerHour: "13.00",
             eveningPricePerHour: "19.00",
-            maxCapacity: 12,
             isActive: true,
             lockId: process.env.TTLOCK_LOCK_ID_C || '',
             lockName: "Live Room Door",
@@ -233,10 +230,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async incrementPromoCodeUsage(promoCodeId: number): Promise<void> {
-    await db
-      .update(promoCodes)
-      .set({ currentUsage: promoCodes.currentUsage + 1 })
-      .where(eq(promoCodes.id, promoCodeId));
+    const [currentCode] = await db.select().from(promoCodes).where(eq(promoCodes.id, promoCodeId));
+    if (currentCode) {
+      await db
+        .update(promoCodes)
+        .set({ currentUsage: currentCode.currentUsage + 1 })
+        .where(eq(promoCodes.id, promoCodeId));
+    }
   }
 }
 

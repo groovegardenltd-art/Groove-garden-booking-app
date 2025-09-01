@@ -19,7 +19,10 @@ export async function apiRequest(
     ...authHeaders,
   };
 
-  console.log(`Making ${method} request to ${url} with auth headers:`, authHeaders);
+  // Only log in development
+  if (import.meta.env.DEV) {
+    console.log(`Making ${method} request to ${url} with auth headers:`, authHeaders);
+  }
 
   const res = await fetch(url, {
     method,
@@ -56,7 +59,9 @@ export const getQueryFn: <T>(options: {
     });
 
     if (res.status === 401) {
-      console.log("Query failed due to invalid session, clearing auth state");
+      if (import.meta.env.DEV) {
+        console.log("Query failed due to invalid session, clearing auth state");
+      }
       clearAuthState();
       if (unauthorizedBehavior === "returnNull") {
         return null;
@@ -75,8 +80,9 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes instead of Infinity
+      gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
+      retry: 1, // Retry once on failure
     },
     mutations: {
       retry: false,
