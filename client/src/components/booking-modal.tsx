@@ -436,7 +436,7 @@ export function BookingModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-screen overflow-y-auto">
+      <DialogContent className="sm:max-w-lg max-w-full mx-2 max-h-screen overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-gray-900">
             {showPayment ? "Payment" : "Complete Your Booking"}
@@ -464,51 +464,51 @@ export function BookingModal({
             </div>
           )
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
             {/* Booking Details Review */}
           {/* Booking Details Review */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <h4 className="font-medium text-gray-900 mb-3">Booking Details</h4>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Room:</span>
-                <span className="font-medium">{selectedRoom?.name}</span>
+          <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+            <h4 className="font-medium text-gray-900 mb-2 sm:mb-3 text-sm sm:text-base">Booking Details</h4>
+            <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 truncate">Room:</span>
+                <span className="font-medium text-right">{selectedRoom?.name}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <span className="text-gray-600">Date:</span>
-                <span className="font-medium">
+                <span className="font-medium text-right">
                   {selectedDate ? formatDate(selectedDate) : "Not selected"}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <span className="text-gray-600">Time:</span>
-                <span className="font-medium">
+                <span className="font-medium text-right">
                   {selectedTime ? formatTime(selectedTime) : "Not selected"}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <span className="text-gray-600">Duration:</span>
-                <span className="font-medium">{selectedDuration} {selectedDuration === 1 ? 'hour' : 'hours'}</span>
+                <span className="font-medium text-right">{selectedDuration} {selectedDuration === 1 ? 'hr' : 'hrs'}</span>
               </div>
               {appliedPromoCode && (
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-gray-600">Subtotal:</span>
-                  <span className="font-medium">£{calculatePrice(selectedDuration).toFixed(2)}</span>
+                  <span className="font-medium text-right">£{calculatePrice(selectedDuration).toFixed(2)}</span>
                 </div>
               )}
               {appliedPromoCode && (
-                <div className="flex justify-between">
-                  <span className="text-green-600">
+                <div className="flex justify-between items-center">
+                  <span className="text-green-600 text-xs sm:text-sm truncate">
                     Discount ({appliedPromoCode.promoCode.code}):
                   </span>
-                  <span className="font-medium text-green-600">
+                  <span className="font-medium text-green-600 text-right">
                     -£{appliedPromoCode.discountAmount}
                   </span>
                 </div>
               )}
-              <div className="flex justify-between pt-2 border-t border-gray-200">
-                <span className="text-gray-600">Total:</span>
-                <span className="font-semibold text-music-purple text-lg">
+              <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+                <span className="text-gray-600 font-medium">Total:</span>
+                <span className="font-semibold text-music-purple text-base sm:text-lg">
                   £{appliedPromoCode ? appliedPromoCode.finalAmount : calculatePrice(selectedDuration).toFixed(2)}
                 </span>
               </div>
@@ -517,9 +517,9 @@ export function BookingModal({
 
           {/* Promo Code Section */}
           <div>
-            <h4 className="font-medium text-gray-900 mb-3">Promo Code</h4>
+            <h4 className="font-medium text-gray-900 mb-2 sm:mb-3 text-sm sm:text-base">Promo Code</h4>
             {!appliedPromoCode ? (
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <div className="flex-1">
                   <Input
                     type="text"
@@ -571,7 +571,7 @@ export function BookingModal({
 
           {/* Contact Information */}
           <div>
-            <h4 className="font-medium text-gray-900 mb-3">Contact Information</h4>
+            <h4 className="font-medium text-gray-900 mb-2 sm:mb-3 text-sm sm:text-base">Contact Information</h4>
             <div className="space-y-4">
               <div>
                 <Label htmlFor="contact" className="text-sm font-medium text-gray-700">
@@ -586,13 +586,13 @@ export function BookingModal({
                 />
               </div>
               {/* Show saved phone number from registration */}
-            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-2 sm:p-3">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                 <span className="text-sm text-green-800 font-medium">Mobile Number on File</span>
               </div>
-              <p className="text-sm text-green-700 mt-1">
-                We'll send booking confirmation and access instructions to: <strong>{user?.phone}</strong>
+              <p className="text-xs sm:text-sm text-green-700 mt-1">
+                SMS confirmations to: <strong>{user?.phone}</strong>
               </p>
             </div>
 
@@ -601,10 +601,10 @@ export function BookingModal({
 
           {/* ID Verification */}
           <div>
-            <h4 className="font-medium text-gray-900 mb-3">ID Verification (Required for Self-Entry)</h4>
+            <h4 className="font-medium text-gray-900 mb-2 sm:mb-3 text-sm sm:text-base">ID Verification (Required for Self-Entry)</h4>
             
             {user?.idVerificationStatus === "verified" ? (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-5 w-5 text-green-600" />
                   <span className="text-green-800 font-medium">ID Verified ✓</span>
@@ -729,18 +729,18 @@ export function BookingModal({
 
           {/* Payment Method */}
           <div>
-            <h4 className="font-medium text-gray-900 mb-3">Payment Method</h4>
+            <h4 className="font-medium text-gray-900 mb-2 sm:mb-3 text-sm sm:text-base">Payment Method</h4>
             <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-              <div className="flex items-center space-x-3 p-3 border border-gray-300 rounded-lg">
+              <div className="flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 border border-gray-300 rounded-lg">
                 <RadioGroupItem value="card" id="card" />
-                <Label htmlFor="card" className="flex items-center cursor-pointer">
+                <Label htmlFor="card" className="flex items-center cursor-pointer text-sm sm:text-base">
                   <CreditCard className="w-4 h-4 text-gray-500 mr-2" />
                   Credit/Debit Card
                 </Label>
               </div>
-              <div className="flex items-center space-x-3 p-3 border border-gray-300 rounded-lg">
+              <div className="flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 border border-gray-300 rounded-lg">
                 <RadioGroupItem value="paypal" id="paypal" />
-                <Label htmlFor="paypal" className="flex items-center cursor-pointer">
+                <Label htmlFor="paypal" className="flex items-center cursor-pointer text-sm sm:text-base">
                   <Coins className="w-4 h-4 text-gray-500 mr-2" />
                   PayPal
                 </Label>
@@ -754,8 +754,9 @@ export function BookingModal({
               id="terms"
               checked={acceptedTerms}
               onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
+              className="mt-0.5"
             />
-            <Label htmlFor="terms" className="text-sm text-gray-600 leading-relaxed">
+            <Label htmlFor="terms" className="text-xs sm:text-sm text-gray-600 leading-relaxed">
               I agree to the{" "}
               <a href="/terms" target="_blank" className="text-music-indigo hover:underline">
                 terms and conditions
@@ -768,11 +769,11 @@ export function BookingModal({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex space-x-3">
+          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 pt-2">
             <Button
               type="button"
               variant="outline"
-              className="flex-1"
+              className="w-full sm:flex-1 text-sm sm:text-base"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
             >
@@ -780,7 +781,7 @@ export function BookingModal({
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-music-purple hover:bg-music-purple/90"
+              className="w-full sm:flex-1 bg-music-purple hover:bg-music-purple/90 text-sm sm:text-base"
               disabled={isSubmitting || !acceptedTerms}
             >
               {isSubmitting ? "Processing..." : TEST_MODE ? "Confirm Booking" : "Proceed to Payment"}
