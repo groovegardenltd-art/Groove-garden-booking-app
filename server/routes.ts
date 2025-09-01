@@ -8,6 +8,7 @@ import { insertUserSchema, loginSchema, insertBookingSchema } from "@shared/sche
 import { createTTLockService } from "./ttlock";
 import { z } from "zod";
 import Stripe from "stripe";
+import { notifyPendingIdVerification } from "./email";
 
 // Test mode configuration
 const TEST_MODE = process.env.NODE_ENV === 'development' || process.env.ENABLE_TEST_MODE === 'true';
@@ -748,6 +749,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         idPhotoUrl: photoUrl,
         idVerificationStatus: "pending"
       });
+
+      // Send email notification to admin
+      const adminEmail = process.env.ADMIN_EMAIL || "admin@groove-garden.com";
+      
+      console.log(`Sending ID verification notification for user: ${user.name} (${user.email})`);
+      console.log(`Admin email configured as: ${adminEmail}`);
+      const idTypeLabel = idType === "drivers_license" ? "Driver's License" : 
+                         idType === "state_id" ? "State ID" : 
+                         idType === "passport" ? "Passport" : 
+                         idType === "military_id" ? "Military ID" : idType;
+      
+      try {
+        await notifyPendingIdVerification(user.name, user.email, idTypeLabel, adminEmail);
+        console.log(`ID verification notification sent to ${adminEmail} for user ${user.name}`);
+      } catch (error) {
+        console.error('Failed to send ID verification notification:', error);
+        // Continue even if email fails - don't block the verification process
+      }
 
       res.json({ 
         message: "ID verification submitted successfully", 
