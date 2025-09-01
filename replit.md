@@ -37,8 +37,8 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - **Aug 18, 2025**: ✅ BUSINESS HOURS UPDATED - Studios open 9am-midnight, Monday-Saturday
 - **Aug 18, 2025**: ✅ EXTENDED BOOKING HOURS - Users can now book up to 12 hours maximum
 - **Aug 18, 2025**: ✅ TIME-BASED PRICING IMPLEMENTED - All rooms now use hourly rates based on time of day
-- **Aug 18, 2025**: Pod 1 & Pod 2: £8/hr (9am-5pm), £10/hr (5pm-midnight)
-- **Aug 18, 2025**: Live Room: £13/hr (9am-5pm), £19/hr (5pm-midnight)
+- **Aug 26, 2025**: ✅ PRICING UPDATED - Pod 1 & Pod 2: £7/hr (9am-5pm), £9/hr (5pm-midnight)
+- **Aug 26, 2025**: ✅ PRICING UPDATED - Live Room: £13/hr (9am-5pm), £18/hr (5pm-midnight)
 - **Aug 18, 2025**: ✅ CAPACITY TRACKING REMOVED - Eliminated room capacity limits and people count requirements
 - **Aug 18, 2025**: ✅ PRICING TIME UPDATED - Changed day rate hours from 6am-5pm to 9am-5pm throughout system
 - **Aug 18, 2025**: ✅ EVENING MINIMUM BOOKING - Implemented 3-hour minimum for all evening bookings (5pm onwards)
