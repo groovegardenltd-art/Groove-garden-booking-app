@@ -265,8 +265,19 @@ export function BookingModal({
 
     if (!contactPhone) {
       toast({
-        title: "Phone Number Required",
-        description: "Please provide your phone number.",
+        title: "Mobile Phone Required",
+        description: "Please provide a mobile phone number for booking confirmation and access instructions.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Basic UK mobile phone validation
+    const phoneRegex = /^(\+44|0)(7\d{9})$/;
+    if (!phoneRegex.test(contactPhone.replace(/\s/g, ''))) {
+      toast({
+        title: "Invalid Mobile Number",
+        description: "Please enter a valid UK mobile number (e.g., 07123 456789).",
         variant: "destructive",
       });
       return;
@@ -578,17 +589,37 @@ export function BookingModal({
               </div>
               <div>
                 <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
-                  Phone Number *
+                  Mobile Phone Number *
                 </Label>
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="(555) 123-4567"
+                  placeholder="07123 456789"
                   value={contactPhone}
-                  onChange={(e) => setContactPhone(e.target.value)}
+                  onChange={(e) => {
+                    // Auto-format the phone number as user types
+                    let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+                    if (value.startsWith('44')) {
+                      value = value.substring(2); // Remove country code if included
+                    }
+                    if (value.startsWith('7') && value.length <= 10) {
+                      value = '0' + value; // Add leading 0 for UK mobile
+                    }
+                    if (value.length > 11) {
+                      value = value.substring(0, 11); // Limit to 11 digits
+                    }
+                    // Add spacing for readability: 07123 456789
+                    if (value.length > 5) {
+                      value = value.substring(0, 5) + ' ' + value.substring(5);
+                    }
+                    setContactPhone(value);
+                  }}
                   required
                   className="mt-1"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  We'll use this to contact you about your booking and send access instructions via SMS
+                </p>
               </div>
 
             </div>
