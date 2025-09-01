@@ -28,7 +28,6 @@ export default function Login() {
     name: "",
     password: "",
     confirmPassword: "",
-    phone: "",
   });
 
   const loginMutation = useMutation({
@@ -220,16 +219,7 @@ export default function Login() {
                       required
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="register-phone">Phone (Optional)</Label>
-                    <Input
-                      id="register-phone"
-                      type="tel"
-                      value={registerData.phone}
-                      onChange={(e) => updateRegisterData("phone", e.target.value)}
-                      placeholder="(555) 123-4567"
-                    />
-                  </div>
+
                   <div>
                     <Label htmlFor="register-password">Password</Label>
                     <Input
