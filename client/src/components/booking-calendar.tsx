@@ -237,12 +237,11 @@ export function BookingCalendar({
         </div>
       </div>
 
-      {/* Calendar Grid */}
-      <div className="overflow-x-auto">
-        <div className="min-w-[700px] lg:min-w-full">
-          {/* Calendar Days Header - Sticky on mobile */}
-          <div className="grid grid-cols-8 gap-1 mb-2 sticky top-0 bg-white z-10 border-b border-gray-100 pb-2 shadow-sm">
-            <div className="p-2 min-w-[70px] sm:min-w-[80px] text-xs sm:text-sm font-semibold text-gray-600 bg-gray-50 rounded">Time</div>
+      {/* Mobile: Date Selection First */}
+      <div className="block sm:hidden mb-4">
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+          <h4 className="text-sm font-semibold text-purple-800 mb-2">Select Date</h4>
+          <div className="grid grid-cols-7 gap-1">
             {weekDays.map((date, index) => {
               const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
               const isSelected = selectedDate === formatDate(date);
@@ -251,7 +250,80 @@ export function BookingCalendar({
               return (
                 <div
                   key={index}
-                  className={`p-1 sm:p-2 text-center text-xs sm:text-sm font-medium cursor-pointer rounded transition-colors min-w-[70px] sm:min-w-[75px] ${
+                  className={`p-2 text-center text-xs font-medium cursor-pointer rounded transition-colors ${
+                    isSelected
+                      ? "bg-music-indigo text-white shadow-lg"
+                      : past
+                      ? "text-gray-400 bg-gray-100"
+                      : isToday(date)
+                      ? "text-music-purple bg-purple-100 border border-purple-300"
+                      : "text-gray-600 bg-white border border-gray-200 hover:bg-gray-50"
+                  }`}
+                  onClick={() => handleDateClick(date)}
+                >
+                  <div className="font-semibold text-xs">{dayNames[index]}</div>
+                  <div className="text-xs mt-1">{date.getDate()}</div>
+                </div>
+              );
+            })}
+          </div>
+          {selectedDate && (
+            <div className="mt-2 text-center text-sm font-medium text-purple-700">
+              Selected: {formatDate(new Date(selectedDate))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile: Time Slots */}
+      {selectedRoom && selectedDate && (
+        <div className="block sm:hidden">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <h4 className="text-sm font-semibold text-blue-800 mb-2">
+              Available Times for {formatDate(new Date(selectedDate))}
+            </h4>
+            <div className="grid grid-cols-3 gap-2">
+              {BUSINESS_HOURS.map((hour) => {
+                const isAvailable = isTimeSlotAvailable(hour.time, selectedDuration);
+                const isSelected = selectedTime === hour.time;
+                
+                return (
+                  <button
+                    key={hour.time}
+                    className={`p-3 text-sm font-medium rounded-lg border transition-colors ${
+                      isSelected
+                        ? "bg-music-indigo text-white border-music-indigo shadow-md"
+                        : isAvailable
+                        ? "bg-white text-gray-700 border-blue-200 hover:bg-blue-50"
+                        : "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                    }`}
+                    disabled={!isAvailable}
+                    onClick={() => isAvailable && handleTimeClick(hour.time)}
+                  >
+                    {hour.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Desktop: Calendar Grid */}
+      <div className="hidden sm:block overflow-x-auto">
+        <div className="min-w-[700px] lg:min-w-full">
+          {/* Calendar Days Header - Desktop */}
+          <div className="grid grid-cols-8 gap-1 mb-2 sticky top-0 bg-white z-10 border-b border-gray-100 pb-2 shadow-sm">
+            <div className="p-2 min-w-[80px] text-sm font-semibold text-gray-600 bg-gray-50 rounded">Time</div>
+            {weekDays.map((date, index) => {
+              const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+              const isSelected = selectedDate === formatDate(date);
+              const past = isPastDate(date);
+              
+              return (
+                <div
+                  key={index}
+                  className={`p-2 text-center text-sm font-medium cursor-pointer rounded transition-colors min-w-[75px] ${
                     isSelected
                       ? "bg-music-indigo text-white shadow-md ring-2 ring-music-indigo/20"
                       : past
