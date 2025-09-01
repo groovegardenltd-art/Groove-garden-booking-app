@@ -115,7 +115,7 @@ Groove Garden Studios - ID Verification System
 
   return await sendEmail({
     to: adminEmail,
-    from: 'noreply@groove-garden.com', // You may need to verify this domain with SendGrid
+    from: 'groovegardenltd@gmail.com', // Using your verified email address
     subject,
     text: textContent,
     html: htmlContent

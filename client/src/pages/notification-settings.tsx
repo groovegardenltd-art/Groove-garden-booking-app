@@ -9,7 +9,7 @@ import { Bell, Mail, Settings } from "lucide-react";
 
 export default function NotificationSettings() {
   const { toast } = useToast();
-  const [adminEmail, setAdminEmail] = useState("admin@groove-garden.com");
+  const [adminEmail, setAdminEmail] = useState("groovegardenltd@gmail.com");
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -77,7 +77,7 @@ export default function NotificationSettings() {
                       type="email"
                       value={adminEmail}
                       onChange={(e) => setAdminEmail(e.target.value)}
-                      placeholder="admin@groove-garden.com"
+                      placeholder="groovegardenltd@gmail.com"
                       className="mt-1"
                     />
                     <p className="text-xs text-gray-500 mt-1">

@@ -751,7 +751,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Send email notification to admin
-      const adminEmail = process.env.ADMIN_EMAIL || "admin@groove-garden.com";
+      const adminEmail = process.env.ADMIN_EMAIL || "groovegardenltd@gmail.com";
       
       console.log(`Sending ID verification notification for user: ${user.name} (${user.email})`);
       console.log(`Admin email configured as: ${adminEmail}`);
