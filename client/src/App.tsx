@@ -11,6 +11,7 @@ import NotFound from "@/pages/not-found";
 import Website from "@/pages/website";
 import Terms from "@/pages/terms";
 import CancellationPolicy from "@/pages/cancellation-policy";
+import IdVerificationAdmin from "@/pages/id-verification-admin";
 
 function Router() {
   return (
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/lock-management" component={LockManagement} />
       <Route path="/terms" component={Terms} />
       <Route path="/cancellation-policy" component={CancellationPolicy} />
+      <Route path="/admin/id-verification" component={IdVerificationAdmin} />
       <Route path="/login" component={Login} />
       <Route component={NotFound} />
     </Switch>

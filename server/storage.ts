@@ -8,6 +8,8 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, data: Partial<User>): Promise<User | undefined>;
+  getUsersPendingVerification(): Promise<User[]>;
 
   // Room methods
   getAllRooms(): Promise<Room[]>;
@@ -104,6 +106,22 @@ export class DatabaseStorage implements IStorage {
       .values(insertUser)
       .returning();
     return user;
+  }
+
+  async updateUser(id: number, data: Partial<User>): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set(data)
+      .where(eq(users.id, id))
+      .returning();
+    return user || undefined;
+  }
+
+  async getUsersPendingVerification(): Promise<User[]> {
+    return await db
+      .select()
+      .from(users)
+      .where(eq(users.idVerificationStatus, "pending"));
   }
 
   async getAllRooms(): Promise<Room[]> {

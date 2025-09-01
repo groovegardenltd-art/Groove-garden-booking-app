@@ -201,7 +201,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    res.json({ id: user.id, username: user.username, email: user.email, name: user.name });
+    res.json({ 
+      id: user.id, 
+      username: user.username, 
+      email: user.email, 
+      name: user.name,
+      idVerificationStatus: user.idVerificationStatus,
+      idType: user.idType,
+      idNumber: user.idNumber
+    });
   });
 
   // Room routes
@@ -379,7 +387,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         accessCode: ttlockPasscode || accessCode, // Use TTLock passcode if available, fallback to generated code
         ttlockPasscode: ttlockPasscode || undefined,
         ttlockPasscodeId: ttlockPasscodeId ? ttlockPasscodeId.toString() : undefined,
-        lockAccessEnabled
+        lockAccessEnabled,
+        promoCodeId: bookingData.promoCodeId || undefined,
+        originalPrice: bookingData.originalPrice || undefined,
+        discountAmount: bookingData.discountAmount || undefined
       });
 
       res.status(201).json(booking);
@@ -709,6 +720,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       res.status(500).json({ message: "Error validating promo code: " + error.message });
+    }
+  });
+
+  // ID Verification routes
+  app.post("/api/id-verification/upload", requireAuth, async (req, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const { idType, idNumber, idPhotoBase64 } = req.body;
+
+      if (!idType || !idNumber || !idPhotoBase64) {
+        return res.status(400).json({ message: "ID type, number, and photo are required" });
+      }
+
+      // Store the photo (in production, you'd upload to cloud storage)
+      const photoUrl = `id_photos/${authReq.userId}_${Date.now()}.jpg`;
+      
+      // Update user's ID information and set status to pending
+      const user = await storage.getUser(authReq.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      await storage.updateUser(authReq.userId, {
+        idType,
+        idNumber,
+        idPhotoUrl: photoUrl,
+        idVerificationStatus: "pending"
+      });
+
+      res.json({ 
+        message: "ID verification submitted successfully", 
+        status: "pending",
+        reviewTime: "Your ID will be reviewed within 24 hours" 
+      });
+    } catch (error) {
+      console.error('ID upload error:', error);
+      res.status(500).json({ message: "Failed to upload ID verification" });
+    }
+  });
+
+  // Admin routes for ID verification
+  app.get("/api/admin/id-verifications", requireAuth, async (req, res) => {
+    try {
+      // In production, add admin role check here
+      const pendingUsers = await storage.getUsersPendingVerification();
+      res.json(pendingUsers);
+    } catch (error) {
+      console.error('Failed to fetch pending verifications:', error);
+      res.status(500).json({ message: "Failed to fetch pending verifications" });
+    }
+  });
+
+  app.post("/api/admin/id-verifications/:userId/approve", requireAuth, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      await storage.updateUser(userId, {
+        idVerificationStatus: "verified",
+        idVerifiedAt: new Date()
+      });
+      res.json({ message: "ID verification approved" });
+    } catch (error) {
+      console.error('Failed to approve verification:', error);
+      res.status(500).json({ message: "Failed to approve verification" });
+    }
+  });
+
+  app.post("/api/admin/id-verifications/:userId/reject", requireAuth, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const { reason } = req.body;
+      await storage.updateUser(userId, {
+        idVerificationStatus: "rejected"
+      });
+      res.json({ message: "ID verification rejected", reason });
+    } catch (error) {
+      console.error('Failed to reject verification:', error);
+      res.status(500).json({ message: "Failed to reject verification" });
     }
   });
 
