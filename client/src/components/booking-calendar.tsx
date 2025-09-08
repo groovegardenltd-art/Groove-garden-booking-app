@@ -290,17 +290,17 @@ export function BookingCalendar({
                 return (
                   <button
                     key={hour.time}
-                    className={`p-4 text-sm font-medium rounded-lg border transition-colors min-h-[50px] ${
+                    className={`p-4 text-sm font-medium rounded-lg border transition-all duration-200 min-h-[50px] ${
                       isSelected
-                        ? "bg-music-indigo text-white border-music-indigo shadow-md"
+                        ? "bg-music-indigo text-white border-music-indigo shadow-lg ring-2 ring-music-indigo/30 scale-105 transform"
                         : isAvailable
-                        ? "bg-white text-gray-700 border-blue-200 hover:bg-blue-50"
+                        ? "bg-white text-gray-700 border-blue-200 hover:bg-blue-50 hover:border-music-indigo hover:shadow-md hover:scale-102 transform"
                         : "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                     }`}
                     disabled={!isAvailable}
                     onClick={() => isAvailable && handleTimeClick(hour.time)}
                   >
-                    {hour.label}
+                    {isSelected && <span className="text-lg">✓ </span>}{hour.label}
                   </button>
                 );
               })}
@@ -377,10 +377,10 @@ export function BookingCalendar({
                       buttonText = "×";
                       disabled = true;
                     } else if (isSelectedSlot) {
-                      buttonClass += "bg-music-indigo border-music-indigo text-white font-semibold";
+                      buttonClass += "bg-music-indigo border-music-indigo text-white font-semibold shadow-lg ring-2 ring-music-indigo/30 scale-105 transform";
                       buttonText = "✓";
                     } else if (dateStr === selectedDate) {
-                      buttonClass += "border-music-indigo bg-music-indigo/5 hover:bg-music-indigo hover:text-white cursor-pointer";
+                      buttonClass += "border-music-indigo bg-music-indigo/5 hover:bg-music-indigo hover:text-white hover:shadow-md hover:scale-105 cursor-pointer transform transition-all duration-200";
                       buttonText = "•";
                     } else {
                       buttonClass += "border-gray-200 text-gray-400";
