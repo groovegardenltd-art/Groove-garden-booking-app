@@ -40,7 +40,7 @@ export default function Home() {
   const { data: rooms = [], isLoading: roomsLoading } = useQuery<Room[]>({
     queryKey: ["/api/rooms"],
     enabled: !!user,
-    staleTime: 10 * 60 * 1000, // Rooms don't change often, cache for 10 minutes
+    staleTime: 0, // Force fresh data to show updated equipment
   });
 
   // Fetch user bookings with better caching
