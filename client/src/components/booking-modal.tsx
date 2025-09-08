@@ -55,10 +55,6 @@ export function BookingModal({
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [idNumber, setIdNumber] = useState("");
-  const [idType, setIdType] = useState("");
-  const [idPhoto, setIdPhoto] = useState<File | null>(null);
-  const [idPhotoPreview, setIdPhotoPreview] = useState<string | null>(null);
   const [showPayment, setShowPayment] = useState(false);
   const [clientSecret, setClientSecret] = useState("");
   const [paymentIntentId, setPaymentIntentId] = useState("");
@@ -113,10 +109,6 @@ export function BookingModal({
     setPaymentMethod("card");
     setAcceptedTerms(false);
     setIsSubmitting(false);
-    setIdNumber("");
-    setIdType("");
-    setIdPhoto(null);
-    setIdPhotoPreview(null);
     setShowPayment(false);
     setClientSecret("");
     setPaymentIntentId("");
@@ -160,44 +152,6 @@ export function BookingModal({
   };
 
   // Handle ID photo upload
-  const handleIdPhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        toast({
-          title: "Invalid File Type",
-          description: "Please upload an image file (JPG, PNG, etc.)",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: "File Too Large",
-          description: "Please upload an image smaller than 5MB",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      setIdPhoto(file);
-      
-      // Create preview URL
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setIdPhotoPreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const removeIdPhoto = () => {
-    setIdPhoto(null);
-    setIdPhotoPreview(null);
-  };
 
   // Create payment intent
   const createPaymentIntent = async () => {
@@ -231,49 +185,6 @@ export function BookingModal({
       return;
     }
 
-    if (!idNumber || !idType) {
-      toast({
-        title: "ID Verification Required",
-        description: "Please provide your ID information for studio access.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Check if user needs ID verification
-    if (user?.idVerificationStatus !== "verified") {
-      if (!idPhoto) {
-        toast({
-          title: "ID Photo Required",
-          description: "Please upload a clear photo of your ID for verification.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Upload ID verification first
-      try {
-        const reader = new FileReader();
-        reader.onload = async () => {
-          const idPhotoBase64 = reader.result as string;
-          
-          await apiRequest("/api/id-verification/upload", "POST", { idType, idNumber, idPhotoBase64 });
-          
-          toast({
-            title: "ID Verification Submitted",
-            description: "Your ID will be reviewed within 24 hours. You can continue with your booking.",
-          });
-        };
-        reader.readAsDataURL(idPhoto);
-      } catch (error) {
-        toast({
-          title: "ID Upload Failed", 
-          description: "Failed to upload ID photo. Please try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
 
     // User phone is always available from registration
     if (!user?.phone) {
@@ -324,8 +235,6 @@ export function BookingModal({
       duration: selectedDuration,
       totalPrice: calculatePrice(selectedDuration),
       contactPhone: user?.phone,
-      idNumber,
-      idType,
       paymentIntentId: "test_mode_booking", // Test mode identifier
     };
 
@@ -348,8 +257,6 @@ export function BookingModal({
       duration: selectedDuration,
       totalPrice: calculatePrice(selectedDuration),
       contactPhone: user?.phone,
-      idNumber,
-      idType,
       paymentIntentId, // Include payment intent ID
     };
 
@@ -598,133 +505,6 @@ export function BookingModal({
 
             </div>
           </div>
-
-          {/* ID Verification */}
-          <div>
-            <h4 className="font-medium text-gray-900 mb-2 sm:mb-3 text-sm sm:text-base">ID Verification (Required for Self-Entry)</h4>
-            
-            {user?.idVerificationStatus === "verified" ? (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  <span className="text-green-800 font-medium">ID Verified ✓</span>
-                </div>
-                <p className="text-green-700 text-sm mt-1">
-                  Your ID has been verified. You can access the studio using the provided access code.
-                </p>
-              </div>
-            ) : user?.idVerificationStatus === "pending" ? (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-yellow-600" />
-                  <span className="text-yellow-800 font-medium">ID Under Review</span>
-                </div>
-                <p className="text-yellow-700 text-sm mt-1">
-                  Your ID is being reviewed. You can still make bookings and we'll confirm access within 24 hours.
-                </p>
-              </div>
-            ) : user?.idVerificationStatus === "rejected" ? (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                <div className="flex items-center gap-2">
-                  <XCircle className="h-5 w-5 text-red-600" />
-                  <span className="text-red-800 font-medium">ID Verification Required</span>
-                </div>
-                <p className="text-red-700 text-sm mt-1">
-                  Please resubmit your ID verification with a clear photo of your government-issued ID.
-                </p>
-              </div>
-            ) : null}
-            
-            {(user?.idVerificationStatus !== "verified") && (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="idType" className="text-sm font-medium text-gray-700">
-                  ID Type *
-                </Label>
-                <Select value={idType} onValueChange={setIdType}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select ID type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="drivers_license">Driver's License</SelectItem>
-                    <SelectItem value="state_id">State ID</SelectItem>
-                    <SelectItem value="passport">Passport</SelectItem>
-                    <SelectItem value="military_id">Military ID</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="idNumber" className="text-sm font-medium text-gray-700">
-                  ID Number *
-                </Label>
-                <Input
-                  id="idNumber"
-                  type="text"
-                  placeholder="Enter your ID number"
-                  value={idNumber}
-                  onChange={(e) => setIdNumber(e.target.value)}
-                  required
-                  className="mt-1"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Required for studio access verification and security
-                </p>
-              </div>
-              
-              {/* ID Photo Upload */}
-              <div>
-                <Label className="text-sm font-medium text-gray-700">
-                  Upload ID Photo *
-                </Label>
-                <div className="mt-2">
-                  {!idPhotoPreview ? (
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleIdPhotoChange}
-                        className="hidden"
-                        id="id-photo-upload"
-                      />
-                      <label 
-                        htmlFor="id-photo-upload" 
-                        className="cursor-pointer flex flex-col items-center gap-2"
-                      >
-                        <Upload className="h-8 w-8 text-gray-400" />
-                        <span className="text-sm text-gray-600">
-                          Click to upload your ID photo
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          PNG, JPG up to 5MB
-                        </span>
-                      </label>
-                    </div>
-                  ) : (
-                    <div className="relative">
-                      <img 
-                        src={idPhotoPreview} 
-                        alt="ID Preview" 
-                        className="w-full max-w-sm h-40 object-cover rounded-lg border border-gray-300"
-                      />
-                      <button
-                        type="button"
-                        onClick={removeIdPhoto}
-                        className="absolute top-2 right-2 p-1 bg-red-100 rounded-full hover:bg-red-200 transition-colors"
-                      >
-                        <X className="h-4 w-4 text-red-600" />
-                      </button>
-                    </div>
-                  )}
-                  <p className="text-xs text-gray-500 mt-2">
-                    Upload a clear photo of your government-issued ID for verification. 
-                    This helps ensure studio security and protects all users.
-                  </p>
-                </div>
-              </div>
-            </div>
-            )}
-          </div>
-
 
 
           {/* Payment Method */}
