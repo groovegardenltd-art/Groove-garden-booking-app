@@ -278,11 +278,11 @@ export function BookingCalendar({
       {/* Mobile: Time Slots */}
       {selectedRoom && selectedDate && (
         <div className="block sm:hidden">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <h4 className="text-sm font-semibold text-blue-800 mb-2">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-blue-800 mb-3">
               Available Times for {formatDate(new Date(selectedDate))}
             </h4>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               {BUSINESS_HOURS.map((hour) => {
                 const isAvailable = isTimeSlotAvailable(hour.time, selectedDuration);
                 const isSelected = selectedTime === hour.time;
@@ -290,7 +290,7 @@ export function BookingCalendar({
                 return (
                   <button
                     key={hour.time}
-                    className={`p-3 text-sm font-medium rounded-lg border transition-colors ${
+                    className={`p-4 text-sm font-medium rounded-lg border transition-colors min-h-[50px] ${
                       isSelected
                         ? "bg-music-indigo text-white border-music-indigo shadow-md"
                         : isAvailable
