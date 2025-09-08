@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import grooveGardenLogo from "@assets/groove-garden-logo.jpeg";
 import { useMutation } from "@tanstack/react-query";
@@ -29,7 +30,13 @@ export default function Login() {
     password: "",
     confirmPassword: "",
     phone: "",
+    idType: "",
+    idNumber: "",
   });
+
+  // ID photo state
+  const [idPhoto, setIdPhoto] = useState<File | null>(null);
+  const [idPhotoPreview, setIdPhotoPreview] = useState<string | null>(null);
 
   const loginMutation = useMutation({
     mutationFn: async (data: { username: string; password: string }) => {
@@ -88,7 +95,7 @@ export default function Login() {
     loginMutation.mutate({ username: loginUsername, password: loginPassword });
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (registerData.password !== registerData.confirmPassword) {
@@ -109,12 +116,68 @@ export default function Login() {
       return;
     }
 
-    const { confirmPassword, ...dataToSubmit } = registerData;
-    registerMutation.mutate(dataToSubmit);
+    // Validate ID verification fields
+    if (!registerData.idType || !registerData.idNumber || !idPhoto) {
+      toast({
+        title: "ID Verification Required",
+        description: "Please complete ID verification (type, number, and photo required).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Convert photo to base64 for submission
+    const reader = new FileReader();
+    reader.onload = () => {
+      const idPhotoBase64 = reader.result as string;
+      const { confirmPassword, ...dataToSubmit } = registerData;
+      registerMutation.mutate({ ...dataToSubmit, idPhotoBase64 });
+    };
+    reader.readAsDataURL(idPhoto);
   };
 
   const updateRegisterData = (field: string, value: string) => {
     setRegisterData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Handle ID photo upload
+  const handleIdPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid File Type",
+        description: "Please upload an image file (JPEG, PNG, etc.)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File Too Large",
+        description: "Please upload an image smaller than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIdPhoto(file);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = () => {
+      setIdPhotoPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeIdPhoto = () => {
+    setIdPhoto(null);
+    setIdPhotoPreview(null);
   };
 
   return (
@@ -251,6 +314,80 @@ export default function Login() {
                       We'll use this for booking confirmations and access instructions
                     </p>
                   </div>
+
+                  {/* ID Verification Section */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+                    <h4 className="text-sm font-semibold text-blue-800 mb-3">ID Verification (Required)</h4>
+                    <p className="text-xs text-blue-600 mb-3">
+                      For security purposes, we require one-time ID verification. Your ID will be reviewed within 24 hours.
+                    </p>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor="id-type">ID Type</Label>
+                        <Select value={registerData.idType} onValueChange={(value) => updateRegisterData("idType", value)}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select ID type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="drivers_license">Driver's License</SelectItem>
+                            <SelectItem value="passport">Passport</SelectItem>
+                            <SelectItem value="state_id">State ID</SelectItem>
+                            <SelectItem value="military_id">Military ID</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="id-number">ID Number</Label>
+                        <Input
+                          id="id-number"
+                          type="text"
+                          value={registerData.idNumber}
+                          onChange={(e) => updateRegisterData("idNumber", e.target.value)}
+                          placeholder="Enter your ID number"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="id-photo">ID Photo</Label>
+                        <div className="space-y-2">
+                          <Input
+                            id="id-photo"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleIdPhotoChange}
+                            className="cursor-pointer"
+                            required
+                          />
+                          <p className="text-xs text-gray-500">
+                            Upload a clear photo of your ID (max 5MB)
+                          </p>
+                          
+                          {idPhotoPreview && (
+                            <div className="relative">
+                              <img 
+                                src={idPhotoPreview} 
+                                alt="ID Preview" 
+                                className="w-32 h-20 object-cover rounded border"
+                              />
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                                onClick={removeIdPhoto}
+                              >
+                                ×
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div>
                     <Label htmlFor="register-password">Password</Label>
                     <Input
