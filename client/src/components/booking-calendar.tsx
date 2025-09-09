@@ -58,6 +58,21 @@ export function BookingCalendar({
     return hour >= 17; // 5pm or later
   };
 
+  // Check if a time slot is part of the booking range
+  const isTimeInBookingRange = (time: string) => {
+    if (!selectedTime) return false;
+    
+    const selectedHour = parseInt(selectedTime.split(':')[0]);
+    const currentHour = parseInt(time.split(':')[0]);
+    
+    return currentHour >= selectedHour && currentHour < selectedHour + selectedDuration;
+  };
+
+  // Check if this is the start time of the booking
+  const isStartTime = (time: string) => {
+    return selectedTime === time;
+  };
+
   // Get available duration options based on selected time and room
   const getDurationOptions = () => {
     const isEvening = selectedTime ? isEveningTime(selectedTime) : false;
@@ -286,13 +301,17 @@ export function BookingCalendar({
               {BUSINESS_HOURS.map((hour) => {
                 const isAvailable = isTimeSlotAvailable(hour.time, selectedDuration);
                 const isSelected = selectedTime === hour.time;
+                const isInBookingRange = isTimeInBookingRange(hour.time);
+                const isStart = isStartTime(hour.time);
                 
                 return (
                   <button
                     key={hour.time}
                     className={`p-4 text-sm font-medium rounded-lg border transition-all duration-200 min-h-[50px] ${
-                      isSelected
+                      isStart
                         ? "bg-music-indigo text-white border-music-indigo shadow-lg ring-2 ring-music-indigo/30 scale-105 transform"
+                        : isInBookingRange
+                        ? "bg-music-indigo/80 text-white border-music-indigo/80 shadow-md ring-1 ring-music-indigo/20"
                         : isAvailable
                         ? "bg-white text-gray-700 border-blue-200 hover:bg-blue-50 hover:border-music-indigo hover:shadow-md hover:scale-102 transform"
                         : "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
@@ -300,7 +319,9 @@ export function BookingCalendar({
                     disabled={!isAvailable}
                     onClick={() => isAvailable && handleTimeClick(hour.time)}
                   >
-                    {isSelected && <span className="text-lg">✓ </span>}{hour.label}
+                    {isStart && <span className="text-lg">✓ </span>}
+                    {isInBookingRange && !isStart && <span className="text-sm">→ </span>}
+                    {hour.label}
                   </button>
                 );
               })}
@@ -357,10 +378,12 @@ export function BookingCalendar({
                     const dateStr = formatDate(date);
                     const isAvailable = dateStr === selectedDate ? isTimeSlotAvailable(hour.time, selectedDuration) : true;
                     const isSelectedSlot = selectedDate === dateStr && selectedTime === hour.time;
+                    const isInBookingRange = selectedDate === dateStr && isTimeInBookingRange(hour.time);
+                    const isStart = selectedDate === dateStr && isStartTime(hour.time);
                     const isPast = isPastDate(date);
                     const isClosed = date.getDay() === 0; // Sunday
                     
-                    let buttonClass = "p-1 sm:p-2 border rounded text-xs sm:text-sm transition-colors min-h-[40px] sm:min-h-[35px] flex items-center justify-center min-w-[70px] sm:min-w-[75px] ";
+                    let buttonClass = "p-1 sm:p-2 border rounded text-xs sm:text-sm transition-all duration-200 min-h-[40px] sm:min-h-[35px] flex items-center justify-center min-w-[70px] sm:min-w-[75px] ";
                     let buttonText = "•";
                     let disabled = false;
 
@@ -376,11 +399,14 @@ export function BookingCalendar({
                       buttonClass += "bg-red-100 border-red-200 text-red-700 cursor-not-allowed";
                       buttonText = "×";
                       disabled = true;
-                    } else if (isSelectedSlot) {
+                    } else if (isStart) {
                       buttonClass += "bg-music-indigo border-music-indigo text-white font-semibold shadow-lg ring-2 ring-music-indigo/30 scale-105 transform";
                       buttonText = "✓";
+                    } else if (isInBookingRange && !isStart) {
+                      buttonClass += "bg-music-indigo/80 border-music-indigo/80 text-white font-medium shadow-md ring-1 ring-music-indigo/20";
+                      buttonText = "→";
                     } else if (dateStr === selectedDate) {
-                      buttonClass += "border-music-indigo bg-music-indigo/5 hover:bg-music-indigo hover:text-white hover:shadow-md hover:scale-105 cursor-pointer transform transition-all duration-200";
+                      buttonClass += "border-music-indigo bg-music-indigo/5 hover:bg-music-indigo hover:text-white hover:shadow-md hover:scale-105 cursor-pointer transform";
                       buttonText = "•";
                     } else {
                       buttonClass += "border-gray-200 text-gray-400";
@@ -399,6 +425,7 @@ export function BookingCalendar({
                         <span className="block">
                           {buttonText === "•" ? (dateStr === selectedDate ? "○" : "•") : 
                            buttonText === "✓" ? "✓" : 
+                           buttonText === "→" ? "→" :
                            buttonText === "×" ? "×" : buttonText}
                         </span>
                       </button>
