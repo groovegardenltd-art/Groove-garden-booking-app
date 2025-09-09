@@ -152,20 +152,15 @@ export default function IdVerificationAdmin() {
                       </div>
                       
                       {user.idPhotoUrl ? (
-                        <div className="border border-gray-200 rounded-lg p-2 bg-gray-50">
-                          <p className="text-sm text-gray-600 mb-2">ID Photo for Review</p>
-                          <img 
-                            src={user.idPhotoUrl} 
-                            alt="ID Photo" 
-                            className="w-full h-32 object-contain rounded border"
-                            onError={(e) => {
-                              console.error('ID Photo failed to load:', user.idPhotoUrl?.substring(0, 50) + '...');
-                              e.currentTarget.style.display = 'none';
-                            }}
-                            onLoad={() => console.log('ID Photo loaded successfully')}
-                          />
-                          <div className="mt-2 text-xs text-gray-500">
-                            Data format: {user.idPhotoUrl.startsWith('data:') ? 'Valid data URL' : 'Invalid format - missing data: prefix'}
+                        <div className="border border-gray-200 rounded-lg p-4 bg-white">
+                          <p className="text-sm text-gray-600 mb-3 font-medium">ID Photo for Review</p>
+                          <div className="bg-gray-100 rounded p-2">
+                            <img 
+                              src={user.idPhotoUrl} 
+                              alt="ID Photo" 
+                              className="w-full h-48 object-contain rounded"
+                              style={{ maxHeight: '200px', minHeight: '100px' }}
+                            />
                           </div>
                         </div>
                       ) : (
@@ -183,20 +178,15 @@ export default function IdVerificationAdmin() {
                       </div>
                       
                       {user.selfiePhotoUrl ? (
-                        <div className="border border-gray-200 rounded-lg p-2 bg-gray-50">
-                          <p className="text-sm text-gray-600 mb-2">Selfie Photo for Review</p>
-                          <img 
-                            src={user.selfiePhotoUrl} 
-                            alt="Selfie Photo" 
-                            className="w-full h-32 object-contain rounded border"
-                            onError={(e) => {
-                              console.error('Selfie Photo failed to load:', user.selfiePhotoUrl?.substring(0, 50) + '...');
-                              e.currentTarget.style.display = 'none';
-                            }}
-                            onLoad={() => console.log('Selfie Photo loaded successfully')}
-                          />
-                          <div className="mt-2 text-xs text-gray-500">
-                            Data format: {user.selfiePhotoUrl.startsWith('data:') ? 'Valid data URL' : 'Invalid format - missing data: prefix'}
+                        <div className="border border-gray-200 rounded-lg p-4 bg-white">
+                          <p className="text-sm text-gray-600 mb-3 font-medium">Selfie Photo for Review</p>
+                          <div className="bg-gray-100 rounded p-2">
+                            <img 
+                              src={user.selfiePhotoUrl} 
+                              alt="Selfie Photo" 
+                              className="w-full h-48 object-contain rounded"
+                              style={{ maxHeight: '200px', minHeight: '100px' }}
+                            />
                           </div>
                         </div>
                       ) : (
