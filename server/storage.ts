@@ -27,7 +27,7 @@ export interface IStorage {
 
   // Promo code methods
   getPromoCodeByCode(code: string): Promise<PromoCode | undefined>;
-  validatePromoCode(code: string, bookingAmount: number): Promise<{ valid: boolean; promoCode?: PromoCode; error?: string }>;
+  validatePromoCode(code: string, bookingAmount: number, roomId?: number): Promise<{ valid: boolean; promoCode?: PromoCode; error?: string }>;
   incrementPromoCodeUsage(promoCodeId: number): Promise<void>;
 }
 
@@ -224,7 +224,7 @@ export class DatabaseStorage implements IStorage {
     return promoCode || undefined;
   }
 
-  async validatePromoCode(code: string, bookingAmount: number): Promise<{ valid: boolean; promoCode?: PromoCode; error?: string }> {
+  async validatePromoCode(code: string, bookingAmount: number, roomId?: number): Promise<{ valid: boolean; promoCode?: PromoCode; error?: string }> {
     const promoCode = await this.getPromoCodeByCode(code);
     
     if (!promoCode) {
@@ -251,6 +251,13 @@ export class DatabaseStorage implements IStorage {
 
     if (promoCode.minBookingAmount && bookingAmount < Number(promoCode.minBookingAmount)) {
       return { valid: false, error: `Minimum booking amount of £${promoCode.minBookingAmount} required` };
+    }
+
+    // Check room restrictions
+    if (promoCode.applicableRoomIds && promoCode.applicableRoomIds.length > 0 && roomId) {
+      if (!promoCode.applicableRoomIds.includes(roomId)) {
+        return { valid: false, error: "This promo code is not valid for the selected room" };
+      }
     }
 
     return { valid: true, promoCode };
