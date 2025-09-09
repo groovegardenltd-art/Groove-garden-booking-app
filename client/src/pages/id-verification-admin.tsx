@@ -14,6 +14,7 @@ interface PendingUser {
   idType: string;
   idNumber: string;
   idPhotoUrl: string;
+  selfiePhotoUrl: string;
   idVerificationStatus: string;
 }
 
@@ -121,27 +122,28 @@ export default function IdVerificationAdmin() {
                 </CardHeader>
                 
                 <CardContent className="p-6">
-                  <div className="grid md:grid-cols-2 gap-6">
-                    {/* User Information */}
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3">
-                        <User className="h-5 w-5 text-gray-400" />
-                        <div>
-                          <h3 className="font-semibold text-gray-900">{user.name}</h3>
-                          <p className="text-sm text-gray-600">{user.email}</p>
-                          <p className="text-xs text-gray-500">@{user.username}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-3">
-                        <CreditCard className="h-5 w-5 text-gray-400" />
-                        <div>
-                          <p className="font-medium text-gray-900">{getIdTypeLabel(user.idType)}</p>
-                          <p className="text-sm text-gray-600">{user.idNumber}</p>
-                        </div>
+                  {/* User Information */}
+                  <div className="mb-6">
+                    <div className="flex items-center gap-3">
+                      <User className="h-5 w-5 text-gray-400" />
+                      <div>
+                        <h3 className="font-semibold text-gray-900">{user.name}</h3>
+                        <p className="text-sm text-gray-600">{user.email}</p>
+                        <p className="text-xs text-gray-500">@{user.username}</p>
                       </div>
                     </div>
+                    
+                    <div className="flex items-center gap-3 mt-4">
+                      <CreditCard className="h-5 w-5 text-gray-400" />
+                      <div>
+                        <p className="font-medium text-gray-900">{getIdTypeLabel(user.idType)}</p>
+                        <p className="text-sm text-gray-600">{user.idNumber}</p>
+                      </div>
+                    </div>
+                  </div>
 
+                  {/* Photos Grid */}
+                  <div className="grid md:grid-cols-2 gap-6 mb-6">
                     {/* ID Photo */}
                     <div className="space-y-4">
                       <div className="flex items-center gap-2 mb-2">
@@ -159,19 +161,40 @@ export default function IdVerificationAdmin() {
                           <p className="text-sm text-gray-500">No photo uploaded</p>
                         </div>
                       )}
-                      
-                      {/* Review Instructions */}
-                      <div className="bg-blue-50 rounded-lg p-4">
-                        <h4 className="text-sm font-semibold text-blue-900 mb-2">Review Checklist:</h4>
-                        <ul className="text-xs text-blue-800 space-y-1">
-                          <li>• Photo is clear and legible</li>
-                          <li>• ID type matches selection</li>
-                          <li>• ID number matches entry</li>
-                          <li>• Name matches user account</li>
-                          <li>• ID appears valid and current</li>
-                        </ul>
-                      </div>
                     </div>
+
+                    {/* Selfie Photo */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <User className="h-4 w-4 text-gray-400" />
+                        <span className="text-sm font-medium text-gray-700">Selfie Photo</span>
+                      </div>
+                      
+                      {user.selfiePhotoUrl ? (
+                        <div className="border border-gray-200 rounded-lg p-2 bg-gray-50">
+                          <p className="text-sm text-gray-600 mb-2">Selfie uploaded for review</p>
+                          <p className="text-xs text-gray-500">File: {user.selfiePhotoUrl}</p>
+                        </div>
+                      ) : (
+                        <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                          <p className="text-sm text-gray-500">No selfie uploaded</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Review Instructions */}
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <h4 className="text-sm font-semibold text-blue-900 mb-2">Review Checklist:</h4>
+                    <ul className="text-xs text-blue-800 space-y-1">
+                      <li>• ID photo is clear and legible</li>
+                      <li>• ID type matches selection</li>
+                      <li>• ID number matches entry</li>
+                      <li>• Name matches user account</li>
+                      <li>• ID appears valid and current</li>
+                      <li>• Selfie photo shows the person clearly</li>
+                      <li>• Person in selfie matches the person in ID photo</li>
+                    </ul>
                   </div>
 
                   {/* Action Buttons */}
