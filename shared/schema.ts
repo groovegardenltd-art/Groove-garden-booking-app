@@ -48,6 +48,7 @@ export const promoCodes = pgTable("promo_codes", {
   isActive: boolean("is_active").notNull().default(true),
   validFrom: timestamp("valid_from"),
   validTo: timestamp("valid_to"),
+  applicableRoomIds: integer("applicable_room_ids").array(), // null = all rooms
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
