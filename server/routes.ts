@@ -728,7 +728,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Promo code validation
   app.post("/api/validate-promo-code", requireAuth, async (req, res) => {
     try {
-      const { code, bookingAmount } = req.body;
+      const { code, bookingAmount, roomId } = req.body;
       
       if (!code || typeof code !== 'string') {
         return res.status(400).json({ message: "Promo code is required" });
@@ -738,7 +738,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Valid booking amount is required" });
       }
 
-      const validation = await storage.validatePromoCode(code.trim(), Number(bookingAmount));
+      if (!roomId || typeof roomId !== 'number') {
+        return res.status(400).json({ message: "Room selection is required for promo code validation" });
+      }
+
+      const validation = await storage.validatePromoCode(code.trim(), Number(bookingAmount), roomId);
       
       if (!validation.valid) {
         return res.status(400).json({ message: validation.error });
