@@ -121,6 +121,11 @@ export function BookingModal({
       return;
     }
 
+    if (!selectedRoom) {
+      setPromoCodeError("Please select a room first");
+      return;
+    }
+
     setIsValidatingPromo(true);
     setPromoCodeError("");
 
@@ -128,7 +133,8 @@ export function BookingModal({
       const originalPrice = calculatePrice(selectedDuration);
       const response = await apiRequest("POST", "/api/validate-promo-code", {
         code: promoCode.trim(),
-        bookingAmount: originalPrice
+        bookingAmount: originalPrice,
+        roomId: selectedRoom.id
       });
       
       const data = await response.json();
