@@ -153,8 +153,12 @@ export default function IdVerificationAdmin() {
                       
                       {user.idPhotoUrl ? (
                         <div className="border border-gray-200 rounded-lg p-2 bg-gray-50">
-                          <p className="text-sm text-gray-600 mb-2">Photo uploaded for review</p>
-                          <p className="text-xs text-gray-500">File: {user.idPhotoUrl}</p>
+                          <p className="text-sm text-gray-600 mb-2">ID Photo for Review</p>
+                          <img 
+                            src={user.idPhotoUrl} 
+                            alt="ID Photo" 
+                            className="w-full h-32 object-contain rounded border"
+                          />
                         </div>
                       ) : (
                         <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
@@ -172,8 +176,12 @@ export default function IdVerificationAdmin() {
                       
                       {user.selfiePhotoUrl ? (
                         <div className="border border-gray-200 rounded-lg p-2 bg-gray-50">
-                          <p className="text-sm text-gray-600 mb-2">Selfie uploaded for review</p>
-                          <p className="text-xs text-gray-500">File: {user.selfiePhotoUrl}</p>
+                          <p className="text-sm text-gray-600 mb-2">Selfie Photo for Review</p>
+                          <img 
+                            src={user.selfiePhotoUrl} 
+                            alt="Selfie Photo" 
+                            className="w-full h-32 object-contain rounded border"
+                          />
                         </div>
                       ) : (
                         <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">

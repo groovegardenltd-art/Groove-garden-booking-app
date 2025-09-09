@@ -156,16 +156,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Handle ID verification if provided
       if (userData.idType && userData.idNumber && idPhotoBase64 && selfiePhotoBase64) {
-        // Store the photos (in production, you'd upload to cloud storage)
-        const idPhotoUrl = `id_photos/${user.id}_${Date.now()}.jpg`;
-        const selfiePhotoUrl = `selfie_photos/${user.id}_${Date.now()}.jpg`;
-        
-        // Update user with ID verification information
+        // Update user with ID verification information (store base64 data directly)
         await storage.updateUser(user.id, {
           idType: userData.idType,
           idNumber: userData.idNumber,
-          idPhotoUrl: idPhotoUrl,
-          selfiePhotoUrl: selfiePhotoUrl,
+          idPhotoUrl: idPhotoBase64,
+          selfiePhotoUrl: selfiePhotoBase64,
           idVerificationStatus: "pending"
         });
 
