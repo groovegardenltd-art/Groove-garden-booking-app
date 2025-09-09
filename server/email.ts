@@ -81,7 +81,7 @@ export async function notifyPendingIdVerification(userName: string, userEmail: s
       </div>
       
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${process.env.REPLIT_EXTERNAL_HOSTNAME ? `https://${process.env.REPLIT_EXTERNAL_HOSTNAME}` : 'your-domain.com'}/admin/id-verification" 
+        <a href="${process.env.REPLIT_EXTERNAL_HOSTNAME ? `https://${process.env.REPLIT_EXTERNAL_HOSTNAME}` : process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPLIT_CLUSTER}.repl.co` : 'https://workspace.riker.repl.co'}/admin/id-verification" 
            style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
           Review ID Verification
         </a>
@@ -107,7 +107,7 @@ Action Required: A new user has submitted their ID for verification and needs ma
 
 Please visit the admin panel to review the uploaded ID photo and approve or reject the verification.
 
-Review URL: ${process.env.REPLIT_EXTERNAL_HOSTNAME ? `https://${process.env.REPLIT_EXTERNAL_HOSTNAME}` : 'your-domain.com'}/admin/id-verification
+Review URL: ${process.env.REPLIT_EXTERNAL_HOSTNAME ? `https://${process.env.REPLIT_EXTERNAL_HOSTNAME}` : process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPLIT_CLUSTER}.repl.co` : 'https://workspace.riker.repl.co'}/admin/id-verification
 
 ---
 Groove Garden Studios - ID Verification System
