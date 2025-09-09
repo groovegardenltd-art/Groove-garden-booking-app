@@ -12,6 +12,7 @@ export const users = pgTable("users", {
   idNumber: text("id_number"),
   idType: text("id_type"), // "drivers_license", "passport", "state_id", etc.
   idPhotoUrl: text("id_photo_url"), // URL to uploaded ID photo
+  selfiePhotoUrl: text("selfie_photo_url"), // URL to uploaded selfie photo
   idVerificationStatus: text("id_verification_status").default("pending"), // "pending", "verified", "rejected"
   idVerifiedAt: timestamp("id_verified_at"),
 });
