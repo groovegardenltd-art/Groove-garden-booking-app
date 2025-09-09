@@ -28,7 +28,7 @@ export default function IdVerificationAdmin() {
   });
 
   const approveMutation = useMutation({
-    mutationFn: (userId: number) => apiRequest(`/api/admin/id-verifications/${userId}/approve`, "POST"),
+    mutationFn: (userId: number) => apiRequest("POST", `/api/admin/id-verifications/${userId}/approve`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/id-verifications"] });
       toast({
@@ -46,7 +46,7 @@ export default function IdVerificationAdmin() {
   });
 
   const rejectMutation = useMutation({
-    mutationFn: (userId: number) => apiRequest(`/api/admin/id-verifications/${userId}/reject`, "POST", { reason: "ID verification failed" }),
+    mutationFn: (userId: number) => apiRequest("POST", `/api/admin/id-verifications/${userId}/reject`, { reason: "ID verification failed" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/id-verifications"] });
       toast({
