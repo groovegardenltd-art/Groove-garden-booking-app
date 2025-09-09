@@ -37,6 +37,11 @@ export default function Login() {
   // ID photo state
   const [idPhoto, setIdPhoto] = useState<File | null>(null);
   const [idPhotoPreview, setIdPhotoPreview] = useState<string | null>(null);
+  
+  // Selfie photo state
+  const [selfiePhoto, setSelfiePhoto] = useState<File | null>(null);
+  const [selfiePhotoPreview, setSelfiePhotoPreview] = useState<string | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
 
   const loginMutation = useMutation({
     mutationFn: async (data: { username: string; password: string }) => {
@@ -117,23 +122,30 @@ export default function Login() {
     }
 
     // Validate ID verification fields
-    if (!registerData.idType || !registerData.idNumber || !idPhoto) {
+    if (!registerData.idType || !registerData.idNumber || !idPhoto || !selfiePhoto) {
       toast({
         title: "ID Verification Required",
-        description: "Please complete ID verification (type, number, and photo required).",
+        description: "Please complete ID verification (type, number, ID photo, and selfie required).",
         variant: "destructive",
       });
       return;
     }
 
-    // Convert photo to base64 for submission
-    const reader = new FileReader();
-    reader.onload = () => {
-      const idPhotoBase64 = reader.result as string;
-      const { confirmPassword, ...dataToSubmit } = registerData;
-      registerMutation.mutate({ ...dataToSubmit, idPhotoBase64 });
+    // Convert both photos to base64 for submission
+    const idReader = new FileReader();
+    const selfieReader = new FileReader();
+    
+    idReader.onload = () => {
+      const idPhotoBase64 = idReader.result as string;
+      
+      selfieReader.onload = () => {
+        const selfiePhotoBase64 = selfieReader.result as string;
+        const { confirmPassword, ...dataToSubmit } = registerData;
+        registerMutation.mutate({ ...dataToSubmit, idPhotoBase64, selfiePhotoBase64 });
+      };
+      selfieReader.readAsDataURL(selfiePhoto);
     };
-    reader.readAsDataURL(idPhoto);
+    idReader.readAsDataURL(idPhoto);
   };
 
   const updateRegisterData = (field: string, value: string) => {
@@ -178,6 +190,117 @@ export default function Login() {
   const removeIdPhoto = () => {
     setIdPhoto(null);
     setIdPhotoPreview(null);
+  };
+
+  // Handle selfie photo upload
+  const handleSelfiePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid File Type",
+        description: "Please upload an image file (JPEG, PNG, etc.)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File Too Large",
+        description: "Please upload an image smaller than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelfiePhoto(file);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = () => {
+      setSelfiePhotoPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeSelfiePhoto = () => {
+    setSelfiePhoto(null);
+    setSelfiePhotoPreview(null);
+  };
+
+  // Take selfie using camera
+  const takeSelfie = () => {
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then((stream) => {
+        const video = document.createElement('video');
+        video.srcObject = stream;
+        video.play();
+
+        // Create modal for camera
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        modal.innerHTML = `
+          <div class="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+            <h3 class="text-lg font-semibold mb-4">Take Your Selfie</h3>
+            <div class="relative mb-4">
+              <video id="camera-video" autoplay class="w-full rounded border"></video>
+              <canvas id="camera-canvas" class="hidden"></canvas>
+            </div>
+            <div class="flex gap-2">
+              <button id="capture-btn" class="flex-1 bg-music-purple text-white px-4 py-2 rounded hover:bg-music-purple/90">
+                📸 Capture
+              </button>
+              <button id="cancel-btn" class="flex-1 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                Cancel
+              </button>
+            </div>
+          </div>
+        `;
+
+        document.body.appendChild(modal);
+        const videoElement = modal.querySelector('#camera-video') as HTMLVideoElement;
+        const canvas = modal.querySelector('#camera-canvas') as HTMLCanvasElement;
+        const captureBtn = modal.querySelector('#capture-btn') as HTMLButtonElement;
+        const cancelBtn = modal.querySelector('#cancel-btn') as HTMLButtonElement;
+        
+        videoElement.srcObject = stream;
+
+        captureBtn.onclick = () => {
+          // Capture photo
+          const context = canvas.getContext('2d');
+          canvas.width = videoElement.videoWidth;
+          canvas.height = videoElement.videoHeight;
+          context?.drawImage(videoElement, 0, 0);
+          
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const file = new File([blob], 'selfie.jpg', { type: 'image/jpeg' });
+              setSelfiePhoto(file);
+              setSelfiePhotoPreview(canvas.toDataURL());
+            }
+          }, 'image/jpeg', 0.8);
+
+          // Cleanup
+          stream.getTracks().forEach(track => track.stop());
+          document.body.removeChild(modal);
+        };
+
+        cancelBtn.onclick = () => {
+          stream.getTracks().forEach(track => track.stop());
+          document.body.removeChild(modal);
+        };
+      })
+      .catch((error) => {
+        toast({
+          title: "Camera Error",
+          description: "Unable to access camera. Please upload a photo instead.",
+          variant: "destructive",
+        });
+      });
   };
 
   return (
@@ -378,6 +501,54 @@ export default function Login() {
                                 size="sm"
                                 className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
                                 onClick={removeIdPhoto}
+                              >
+                                ×
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="selfie-photo">Selfie Photo</Label>
+                        <div className="space-y-2">
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="flex-1"
+                              onClick={takeSelfie}
+                            >
+                              📸 Take Selfie
+                            </Button>
+                            <div className="flex-1">
+                              <Input
+                                id="selfie-photo"
+                                type="file"
+                                accept="image/*"
+                                onChange={handleSelfiePhotoChange}
+                                className="cursor-pointer"
+                                required
+                              />
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-500">
+                            Take a selfie or upload a recent photo of yourself (max 5MB)
+                          </p>
+                          
+                          {selfiePhotoPreview && (
+                            <div className="relative">
+                              <img 
+                                src={selfiePhotoPreview} 
+                                alt="Selfie Preview" 
+                                className="w-32 h-32 object-cover rounded-full border mx-auto"
+                              />
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                                onClick={removeSelfiePhoto}
                               >
                                 ×
                               </Button>
