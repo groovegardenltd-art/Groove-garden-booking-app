@@ -137,20 +137,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   app.post("/api/register", async (req, res) => {
     try {
-      const userData = insertUserSchema.parse(req.body);
+      const { idPhotoBase64, selfiePhotoBase64, ...userData } = req.body;
+      const parsedUserData = insertUserSchema.parse(userData);
       
       // Check if user already exists
-      const existingUser = await storage.getUserByUsername(userData.username);
+      const existingUser = await storage.getUserByUsername(parsedUserData.username);
       if (existingUser) {
         return res.status(400).json({ message: "Username already exists" });
       }
 
-      const existingEmail = await storage.getUserByEmail(userData.email);
+      const existingEmail = await storage.getUserByEmail(parsedUserData.email);
       if (existingEmail) {
         return res.status(400).json({ message: "Email already exists" });
       }
 
-      const user = await storage.createUser(userData);
+      // Create user first
+      const user = await storage.createUser(parsedUserData);
+      
+      // Handle ID verification if provided
+      if (userData.idType && userData.idNumber && idPhotoBase64 && selfiePhotoBase64) {
+        // Store the photos (in production, you'd upload to cloud storage)
+        const idPhotoUrl = `id_photos/${user.id}_${Date.now()}.jpg`;
+        const selfiePhotoUrl = `selfie_photos/${user.id}_${Date.now()}.jpg`;
+        
+        // Update user with ID verification information
+        await storage.updateUser(user.id, {
+          idType: userData.idType,
+          idNumber: userData.idNumber,
+          idPhotoUrl: idPhotoUrl,
+          selfiePhotoUrl: selfiePhotoUrl,
+          idVerificationStatus: "pending"
+        });
+
+        // Send email notification to admin
+        const adminEmail = process.env.ADMIN_EMAIL || "groovegardenltd@gmail.com";
+        
+        console.log(`Sending ID verification notification for new user: ${user.name} (${user.email})`);
+        console.log(`Admin email configured as: ${adminEmail}`);
+        const idTypeLabel = userData.idType === "drivers_license" ? "Driver's License" : 
+                           userData.idType === "state_id" ? "State ID" : 
+                           userData.idType === "passport" ? "Passport" : 
+                           userData.idType === "military_id" ? "Military ID" : userData.idType;
+        
+        try {
+          await notifyPendingIdVerification(user.name, user.email, idTypeLabel, adminEmail);
+          console.log(`ID verification notification sent to ${adminEmail} for new user ${user.name}`);
+        } catch (error) {
+          console.error('Failed to send ID verification notification:', error);
+          // Continue even if email fails - don't block the registration process
+        }
+      }
+
       const sessionId = createSession(user.id);
       
       res.json({ 
@@ -161,6 +198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
+      console.error('Registration error:', error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
