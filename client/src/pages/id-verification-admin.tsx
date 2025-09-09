@@ -158,7 +158,15 @@ export default function IdVerificationAdmin() {
                             src={user.idPhotoUrl} 
                             alt="ID Photo" 
                             className="w-full h-32 object-contain rounded border"
+                            onError={(e) => {
+                              console.error('ID Photo failed to load:', user.idPhotoUrl?.substring(0, 50) + '...');
+                              e.currentTarget.style.display = 'none';
+                            }}
+                            onLoad={() => console.log('ID Photo loaded successfully')}
                           />
+                          <div className="mt-2 text-xs text-gray-500">
+                            Data format: {user.idPhotoUrl.startsWith('data:') ? 'Valid data URL' : 'Invalid format - missing data: prefix'}
+                          </div>
                         </div>
                       ) : (
                         <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
@@ -181,7 +189,15 @@ export default function IdVerificationAdmin() {
                             src={user.selfiePhotoUrl} 
                             alt="Selfie Photo" 
                             className="w-full h-32 object-contain rounded border"
+                            onError={(e) => {
+                              console.error('Selfie Photo failed to load:', user.selfiePhotoUrl?.substring(0, 50) + '...');
+                              e.currentTarget.style.display = 'none';
+                            }}
+                            onLoad={() => console.log('Selfie Photo loaded successfully')}
                           />
+                          <div className="mt-2 text-xs text-gray-500">
+                            Data format: {user.selfiePhotoUrl.startsWith('data:') ? 'Valid data URL' : 'Invalid format - missing data: prefix'}
+                          </div>
                         </div>
                       ) : (
                         <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
