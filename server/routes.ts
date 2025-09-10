@@ -8,7 +8,7 @@ import { insertUserSchema, loginSchema, insertBookingSchema } from "@shared/sche
 import { createTTLockService } from "./ttlock";
 import { z } from "zod";
 import Stripe from "stripe";
-import { notifyPendingIdVerification } from "./email";
+import { notifyPendingIdVerification, sendRejectionNotification } from "./email";
 
 // Test mode configuration
 const TEST_MODE = process.env.NODE_ENV === 'development' || process.env.ENABLE_TEST_MODE === 'true';
