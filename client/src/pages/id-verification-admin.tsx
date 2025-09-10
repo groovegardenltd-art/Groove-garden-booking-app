@@ -160,16 +160,7 @@ export default function IdVerificationAdmin() {
                               alt="ID Photo" 
                               className="w-full h-48 object-contain rounded"
                               style={{ maxHeight: '200px', minHeight: '100px' }}
-                              onLoad={() => console.log(`✅ ID Photo loaded for user ${user.username}`)}
-                              onError={(e) => {
-                                console.error(`❌ ID Photo failed to load for user ${user.username}:`, e);
-                                console.log(`Photo URL length: ${user.idPhotoUrl?.length}`);
-                                console.log(`Photo URL starts with: ${user.idPhotoUrl?.substring(0, 50)}`);
-                              }}
                             />
-                          </div>
-                          <div className="mt-2 text-xs text-gray-500 font-mono">
-                            Photo size: {user.idPhotoUrl.length} chars | Format: {user.idPhotoUrl.startsWith('data:image/') ? '✅ Valid' : '❌ Invalid'}
                           </div>
                         </div>
                       ) : (
@@ -195,16 +186,7 @@ export default function IdVerificationAdmin() {
                               alt="Selfie Photo" 
                               className="w-full h-48 object-contain rounded"
                               style={{ maxHeight: '200px', minHeight: '100px' }}
-                              onLoad={() => console.log(`✅ Selfie Photo loaded for user ${user.username}`)}
-                              onError={(e) => {
-                                console.error(`❌ Selfie Photo failed to load for user ${user.username}:`, e);
-                                console.log(`Selfie URL length: ${user.selfiePhotoUrl?.length}`);
-                                console.log(`Selfie URL starts with: ${user.selfiePhotoUrl?.substring(0, 50)}`);
-                              }}
                             />
-                          </div>
-                          <div className="mt-2 text-xs text-gray-500 font-mono">
-                            Photo size: {user.selfiePhotoUrl.length} chars | Format: {user.selfiePhotoUrl.startsWith('data:image/') ? '✅ Valid' : '❌ Invalid'}
                           </div>
                         </div>
                       ) : (
