@@ -893,12 +893,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Send email notification about rejection and cancelled bookings
-      if (cancelledCount > 0) {
-        try {
-          await sendRejectionNotification(user.email, user.username, reason, cancelledCount);
-        } catch (emailError) {
-          console.error('Failed to send rejection notification:', emailError);
-        }
+      try {
+        await sendRejectionNotification(user.email, user.username, reason || "ID verification requirements not met", cancelledCount);
+        console.log(`Rejection notification sent to ${user.email} - ${cancelledCount} bookings cancelled`);
+      } catch (emailError) {
+        console.error('Failed to send rejection notification:', emailError);
       }
 
       res.json({ 
@@ -909,6 +908,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Failed to reject verification:', error);
       res.status(500).json({ message: "Failed to reject verification" });
+    }
+  });
+
+  // Test endpoint to send rejection notification email
+  app.post("/api/test-rejection-email", async (req, res) => {
+    try {
+      const { email, username, reason, cancelledBookings } = req.body;
+      
+      await sendRejectionNotification(
+        email || "test@example.com", 
+        username || "TestUser", 
+        reason || "Test rejection - document unclear", 
+        cancelledBookings || 1
+      );
+      
+      res.json({ 
+        message: "Test rejection email sent successfully",
+        sentTo: email || "test@example.com"
+      });
+    } catch (error) {
+      console.error('Failed to send test email:', error);
+      res.status(500).json({ message: "Failed to send test email", error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
