@@ -864,10 +864,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = parseInt(req.params.userId);
       const { reason } = req.body;
+      
+      // Get user details for notification
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Find all future bookings for this user
+      const userBookings = await storage.getBookingsByUser(userId);
+      const futureBookings = userBookings.filter(booking => {
+        const bookingDate = new Date(booking.date + 'T' + booking.startTime);
+        return bookingDate > new Date() && booking.status === 'confirmed';
+      });
+
+      // Cancel all future bookings
+      let cancelledCount = 0;
+      for (const booking of futureBookings) {
+        const success = await storage.cancelBooking(booking.id);
+        if (success) {
+          cancelledCount++;
+        }
+      }
+
+      // Update user verification status
       await storage.updateUser(userId, {
         idVerificationStatus: "rejected"
       });
-      res.json({ message: "ID verification rejected", reason });
+
+      // Send email notification about rejection and cancelled bookings
+      if (cancelledCount > 0) {
+        try {
+          await sendRejectionNotification(user.email, user.username, reason, cancelledCount);
+        } catch (emailError) {
+          console.error('Failed to send rejection notification:', emailError);
+        }
+      }
+
+      res.json({ 
+        message: "ID verification rejected", 
+        reason,
+        cancelledBookings: cancelledCount 
+      });
     } catch (error) {
       console.error('Failed to reject verification:', error);
       res.status(500).json({ message: "Failed to reject verification" });
