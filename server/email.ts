@@ -128,28 +128,50 @@ export async function sendRejectionNotification(email: string, username: string,
     return;
   }
 
-  const subject = 'ID Verification Rejected - Bookings Cancelled';
+  const subject = 'Account Verification Update - Groove Garden Studios';
   const html = `
-    <h2>ID Verification Update</h2>
-    <p>Hi ${username},</p>
-    
-    <p>Unfortunately, your ID verification has been rejected for the following reason:</p>
-    <p><em>"${reason}"</em></p>
-    
-    ${cancelledBookings > 0 ? `
-    <p><strong>Important:</strong> As a result, ${cancelledBookings} of your future booking${cancelledBookings !== 1 ? 's have' : ' has'} been automatically cancelled.</p>
-    ` : ''}
-    
-    <p>You can resubmit your ID verification at any time by visiting your account page. Please ensure your documents are:</p>
-    <ul>
-      <li>Clear and fully visible</li>
-      <li>Valid and current</li>
-      <li>Match the name on your account</li>
-    </ul>
-    
-    <p>If you believe this was an error, please contact support.</p>
-    
-    <p>Best regards,<br>Groove Garden Studios Team</p>
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #2563eb; margin: 0;">Groove Garden Studios</h1>
+        <p style="color: #6b7280; margin: 5px 0;">Music Rehearsal Studio</p>
+      </div>
+      
+      <h2 style="color: #374151;">Account Verification Update</h2>
+      <p>Hello ${username},</p>
+      
+      <p>We have reviewed your submitted verification documents. Unfortunately, we need you to resubmit your verification due to:</p>
+      
+      <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
+        <p style="margin: 0; color: #92400e;"><strong>Review Notes:</strong> ${reason}</p>
+      </div>
+      
+      ${cancelledBookings > 0 ? `
+      <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0;">
+        <p style="margin: 0; color: #dc2626;"><strong>Booking Update:</strong> ${cancelledBookings} upcoming booking${cancelledBookings !== 1 ? 's have' : ' has'} been temporarily suspended until verification is complete.</p>
+      </div>
+      ` : ''}
+      
+      <h3 style="color: #374151;">Next Steps</h3>
+      <p>Please resubmit your verification documents with:</p>
+      <ul style="color: #4b5563;">
+        <li>Clear, well-lit photos</li>
+        <li>All document details clearly visible</li>
+        <li>Valid, current identification</li>
+        <li>Name matching your account details</li>
+      </ul>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="#" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Update Verification</a>
+      </div>
+      
+      <p style="color: #6b7280; font-size: 14px;">Questions? Contact our support team at groovegardenltd@gmail.com</p>
+      
+      <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+      <p style="color: #9ca3af; font-size: 12px; text-align: center;">
+        This email was sent to verify your account security.<br>
+        Groove Garden Studios | Music Rehearsal Space
+      </p>
+    </div>
   `;
 
   await sendEmail({
