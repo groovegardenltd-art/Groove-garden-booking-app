@@ -52,8 +52,8 @@ function calculateBookingPrice(room: any, startTime: string, endTime: string, du
 }
 
 function calculateTimeBasedPricing(room: any, startTime: string, endTime: string, duration: number): number {
-  const dayPrice = parseFloat(room.dayPricePerHour || "8");
-  const eveningPrice = parseFloat(room.eveningPricePerHour || "10");
+  const dayPrice = parseFloat(room.dayPricePerHour || "7");
+  const eveningPrice = parseFloat(room.eveningPricePerHour || "9");
   const dayStart = room.dayHoursStart || "09:00";
   const dayEnd = room.dayHoursEnd || "17:00";
   
@@ -67,9 +67,9 @@ function calculateTimeBasedPricing(room: any, startTime: string, endTime: string
   // Calculate hour by hour
   for (let hour = startHour; hour < endHour; hour++) {
     if (hour >= dayStartHour && hour < dayEndHour) {
-      totalPrice += dayPrice; // Day rate: £8 (9:00-17:00)
+      totalPrice += dayPrice; // Day rate: £7/£13 (9:00-17:00)
     } else {
-      totalPrice += eveningPrice; // Evening rate: £10 (17:00-midnight)
+      totalPrice += eveningPrice; // Evening rate: £9/£18 (17:00-midnight)
     }
   }
   
