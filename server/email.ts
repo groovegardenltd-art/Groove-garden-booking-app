@@ -121,3 +121,41 @@ Groove Garden Studios - ID Verification System
     html: htmlContent
   });
 }
+
+export async function sendRejectionNotification(email: string, username: string, reason: string, cancelledBookings: number) {
+  if (!process.env.SENDGRID_API_KEY) {
+    console.log('SendGrid not configured - skipping email');
+    return;
+  }
+
+  const subject = 'ID Verification Rejected - Bookings Cancelled';
+  const html = `
+    <h2>ID Verification Update</h2>
+    <p>Hi ${username},</p>
+    
+    <p>Unfortunately, your ID verification has been rejected for the following reason:</p>
+    <p><em>"${reason}"</em></p>
+    
+    ${cancelledBookings > 0 ? `
+    <p><strong>Important:</strong> As a result, ${cancelledBookings} of your future booking${cancelledBookings !== 1 ? 's have' : ' has'} been automatically cancelled.</p>
+    ` : ''}
+    
+    <p>You can resubmit your ID verification at any time by visiting your account page. Please ensure your documents are:</p>
+    <ul>
+      <li>Clear and fully visible</li>
+      <li>Valid and current</li>
+      <li>Match the name on your account</li>
+    </ul>
+    
+    <p>If you believe this was an error, please contact support.</p>
+    
+    <p>Best regards,<br>Groove Garden Studios Team</p>
+  `;
+
+  await sendEmail({
+    to: email,
+    from: 'groovegardenltd@gmail.com',
+    subject,
+    html
+  });
+}
