@@ -14,7 +14,7 @@ export default function Website() {
       name: "Pod 1",
       description: "Perfect for bands and loud rehearsals",
       equipment: ["Full drum kit", "4-channel mixer", "Vocal microphones", "Amplifiers"],
-      price: "£7/hr (9am-5pm) • £9/hr (5pm-midnight)",
+      price: "£7/hr",
       capacity: "Up to 5 people",
       image: "🥁"
     },
@@ -22,7 +22,7 @@ export default function Website() {
       name: "Pod 2", 
       description: "Ideal for acoustic sessions and recording",
       equipment: ["Yamaha P-125 Digital Piano", "Audio Interface & Monitors", "Condenser Microphones", "Acoustic Treatment"],
-      price: "£7/hr (9am-5pm) • £9/hr (5pm-midnight)",
+      price: "£7/hr",
       capacity: "Up to 8 people",
       image: "🎹"
     },
@@ -39,10 +39,9 @@ export default function Website() {
   const pricing = [
     { 
       title: "Pod 1 & 2", 
-      description: "Time-based pricing",
+      description: "Flat rate pricing",
       rates: [
-        { time: "9am - 5pm", price: "£7/hour", type: "day" },
-        { time: "5pm - midnight", price: "£9/hour", type: "evening" }
+        { time: "All day", price: "£7/hour", type: "flat" }
       ]
     },
     { 
