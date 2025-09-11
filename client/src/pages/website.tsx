@@ -14,7 +14,7 @@ export default function Website() {
       name: "Pod 1",
       description: "Perfect for bands and loud rehearsals",
       equipment: ["Full drum kit", "4-channel mixer", "Vocal microphones", "Amplifiers"],
-      price: "£8/hr (9am-5pm) • £10/hr (5pm-midnight)",
+      price: "£7/hr (9am-5pm) • £9/hr (5pm-midnight)",
       capacity: "Up to 5 people",
       image: "🥁"
     },
@@ -22,7 +22,7 @@ export default function Website() {
       name: "Pod 2", 
       description: "Ideal for acoustic sessions and recording",
       equipment: ["Yamaha P-125 Digital Piano", "Audio Interface & Monitors", "Condenser Microphones", "Acoustic Treatment"],
-      price: "£8/hr (9am-5pm) • £10/hr (5pm-midnight)",
+      price: "£7/hr (9am-5pm) • £9/hr (5pm-midnight)",
       capacity: "Up to 8 people",
       image: "🎹"
     },
@@ -30,7 +30,7 @@ export default function Website() {
       name: "Live Room",
       description: "Large space for bigger bands and performances",
       equipment: ["Full backline", "PA system", "Lighting rig", "Stage monitors"],
-      price: "£13/hr (9am-5pm) • £19/hr (5pm-midnight)", 
+      price: "£13/hr (9am-5pm) • £18/hr (5pm-midnight)", 
       capacity: "Up to 12 people",
       image: "🎸"
     }
@@ -41,8 +41,8 @@ export default function Website() {
       title: "Pod 1 & 2", 
       description: "Time-based pricing",
       rates: [
-        { time: "9am - 5pm", price: "£8/hour", type: "day" },
-        { time: "5pm - midnight", price: "£10/hour", type: "evening" }
+        { time: "9am - 5pm", price: "£7/hour", type: "day" },
+        { time: "5pm - midnight", price: "£9/hour", type: "evening" }
       ]
     },
     { 
@@ -50,7 +50,7 @@ export default function Website() {
       description: "Time-based pricing",
       rates: [
         { time: "9am - 5pm", price: "£13/hour", type: "day" },
-        { time: "5pm - midnight", price: "£19/hour", type: "evening" }
+        { time: "5pm - midnight", price: "£18/hour", type: "evening" }
       ]
     }
   ];
