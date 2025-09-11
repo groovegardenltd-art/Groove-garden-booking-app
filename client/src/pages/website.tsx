@@ -13,7 +13,7 @@ export default function Website() {
     {
       name: "Pod 1",
       description: "Perfect for bands and loud rehearsals",
-      equipment: ["Full drum kit", "4-channel mixer", "Vocal microphones", "Amplifiers"],
+      equipment: ["Full Drum Kit, Including Cymbals, Snare and Pedal", "4-channel mixer", "Vocal microphones", "Amplifiers"],
       price: "£7/hr",
       capacity: "Up to 5 people",
       image: "🥁"
@@ -21,7 +21,7 @@ export default function Website() {
     {
       name: "Pod 2", 
       description: "Ideal for acoustic sessions and recording",
-      equipment: ["Yamaha P-125 Digital Piano", "Audio Interface & Monitors", "Condenser Microphones", "Acoustic Treatment"],
+      equipment: ["Full Drum Kit, Including Cymbals, Snare and Pedal", "Yamaha P-125 Digital Piano", "Audio Interface & Monitors", "Condenser Microphones", "Acoustic Treatment"],
       price: "£7/hr",
       capacity: "Up to 8 people",
       image: "🎹"

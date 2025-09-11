@@ -46,7 +46,7 @@ export class DatabaseStorage implements IStorage {
           {
             name: "Pod 1",
             description: "Compact rehearsal space with full drum kit and amplification",
-            equipment: ["Pearl Export 5-piece drum kit", "2x guitar amplifiers (Marshall & Fender)", "Bass amplifier", "4-channel mixing desk", "Shure SM58 vocal microphones", "Direct injection boxes", "Monitor speakers"],
+            equipment: ["Full Drum Kit, Including Cymbals, Snare and Pedal", "2x guitar amplifiers (Marshall & Fender)", "Bass amplifier", "4-channel mixing desk", "Shure SM58 vocal microphones", "Direct injection boxes", "Monitor speakers"],
             pricePerHour: "7.00",
             dayPricePerHour: "7.00",
             eveningPricePerHour: "7.00",
@@ -57,7 +57,7 @@ export class DatabaseStorage implements IStorage {
           {
             name: "Pod 2", 
             description: "Versatile studio with piano and recording capabilities",
-            equipment: ["Yamaha P-125 digital piano", "Roland TD-17 electronic drum kit", "Guitar amplifier (Vox AC30)", "Bass amplifier", "Audio interface (Focusrite Scarlett)", "Studio monitors", "Condenser & dynamic microphones", "Acoustic treatment panels"],
+            equipment: ["Full Drum Kit, Including Cymbals, Snare and Pedal", "Yamaha P-125 digital piano", "Guitar amplifier (Vox AC30)", "Bass amplifier", "Audio interface (Focusrite Scarlett)", "Studio monitors", "Condenser & dynamic microphones", "Acoustic treatment panels"],
             pricePerHour: "7.00",
             dayPricePerHour: "7.00",
             eveningPricePerHour: "7.00",
