@@ -85,8 +85,8 @@ export default function Home() {
   };
 
   const calculateTimeBasedPrice = (room: any, startTime: string, duration: number) => {
-    const dayPrice = parseFloat(room.dayPricePerHour || "8");
-    const eveningPrice = parseFloat(room.eveningPricePerHour || "10");
+    const dayPrice = parseFloat(room.dayPricePerHour || "7");
+    const eveningPrice = parseFloat(room.eveningPricePerHour || "9");
     const dayStart = room.dayHoursStart || "09:00";
     const dayEnd = room.dayHoursEnd || "17:00";
     
