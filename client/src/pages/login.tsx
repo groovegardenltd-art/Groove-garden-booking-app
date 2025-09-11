@@ -152,8 +152,46 @@ export default function Login() {
     setRegisterData(prev => ({ ...prev, [field]: value }));
   };
 
+  // Image compression utility
+  const compressImage = (file: File, maxWidth: number = 1200, quality: number = 0.8): Promise<File> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+      const img = new Image();
+      
+      img.onload = () => {
+        // Calculate new dimensions while maintaining aspect ratio
+        let { width, height } = img;
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const compressedFile = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now()
+            });
+            resolve(compressedFile);
+          } else {
+            resolve(file); // Fallback to original if compression fails
+          }
+        }, 'image/jpeg', quality);
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   // Handle ID photo upload
-  const handleIdPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleIdPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -167,24 +205,50 @@ export default function Login() {
       return;
     }
 
-    // Validate file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
+    // Validate file size (10MB max for initial upload)
+    if (file.size > 10 * 1024 * 1024) {
       toast({
         title: "File Too Large",
-        description: "Please upload an image smaller than 5MB",
+        description: "Please upload an image smaller than 10MB",
         variant: "destructive",
       });
       return;
     }
 
-    setIdPhoto(file);
+    try {
+      // Show compression progress
+      toast({
+        title: "Processing Image",
+        description: "Compressing image for optimal upload...",
+      });
 
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = () => {
-      setIdPhotoPreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+      // Compress the image
+      const compressedFile = await compressImage(file);
+      
+      console.log(`ID photo compressed: ${(file.size / 1024 / 1024).toFixed(2)}MB → ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+      
+      setIdPhoto(compressedFile);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = () => {
+        setIdPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(compressedFile);
+      
+      toast({
+        title: "Image Ready",
+        description: `Image compressed and ready for upload (${(compressedFile.size / 1024 / 1024).toFixed(1)}MB)`,
+      });
+      
+    } catch (error) {
+      console.error('Image compression failed:', error);
+      toast({
+        title: "Compression Failed",
+        description: "Failed to process image. Please try a different photo.",
+        variant: "destructive",
+      });
+    }
   };
 
   const removeIdPhoto = () => {
@@ -193,7 +257,7 @@ export default function Login() {
   };
 
   // Handle selfie photo upload
-  const handleSelfiePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSelfiePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -207,24 +271,50 @@ export default function Login() {
       return;
     }
 
-    // Validate file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
+    // Validate file size (10MB max for initial upload)
+    if (file.size > 10 * 1024 * 1024) {
       toast({
         title: "File Too Large",
-        description: "Please upload an image smaller than 5MB",
+        description: "Please upload an image smaller than 10MB",
         variant: "destructive",
       });
       return;
     }
 
-    setSelfiePhoto(file);
+    try {
+      // Show compression progress
+      toast({
+        title: "Processing Image",
+        description: "Compressing image for optimal upload...",
+      });
 
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = () => {
-      setSelfiePhotoPreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+      // Compress the image
+      const compressedFile = await compressImage(file);
+      
+      console.log(`Selfie photo compressed: ${(file.size / 1024 / 1024).toFixed(2)}MB → ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+      
+      setSelfiePhoto(compressedFile);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = () => {
+        setSelfiePhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(compressedFile);
+      
+      toast({
+        title: "Image Ready",
+        description: `Image compressed and ready for upload (${(compressedFile.size / 1024 / 1024).toFixed(1)}MB)`,
+      });
+      
+    } catch (error) {
+      console.error('Image compression failed:', error);
+      toast({
+        title: "Compression Failed",
+        description: "Failed to process image. Please try a different photo.",
+        variant: "destructive",
+      });
+    }
   };
 
   const removeSelfiePhoto = () => {
@@ -415,7 +505,7 @@ export default function Login() {
                             required
                           />
                           <p className="text-xs text-gray-500">
-                            Upload a clear photo of your ID (max 5MB)
+                            Upload a clear photo of your ID (max 10MB, automatically compressed)
                           </p>
                           
                           {idPhotoPreview && (
@@ -451,7 +541,7 @@ export default function Login() {
                             required
                           />
                           <p className="text-xs text-gray-500">
-                            Upload a recent photo of yourself (max 5MB). On mobile, you can use the camera option.
+                            Upload a recent photo of yourself (max 10MB, automatically compressed). On mobile, you can use the camera option.
                           </p>
                           
                           {selfiePhotoPreview && (
