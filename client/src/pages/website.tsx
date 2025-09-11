@@ -29,7 +29,7 @@ export default function Website() {
     {
       name: "Live Room",
       description: "Large space for bigger bands and performances",
-      equipment: ["Full backline", "PA system", "Lighting rig", "Stage monitors"],
+      equipment: ["Full Backline, PA system & Drum Kit including cymbals", "Lighting rig", "Stage monitors"],
       price: "£13/hr (9am-5pm) • £18/hr (5pm-midnight)", 
       capacity: "Up to 12 people",
       image: "🎸"
