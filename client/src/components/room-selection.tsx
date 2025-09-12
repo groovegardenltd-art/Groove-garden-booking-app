@@ -58,7 +58,9 @@ export function RoomSelection({
                 <p className="text-sm text-gray-600 mb-3">{room.description}</p>
                 <div>
                   <span className={`font-semibold ${isOccupied ? "text-gray-400" : "text-music-purple"}`}>
-                    {(room as any).dayPricePerHour ? (
+                    {(room.name === "Pod 1" || room.name === "Pod 2") ? (
+                      `£${room.pricePerHour}/hr`
+                    ) : (room as any).dayPricePerHour ? (
                       <div className="text-xs">
                         <div>£{parseFloat((room as any).dayPricePerHour)}/hr (9am-5pm)</div>
                         <div>£{parseFloat((room as any).eveningPricePerHour)}/hr (5pm-midnight)</div>
