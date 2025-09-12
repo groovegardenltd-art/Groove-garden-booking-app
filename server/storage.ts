@@ -68,7 +68,7 @@ export class DatabaseStorage implements IStorage {
           {
             name: "Live Room",
             description: "Premium performance space with full backline and PA system",
-            equipment: ["Professional backline (Marshall JCM800, Ampeg SVT, Pearl Masters drum kit)", "16-channel PA system with subs", "Stage lighting rig", "Wireless microphone system", "8x stage monitors", "Professional cables & DI boxes", "Merchandise tables", "Green room area"],
+            equipment: ["Full PA and mixer", "Full drum kit", "2x bass amps", "2x guitar amps", "6 mics", "keyboard"],
             pricePerHour: "13.00",
             dayPricePerHour: "13.00",
             eveningPricePerHour: "18.00",
