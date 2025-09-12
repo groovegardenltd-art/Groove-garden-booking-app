@@ -121,32 +121,31 @@ export default function Login() {
       return;
     }
 
-    // ID verification is optional - users can complete it later if needed
-    // Note: ID verification may be required before accessing certain features
-
-    // Prepare submission data
-    const { confirmPassword, ...dataToSubmit } = registerData;
-    
-    // Include ID verification data if provided
-    if (idPhoto && selfiePhoto) {
-      // Convert both photos to base64 for submission
-      const idReader = new FileReader();
-      const selfieReader = new FileReader();
-      
-      idReader.onload = () => {
-        const idPhotoBase64 = idReader.result as string;
-        
-        selfieReader.onload = () => {
-          const selfiePhotoBase64 = selfieReader.result as string;
-          registerMutation.mutate({ ...dataToSubmit, idPhotoBase64, selfiePhotoBase64 });
-        };
-        selfieReader.readAsDataURL(selfiePhoto);
-      };
-      idReader.readAsDataURL(idPhoto);
-    } else {
-      // Register without ID verification
-      registerMutation.mutate(dataToSubmit);
+    // Validate ID verification fields
+    if (!registerData.idType || !registerData.idNumber || !idPhoto || !selfiePhoto) {
+      toast({
+        title: "ID Verification Required",
+        description: "Please complete ID verification (type, number, ID photo, and selfie required).",
+        variant: "destructive",
+      });
+      return;
     }
+
+    // Convert both photos to base64 for submission
+    const idReader = new FileReader();
+    const selfieReader = new FileReader();
+    
+    idReader.onload = () => {
+      const idPhotoBase64 = idReader.result as string;
+      
+      selfieReader.onload = () => {
+        const selfiePhotoBase64 = selfieReader.result as string;
+        const { confirmPassword, ...dataToSubmit } = registerData;
+        registerMutation.mutate({ ...dataToSubmit, idPhotoBase64, selfiePhotoBase64 });
+      };
+      selfieReader.readAsDataURL(selfiePhoto);
+    };
+    idReader.readAsDataURL(idPhoto);
   };
 
   const updateRegisterData = (field: string, value: string) => {
@@ -371,9 +370,9 @@ export default function Login() {
 
                   {/* ID Verification Section */}
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
-                    <h4 className="text-sm font-semibold text-blue-800 mb-3">ID Verification (Optional)</h4>
+                    <h4 className="text-sm font-semibold text-blue-800 mb-3">ID Verification (Required)</h4>
                     <p className="text-xs text-blue-600 mb-3">
-                      You can complete ID verification now or later. Some features may require verification before use.
+                      For security purposes, we require one-time ID verification. Your ID will be reviewed within 24 hours.
                     </p>
                     
                     <div className="space-y-3">
@@ -400,6 +399,7 @@ export default function Login() {
                           value={registerData.idNumber}
                           onChange={(e) => updateRegisterData("idNumber", e.target.value)}
                           placeholder="Enter your ID number"
+                          required
                         />
                       </div>
 
@@ -412,6 +412,7 @@ export default function Login() {
                             accept="image/*"
                             onChange={handleIdPhotoChange}
                             className="cursor-pointer"
+                            required
                           />
                           <p className="text-xs text-gray-500">
                             Upload a clear photo of your ID (max 5MB)
@@ -447,6 +448,7 @@ export default function Login() {
                             accept="image/*"
                             onChange={handleSelfiePhotoChange}
                             className="cursor-pointer"
+                            required
                           />
                           <p className="text-xs text-gray-500">
                             Upload a recent photo of yourself (max 5MB). On mobile, you can use the camera option.
