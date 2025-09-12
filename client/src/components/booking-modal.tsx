@@ -320,7 +320,7 @@ export function BookingModal({
 
   const calculateTimeBasedPrice = (room: any, startTime: string, duration: number) => {
     const dayPrice = parseFloat(room.dayPricePerHour || "7");
-    const eveningPrice = parseFloat(room.eveningPricePerHour || "9");
+    const eveningPrice = parseFloat(room.eveningPricePerHour || "7");
     const dayStart = room.dayHoursStart || "09:00";
     const dayEnd = room.dayHoursEnd || "17:00";
     
