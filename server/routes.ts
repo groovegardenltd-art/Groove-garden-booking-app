@@ -32,40 +32,28 @@ function generateAccessCode(): string {
   return Math.floor(1000 + Math.random() * 9000).toString();
 }
 
-// Main pricing calculation function
+// Calculate booking price with time-based pricing support
 function calculateBookingPrice(room: any, startTime: string, endTime: string, duration: number): number {
-  // Always flat rate for Pod 1 and Pod 2
-  if (room.name === "Pod 1" || room.name === "Pod 2") {
-    const basePrice = parseFloat(room.pricePerHour || "7");
-    let totalPrice = duration * basePrice;
-
-    // Apply 10% discount for bookings over 4 hours
-    if (duration > 4) {
-      totalPrice = totalPrice * 0.9;
-    }
-
-    return totalPrice;
-  }
-
-  // For other rooms, use time-based pricing if available
+  // Check if room has time-based pricing (Pod 1 & Pod 2)
   if (room.dayPricePerHour && room.eveningPricePerHour) {
     return calculateTimeBasedPricing(room, startTime, endTime, duration);
   }
-
-  // Fallback: use standard hourly rate
+  
+  // For rooms without time-based pricing, use standard hourly rate
   const basePrice = parseFloat(room.pricePerHour || "40");
   let totalPrice = duration * basePrice;
-
+  
+  // Apply 10% discount for bookings over 4 hours
   if (duration > 4) {
-    totalPrice = totalPrice * 0.9;
+    totalPrice = totalPrice * 0.9; // 10% discount
   }
-
+  
   return totalPrice;
 }
 
 function calculateTimeBasedPricing(room: any, startTime: string, endTime: string, duration: number): number {
   const dayPrice = parseFloat(room.dayPricePerHour || "7");
-  const eveningPrice = parseFloat(room.eveningPricePerHour || "7");
+  const eveningPrice = parseFloat(room.eveningPricePerHour || "9");
   const dayStart = room.dayHoursStart || "09:00";
   const dayEnd = room.dayHoursEnd || "17:00";
   
@@ -81,7 +69,7 @@ function calculateTimeBasedPricing(room: any, startTime: string, endTime: string
     if (hour >= dayStartHour && hour < dayEndHour) {
       totalPrice += dayPrice; // Day rate: £7/£13 (9:00-17:00)
     } else {
-      totalPrice += eveningPrice; // Evening rate: £7/£18 (17:00-midnight)
+      totalPrice += eveningPrice; // Evening rate: £9/£18 (17:00-midnight)
     }
   }
   

@@ -301,26 +301,13 @@ export function BookingModal({
   const calculatePrice = (duration: number) => {
     if (!selectedRoom || !selectedTime) return 0;
 
-    // Always flat rate for Pod 1 and Pod 2
+    // Check if room has time-based pricing
     const room = selectedRoom as any;
-    if (room.name === "Pod 1" || room.name === "Pod 2") {
-      const basePrice = parseFloat(room.pricePerHour || "7");
-      let totalPrice = duration * basePrice;
-
-      // Apply 10% discount for bookings over 4 hours
-      if (duration > 4) {
-        totalPrice = totalPrice * 0.9;
-      }
-
-      return totalPrice;
-    }
-
-    // For other rooms, use time-based pricing if available
     if (room.dayPricePerHour && room.eveningPricePerHour) {
       return calculateTimeBasedPrice(room, selectedTime, duration);
     }
     
-    // Fallback: use standard hourly rate
+    // For rooms without time-based pricing, use standard hourly rate
     let totalPrice = duration * parseFloat(room.pricePerHour || "40");
     
     // Apply 10% discount for bookings over 4 hours
@@ -332,8 +319,8 @@ export function BookingModal({
   };
 
   const calculateTimeBasedPrice = (room: any, startTime: string, duration: number) => {
-    const dayPrice = parseFloat(room.dayPricePerHour || "7");
-    const eveningPrice = parseFloat(room.eveningPricePerHour || "7");
+    const dayPrice = parseFloat(room.dayPricePerHour || "8");
+    const eveningPrice = parseFloat(room.eveningPricePerHour || "10");
     const dayStart = room.dayHoursStart || "09:00";
     const dayEnd = room.dayHoursEnd || "17:00";
     
