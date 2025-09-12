@@ -45,7 +45,7 @@ export class DatabaseStorage implements IStorage {
         const sampleRooms: InsertRoom[] = [
           {
             name: "Pod 1",
-            description: "Compact rehearsal space with full drum kit and amplification",
+            description: "Pod with full drum kit and cymbals",
             equipment: ["Full drum kit with cymbals"],
             pricePerHour: "7.00",
             dayPricePerHour: null,
@@ -56,7 +56,7 @@ export class DatabaseStorage implements IStorage {
           },
           {
             name: "Pod 2", 
-            description: "Versatile studio with piano and recording capabilities",
+            description: "Pod with full drum kit and cymbals",
             equipment: ["Full drum kit with cymbals"],
             pricePerHour: "7.00",
             dayPricePerHour: null,
