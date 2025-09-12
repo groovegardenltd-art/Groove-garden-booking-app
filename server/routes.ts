@@ -32,22 +32,34 @@ function generateAccessCode(): string {
   return Math.floor(1000 + Math.random() * 9000).toString();
 }
 
-// Calculate booking price with time-based pricing support
+// Main pricing calculation function
 function calculateBookingPrice(room: any, startTime: string, endTime: string, duration: number): number {
-  // Check if room has time-based pricing (Pod 1 & Pod 2)
+  // Always flat rate for Pod 1 and Pod 2
+  if (room.name === "Pod 1" || room.name === "Pod 2") {
+    const basePrice = parseFloat(room.pricePerHour || "7");
+    let totalPrice = duration * basePrice;
+
+    // Apply 10% discount for bookings over 4 hours
+    if (duration > 4) {
+      totalPrice = totalPrice * 0.9;
+    }
+
+    return totalPrice;
+  }
+
+  // For other rooms, use time-based pricing if available
   if (room.dayPricePerHour && room.eveningPricePerHour) {
     return calculateTimeBasedPricing(room, startTime, endTime, duration);
   }
-  
-  // For rooms without time-based pricing, use standard hourly rate
+
+  // Fallback: use standard hourly rate
   const basePrice = parseFloat(room.pricePerHour || "40");
   let totalPrice = duration * basePrice;
-  
-  // Apply 10% discount for bookings over 4 hours
+
   if (duration > 4) {
-    totalPrice = totalPrice * 0.9; // 10% discount
+    totalPrice = totalPrice * 0.9;
   }
-  
+
   return totalPrice;
 }
 
