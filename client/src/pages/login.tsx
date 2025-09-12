@@ -167,11 +167,11 @@ export default function Login() {
       return;
     }
 
-    // Validate file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
+    // Validate file size (15MB max)
+    if (file.size > 15 * 1024 * 1024) {
       toast({
         title: "File Too Large",
-        description: "Please upload an image smaller than 5MB",
+        description: "Please upload an image smaller than 15MB",
         variant: "destructive",
       });
       return;
@@ -207,11 +207,11 @@ export default function Login() {
       return;
     }
 
-    // Validate file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
+    // Validate file size (15MB max)
+    if (file.size > 15 * 1024 * 1024) {
       toast({
         title: "File Too Large",
-        description: "Please upload an image smaller than 5MB",
+        description: "Please upload an image smaller than 15MB",
         variant: "destructive",
       });
       return;
@@ -415,7 +415,7 @@ export default function Login() {
                             required
                           />
                           <p className="text-xs text-gray-500">
-                            Upload a clear photo of your ID (max 5MB)
+                            Upload a clear photo of your ID (max 15MB)
                           </p>
                           
                           {idPhotoPreview && (
@@ -451,7 +451,7 @@ export default function Login() {
                             required
                           />
                           <p className="text-xs text-gray-500">
-                            Upload a recent photo of yourself (max 5MB). On mobile, you can use the camera option.
+                            Upload a recent photo of yourself (max 15MB). On mobile, you can use the camera option.
                           </p>
                           
                           {selfiePhotoPreview && (
