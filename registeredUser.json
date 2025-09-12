@@ -1,0 +1,65 @@
+{
+  "cookies": [
+    {
+      "name": "__cf_bm",
+      "value": "WU6stN2pdH8NWOav2cSgKOeZaGt_17yTtlbyUVYjM88-1757706340-1.0.1.1-05Wb1udSyv8i0p5OhoZT07fLR_J2EqunUHM33U8WlKIQsPMU.Q5eYMLBolQx44R18xA_50N7EQGIiOPFC5VsuFN0BIzOSYm.5tt.gDMUVBE",
+      "domain": ".replit.com",
+      "path": "/",
+      "expires": 1757708140.659093,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "_cfuvid",
+      "value": "ckR6292ddnrzenlRcn1vK5mNtayeBaY_JqlqhkpZOxU-1757706340649-0.0.1.1-604800000",
+      "domain": ".replit.com",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "m",
+      "value": "b6f2c2af-b769-4a4f-a34d-4fca4007901a81d00d",
+      "domain": "m.stripe.com",
+      "path": "/",
+      "expires": 1792266342.967685,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "__stripe_mid",
+      "value": "5ddc9e03-efc5-4269-84ff-b0814ef5a571b8841f",
+      "domain": ".5ea7dd52-7c65-4394-950e-33f9ab0cd0c6-00-37wbh5232nxp0.riker.replit.dev",
+      "path": "/",
+      "expires": 1789242342,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Strict"
+    },
+    {
+      "name": "__stripe_sid",
+      "value": "9a756223-b194-4304-b875-6fbd1624b4c83f0cd6",
+      "domain": ".5ea7dd52-7c65-4394-950e-33f9ab0cd0c6-00-37wbh5232nxp0.riker.replit.dev",
+      "path": "/",
+      "expires": 1757708142,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Strict"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "https://5ea7dd52-7c65-4394-950e-33f9ab0cd0c6-00-37wbh5232nxp0.riker.replit.dev",
+      "localStorage": [
+        {
+          "name": "replitDevBannerClosed-5ea7dd52-7c65-4394-950e-33f9ab0cd0c6-00-37wbh5232nxp0.riker.replit.dev",
+          "value": "true"
+        }
+      ]
+    }
+  ]
+}
