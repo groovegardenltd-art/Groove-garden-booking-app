@@ -67,18 +67,29 @@ export default function Login() {
 
   const registerMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest("POST", "/api/register", data);
-      return response.json();
+      try {
+        console.log("Starting registration request...");
+        const response = await apiRequest("POST", "/api/register", data);
+        console.log("Registration response received:", response.status);
+        const result = await response.json();
+        console.log("Registration successful:", result);
+        return result;
+      } catch (error) {
+        console.error("Registration mutation error:", error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
+      console.log("Registration onSuccess called with:", data);
       setAuthState({ user: data.user, sessionId: data.sessionId });
       toast({
         title: "Account Created!",
-        description: "Welcome to Groove Garden Studios!",
+        description: "Welcome to Groove Garden Studios! Your account has been created and is pending ID verification.",
       });
       setLocation("/");
     },
     onError: (error: any) => {
+      console.error("Registration onError called:", error);
       toast({
         title: "Registration Failed",
         description: error.message || "Failed to create account. Please try again.",

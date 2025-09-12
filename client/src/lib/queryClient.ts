@@ -24,27 +24,49 @@ export async function apiRequest(
     console.log(`Making ${method} request to ${url} with auth headers:`, authHeaders);
   }
 
-  const res = await fetch(url, {
-    method,
-    headers,
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
+  // Create abort controller for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-  if (!res.ok) {
-    console.error(`API request failed: ${res.status} ${res.statusText}`);
-    
-    // Handle authentication errors by clearing invalid session
-    if (res.status === 401) {
-      console.log("Clearing expired session and redirecting to login");
-      clearAuthState();
-      window.location.href = "/login";
-      return res;
+  try {
+    const res = await fetch(url, {
+      method,
+      headers,
+      body: data ? JSON.stringify(data) : undefined,
+      credentials: "include",
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      console.error(`API request failed: ${res.status} ${res.statusText}`);
+      const errorText = await res.text().catch(() => 'Unknown error');
+      console.error(`Error details:`, errorText);
+      
+      // Handle authentication errors by clearing invalid session
+      if (res.status === 401) {
+        console.log("Clearing expired session and redirecting to login");
+        clearAuthState();
+        window.location.href = "/login";
+        return res;
+      }
     }
-  }
 
-  await throwIfResNotOk(res);
-  return res;
+    await throwIfResNotOk(res);
+    return res;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        console.error('API request timed out after 30 seconds');
+        throw new Error('Request timed out. Please try again.');
+      }
+      console.error('API request error:', error.message);
+      throw error;
+    }
+    throw new Error('Unknown API request error');
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
