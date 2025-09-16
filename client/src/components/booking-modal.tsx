@@ -240,7 +240,7 @@ export function BookingModal({
       endTime: endTime,
       duration: selectedDuration,
       totalPrice: calculatePrice(selectedDuration),
-      contactPhone: user?.phone,
+      contactPhone: contactPhone || user?.phone,
       paymentIntentId: "test_mode_booking", // Test mode identifier
     };
 
@@ -262,7 +262,7 @@ export function BookingModal({
       endTime: endTime,
       duration: selectedDuration,
       totalPrice: calculatePrice(selectedDuration),
-      contactPhone: user?.phone,
+      contactPhone: contactPhone || user?.phone,
       paymentIntentId, // Include payment intent ID
     };
 
