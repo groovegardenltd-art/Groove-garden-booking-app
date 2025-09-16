@@ -10,7 +10,7 @@ import grooveGardenLogo from "@assets/groove-garden-logo.jpeg";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { setAuthState } from "@/lib/auth";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 
 import logoImage from "@assets/groove-garden-logo.jpeg";
 
@@ -285,12 +285,25 @@ export default function Login() {
                       onChange={(e) => setLoginPassword(e.target.value)}
                       placeholder="Enter your password"
                       required
+                      data-testid="input-login-password"
                     />
                   </div>
+                  
+                  <div className="flex justify-end">
+                    <Link
+                      href="/forgot-password"
+                      className="text-sm text-green-600 hover:text-green-700 hover:underline"
+                      data-testid="link-forgot-password"
+                    >
+                      Forgot your password?
+                    </Link>
+                  </div>
+                  
                   <Button
                     type="submit"
                     className="w-full bg-green-600 hover:bg-green-700"
                     disabled={loginMutation.isPending}
+                    data-testid="button-login-submit"
                   >
                     {loginMutation.isPending ? "Signing In..." : "Sign In"}
                   </Button>
