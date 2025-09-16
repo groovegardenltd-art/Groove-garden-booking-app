@@ -32,7 +32,12 @@ export default function Admin() {
   // Check if user is admin
   useEffect(() => {
     const { user } = getAuthState();
+    console.log("Admin auth check - User:", user);
+    console.log("Admin auth check - Email:", user?.email);
+    console.log("Admin auth check - Expected:", "groovegardenltd@gmail.com");
+    
     if (!user) {
+      console.log("No user found, redirecting to login");
       toast({
         title: "Access Denied",
         description: "Please log in to access this page.",
@@ -42,14 +47,16 @@ export default function Admin() {
       return;
     }
     if (user.email !== "groovegardenltd@gmail.com") {
+      console.log("Email mismatch, redirecting to home");
       toast({
-        title: "Unauthorized Access",
-        description: "You don't have permission to access this page.",
+        title: "Unauthorized Access", 
+        description: `Your email ${user.email} doesn't have admin access.`,
         variant: "destructive",
       });
       setLocation("/");
       return;
     }
+    console.log("Auth passed, showing admin panel");
     setIsAuthorizing(false);
   }, [setLocation, toast]);
 
