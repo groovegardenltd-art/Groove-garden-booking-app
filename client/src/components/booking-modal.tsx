@@ -505,7 +505,7 @@ export function BookingModal({
                 <span className="text-sm text-green-800 font-medium">Mobile Number on File</span>
               </div>
               <p className="text-xs sm:text-sm text-green-700 mt-1">
-                SMS confirmations to: <strong>{user?.phone}</strong>
+                Email confirmations to: <strong>{user?.email}</strong>
               </p>
             </div>
 

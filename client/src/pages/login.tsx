@@ -377,7 +377,7 @@ export default function Login() {
                       required
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      We'll use this for booking confirmations and access instructions
+                      We'll use this for contact purposes and access instructions
                     </p>
                   </div>
 
