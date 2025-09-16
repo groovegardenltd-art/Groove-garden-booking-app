@@ -6,6 +6,47 @@ if (!process.env.SENDGRID_API_KEY) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 }
 
+// Helper function to get the correct base URL for the current environment
+function getBaseUrl(): string {
+  // Priority 1: Explicit BASE_URL configuration
+  if (process.env.BASE_URL || process.env.FRONTEND_BASE_URL) {
+    return process.env.BASE_URL || process.env.FRONTEND_BASE_URL!;
+  }
+  
+  // Priority 2: Replit external hostname (for custom domains)
+  if (process.env.REPLIT_EXTERNAL_HOSTNAME) {
+    return `https://${process.env.REPLIT_EXTERNAL_HOSTNAME}`;
+  }
+  
+  // Priority 3: Environment-specific defaults
+  const isDeployment = process.env.REPLIT_DEPLOYMENT === '1';
+  
+  if (isDeployment && process.env.REPL_SLUG) {
+    // Published site - use the published domain
+    return `https://${process.env.REPL_SLUG}.replit.app`;
+  } else if (process.env.REPLIT_DEV_DOMAIN) {
+    // Development environment - use development domain
+    return `https://${process.env.REPLIT_DEV_DOMAIN}`;
+  } else if (process.env.REPL_SLUG && process.env.REPLIT_CLUSTER) {
+    // Fallback development URL
+    return `https://${process.env.REPL_SLUG}.${process.env.REPLIT_CLUSTER}.repl.co`;
+  }
+  
+  // Critical: Log error and refuse to send broken links
+  console.error('Could not determine base URL for email links. Email sending aborted.');
+  console.error('Available env vars:', {
+    BASE_URL: !!process.env.BASE_URL,
+    FRONTEND_BASE_URL: !!process.env.FRONTEND_BASE_URL,
+    REPLIT_EXTERNAL_HOSTNAME: !!process.env.REPLIT_EXTERNAL_HOSTNAME,
+    REPLIT_DEPLOYMENT: process.env.REPLIT_DEPLOYMENT,
+    REPL_SLUG: !!process.env.REPL_SLUG,
+    REPLIT_DEV_DOMAIN: !!process.env.REPLIT_DEV_DOMAIN,
+    REPLIT_CLUSTER: !!process.env.REPLIT_CLUSTER
+  });
+  
+  throw new Error('Unable to determine base URL for email links');
+}
+
 interface EmailParams {
   to: string;
   from: string;
@@ -40,6 +81,7 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
 }
 
 export async function notifyPendingIdVerification(userName: string, userEmail: string, idType: string, adminEmail: string): Promise<boolean> {
+  try {
   const subject = `New ID Verification Pending Review - ${userName}`;
   
   const htmlContent = `
@@ -81,7 +123,7 @@ export async function notifyPendingIdVerification(userName: string, userEmail: s
       </div>
       
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${process.env.REPLIT_EXTERNAL_HOSTNAME ? `https://${process.env.REPLIT_EXTERNAL_HOSTNAME}` : process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPLIT_CLUSTER}.repl.co` : 'https://workspace.riker.repl.co'}/admin/id-verification" 
+        <a href="${getBaseUrl()}/admin/id-verification" 
            style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
           Review ID Verification
         </a>
@@ -107,27 +149,29 @@ Action Required: A new user has submitted their ID for verification and needs ma
 
 Please visit the admin panel to review the uploaded ID photo and approve or reject the verification.
 
-Review URL: ${process.env.REPLIT_EXTERNAL_HOSTNAME ? `https://${process.env.REPLIT_EXTERNAL_HOSTNAME}` : process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPLIT_CLUSTER}.repl.co` : 'https://workspace.riker.repl.co'}/admin/id-verification
+Review URL: ${getBaseUrl()}/admin/id-verification
 
 ---
 Groove Garden Studios - ID Verification System
   `;
 
-  return await sendEmail({
-    to: adminEmail,
-    from: 'groovegardenltd@gmail.com', // Using your verified email address
-    subject,
-    text: textContent,
-    html: htmlContent
-  });
+    return await sendEmail({
+      to: adminEmail,
+      from: 'groovegardenltd@gmail.com', // Using your verified email address
+      subject,
+      text: textContent,
+      html: htmlContent
+    });
+  } catch (error) {
+    console.error('Failed to send ID verification notification:', error);
+    return false;
+  }
 }
 
 export async function sendPasswordResetEmail(email: string, username: string, resetToken: string): Promise<boolean> {
-  const baseUrl = process.env.REPLIT_EXTERNAL_HOSTNAME ? `https://${process.env.REPLIT_EXTERNAL_HOSTNAME}` : 
-                  process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPLIT_CLUSTER}.repl.co` : 
-                  'https://workspace.riker.repl.co';
-  
-  const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
+  try {
+    const baseUrl = getBaseUrl();
+    const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
   
   const subject = 'Password Reset Request - Groove Garden Studios';
   
@@ -187,13 +231,17 @@ If you didn't request this password reset, you can safely ignore this email. You
 Groove Garden Studios - Music Rehearsal Space
   `;
 
-  return await sendEmail({
-    to: email,
-    from: 'groovegardenltd@gmail.com',
-    subject,
-    text: textContent,
-    html: htmlContent
-  });
+    return await sendEmail({
+      to: email,
+      from: 'groovegardenltd@gmail.com',
+      subject,
+      text: textContent,
+      html: htmlContent
+    });
+  } catch (error) {
+    console.error('Failed to send password reset email:', error);
+    return false;
+  }
 }
 
 export async function sendRejectionNotification(email: string, username: string, reason: string, cancelledBookings: number) {
