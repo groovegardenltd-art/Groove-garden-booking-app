@@ -4,7 +4,7 @@ import { Header } from "@/components/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Calendar, Clock, MapPin, Phone } from "lucide-react";
+import { Copy, Calendar, Clock, MapPin } from "lucide-react";
 import { BookingWithRoom } from "@shared/schema";
 import { getAuthState } from "@/lib/auth";
 import { useLocation } from "wouter";
@@ -198,12 +198,6 @@ export default function Bookings() {
                             {booking.room.description}
                           </div>
 
-                          {booking.contactPhone && (
-                            <div className="flex items-center text-gray-600">
-                              <Phone className="h-4 w-4 mr-2" />
-                              {booking.contactPhone}
-                            </div>
-                          )}
                         </div>
 
                         {/* Access Code */}
