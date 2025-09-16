@@ -12,8 +12,8 @@ import { notifyPendingIdVerification, sendRejectionNotification, sendPasswordRes
 import { comparePassword, hashPassword } from "./password-utils";
 import crypto from "crypto";
 
-// Test mode configuration
-const TEST_MODE = process.env.NODE_ENV === 'development' || process.env.ENABLE_TEST_MODE === 'true';
+// Test mode configuration - only enabled when explicitly set
+const TEST_MODE = process.env.ENABLE_TEST_MODE === 'true';
 
 // Initialize Stripe
 if (!process.env.STRIPE_SECRET_KEY && !TEST_MODE) {

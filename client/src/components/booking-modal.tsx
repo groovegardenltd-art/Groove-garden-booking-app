@@ -20,7 +20,7 @@ import { PaymentForm } from "./payment-form";
 import { TestPaymentForm } from "./test-payment-form";
 
 // Test mode configuration
-const TEST_MODE = import.meta.env.DEV || import.meta.env.VITE_ENABLE_TEST_MODE === 'true';
+const TEST_MODE = import.meta.env.VITE_ENABLE_TEST_MODE === 'true';
 
 // Initialize Stripe (only if not in test mode and key is available)
 const stripePromise = (!TEST_MODE && import.meta.env.VITE_STRIPE_PUBLIC_KEY) 
