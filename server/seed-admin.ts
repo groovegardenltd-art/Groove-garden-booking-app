@@ -61,9 +61,9 @@ export async function seedAdminUsers() {
           idVerifiedAt: new Date()
         })
         .onConflictDoUpdate({
-          target: users.email,
+          target: users.username,
           set: {
-            username: adminData.username,
+            email: adminData.email,
             name: adminData.name,
             phone: adminData.phone,
             password: hashedPassword,

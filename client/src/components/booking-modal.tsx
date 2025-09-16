@@ -9,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Room } from "@shared/schema";
 import { CreditCard, Coins, Upload, X, CheckCircle, Clock, XCircle } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { getAuthState } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -61,15 +61,23 @@ export function BookingModal({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Get current user and prefill phone number
-  const { user } = getAuthState();
+  // Get current user from auth state
+  const { user: authUser } = getAuthState();
+  
+  // Fetch complete user data including ID verification fields
+  const { data: user, isLoading: isLoadingUser } = useQuery({
+    queryKey: ['/api/me'],
+    enabled: !!authUser,
+  });
+  
+  // Use authUser as fallback if complete user data isn't loaded yet
+  const currentUser = user || authUser;
   
   // Removed phone number logic - email confirmations only
 
   const bookingMutation = useMutation({
     mutationFn: async (bookingData: any) => {
-      const { user } = getAuthState();
-      if (!user) throw new Error("Not authenticated");
+      if (!authUser) throw new Error("Not authenticated");
 
       const response = await apiRequest("POST", "/api/bookings", bookingData);
       return response.json();
@@ -223,8 +231,8 @@ export function BookingModal({
       duration: selectedDuration,
       totalPrice: calculatePrice(selectedDuration),
       // contactPhone removed - email confirmations only
-      idNumber: user?.idNumber || "",
-      idType: user?.idType || "",
+      idNumber: currentUser?.idNumber || "",
+      idType: currentUser?.idType || "",
       paymentIntentId: "test_mode_booking", // Test mode identifier
     };
 
@@ -247,8 +255,8 @@ export function BookingModal({
       duration: selectedDuration,
       totalPrice: calculatePrice(selectedDuration),
       // contactPhone removed - email confirmations only
-      idNumber: user?.idNumber || "",
-      idType: user?.idType || "",
+      idNumber: currentUser?.idNumber || "",
+      idType: currentUser?.idType || "",
       paymentIntentId, // Include payment intent ID
     };
 
@@ -479,7 +487,7 @@ export function BookingModal({
                 <Input
                   id="contact"
                   type="text"
-                  value={user?.name || ""}
+                  value={currentUser?.name || ""}
                   disabled
                   className="mt-1"
                 />
@@ -491,7 +499,7 @@ export function BookingModal({
                 <span className="text-sm text-green-800 font-medium">Mobile Number on File</span>
               </div>
               <p className="text-xs sm:text-sm text-green-700 mt-1">
-                Email confirmations to: <strong>{user?.email}</strong>
+                Email confirmations to: <strong>{currentUser?.email}</strong>
               </p>
             </div>
 
