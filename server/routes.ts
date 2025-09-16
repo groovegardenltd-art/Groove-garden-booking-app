@@ -8,7 +8,8 @@ import { insertUserSchema, loginSchema, insertBookingSchema } from "@shared/sche
 import { createTTLockService } from "./ttlock";
 import { z } from "zod";
 import Stripe from "stripe";
-import { notifyPendingIdVerification, sendRejectionNotification } from "./email";
+import { notifyPendingIdVerification, sendRejectionNotification, sendPasswordResetEmail } from "./email";
+import crypto from "crypto";
 
 // Test mode configuration
 const TEST_MODE = process.env.NODE_ENV === 'development' || process.env.ENABLE_TEST_MODE === 'true';
@@ -228,6 +229,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
       sessions.delete(sessionId);
     }
     res.json({ message: "Logged out successfully" });
+  });
+
+  // Password reset validation schemas
+  const forgotPasswordSchema = z.object({
+    email: z.string().email("Please enter a valid email address"),
+  });
+
+  const resetPasswordSchema = z.object({
+    token: z.string().min(1, "Reset token is required"),
+    newPassword: z.string().min(6, "Password must be at least 6 characters long"),
+  });
+
+  // Password reset routes
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = forgotPasswordSchema.parse(req.body);
+      
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        // Don't reveal if email exists or not for security
+        return res.json({ message: "If an account with that email exists, a password reset link has been sent." });
+      }
+
+      // Generate secure reset token
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const expiryDate = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+      
+      // Save reset token to database
+      const tokenSaved = await storage.setUserResetToken(user.id, resetToken, expiryDate);
+      
+      if (tokenSaved) {
+        // Send password reset email
+        const emailSent = await sendPasswordResetEmail(user.email, user.username, resetToken);
+        
+        if (emailSent) {
+          console.log(`Password reset email sent to ${user.email}`);
+        } else {
+          console.error(`Failed to send password reset email to ${user.email}`);
+        }
+      }
+
+      // Always return success message (don't reveal if email exists)
+      res.json({ message: "If an account with that email exists, a password reset link has been sent." });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid email address", errors: error.errors });
+      }
+      console.error('Forgot password error:', error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { token, newPassword } = resetPasswordSchema.parse(req.body);
+      
+      // Find user by reset token (this also validates token expiry)
+      const user = await storage.getUserByResetToken(token);
+      if (!user) {
+        return res.status(400).json({ message: "Invalid or expired reset token" });
+      }
+
+      // Update user password and clear reset token
+      const passwordUpdated = await storage.updateUser(user.id, { password: newPassword });
+      const tokenCleared = await storage.clearUserResetToken(user.id);
+      
+      if (passwordUpdated && tokenCleared) {
+        console.log(`Password successfully reset for user ${user.username}`);
+        res.json({ message: "Password has been reset successfully. You can now log in with your new password." });
+      } else {
+        console.error(`Failed to reset password for user ${user.username}`);
+        res.status(500).json({ message: "Failed to reset password. Please try again." });
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      console.error('Reset password error:', error);
+      res.status(500).json({ message: "Internal server error" });
+    }
   });
 
   app.get("/api/me", requireAuth, async (req, res) => {

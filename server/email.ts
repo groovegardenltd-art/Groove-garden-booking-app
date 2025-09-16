@@ -122,6 +122,80 @@ Groove Garden Studios - ID Verification System
   });
 }
 
+export async function sendPasswordResetEmail(email: string, username: string, resetToken: string): Promise<boolean> {
+  const baseUrl = process.env.REPLIT_EXTERNAL_HOSTNAME ? `https://${process.env.REPLIT_EXTERNAL_HOSTNAME}` : 
+                  process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPLIT_CLUSTER}.repl.co` : 
+                  'https://workspace.riker.repl.co';
+  
+  const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
+  
+  const subject = 'Password Reset Request - Groove Garden Studios';
+  
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #2563eb; margin: 0;">Groove Garden Studios</h1>
+        <p style="color: #6b7280; margin: 5px 0;">Music Rehearsal Studio</p>
+      </div>
+      
+      <h2 style="color: #374151;">Password Reset Request</h2>
+      <p>Hello ${username},</p>
+      
+      <p>We received a request to reset your password for your Groove Garden Studios account. If you made this request, please click the button below to set a new password:</p>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${resetUrl}" 
+           style="background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+          Reset My Password
+        </a>
+      </div>
+      
+      <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
+        <p style="margin: 0; color: #92400e;"><strong>Security Notice:</strong> This link will expire in 1 hour for your security.</p>
+      </div>
+      
+      <p style="color: #6b7280;">If you didn't request this password reset, you can safely ignore this email. Your password will remain unchanged.</p>
+      
+      <p style="color: #6b7280; font-size: 14px;">
+        If the button doesn't work, copy and paste this link into your browser:<br>
+        <a href="${resetUrl}" style="color: #2563eb; word-break: break-all;">${resetUrl}</a>
+      </p>
+      
+      <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+      <p style="color: #9ca3af; font-size: 12px; text-align: center;">
+        This email was sent for your account security.<br>
+        Groove Garden Studios | Music Rehearsal Space
+      </p>
+    </div>
+  `;
+  
+  const textContent = `
+Password Reset Request - Groove Garden Studios
+
+Hello ${username},
+
+We received a request to reset your password for your Groove Garden Studios account. 
+
+To reset your password, please visit the following link:
+${resetUrl}
+
+This link will expire in 1 hour for your security.
+
+If you didn't request this password reset, you can safely ignore this email. Your password will remain unchanged.
+
+---
+Groove Garden Studios - Music Rehearsal Space
+  `;
+
+  return await sendEmail({
+    to: email,
+    from: 'groovegardenltd@gmail.com',
+    subject,
+    text: textContent,
+    html: htmlContent
+  });
+}
+
 export async function sendRejectionNotification(email: string, username: string, reason: string, cancelledBookings: number) {
   if (!process.env.SENDGRID_API_KEY) {
     console.log('SendGrid not configured - skipping email');

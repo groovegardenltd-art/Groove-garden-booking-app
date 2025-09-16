@@ -10,6 +10,9 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, data: Partial<User>): Promise<User | undefined>;
   getUsersPendingVerification(): Promise<User[]>;
+  setUserResetToken(userId: number, resetToken: string, expiryDate: Date): Promise<boolean>;
+  getUserByResetToken(resetToken: string): Promise<User | undefined>;
+  clearUserResetToken(userId: number): Promise<boolean>;
 
   // Room methods
   getAllRooms(): Promise<Room[]>;
@@ -270,6 +273,62 @@ export class DatabaseStorage implements IStorage {
         .update(promoCodes)
         .set({ currentUsage: currentCode.currentUsage + 1 })
         .where(eq(promoCodes.id, promoCodeId));
+    }
+  }
+
+  async setUserResetToken(userId: number, resetToken: string, expiryDate: Date): Promise<boolean> {
+    try {
+      const [user] = await db
+        .update(users)
+        .set({ 
+          resetToken,
+          resetTokenExpiry: expiryDate 
+        })
+        .where(eq(users.id, userId))
+        .returning();
+      return !!user;
+    } catch (error) {
+      console.error('Failed to set reset token:', error);
+      return false;
+    }
+  }
+
+  async getUserByResetToken(resetToken: string): Promise<User | undefined> {
+    try {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(and(
+          eq(users.resetToken, resetToken),
+          // Only return user if token hasn't expired
+          // resetTokenExpiry > now
+        ));
+      
+      // Check if token is still valid (not expired)
+      if (user && user.resetTokenExpiry && new Date(user.resetTokenExpiry) > new Date()) {
+        return user;
+      }
+      return undefined;
+    } catch (error) {
+      console.error('Failed to get user by reset token:', error);
+      return undefined;
+    }
+  }
+
+  async clearUserResetToken(userId: number): Promise<boolean> {
+    try {
+      const [user] = await db
+        .update(users)
+        .set({ 
+          resetToken: null,
+          resetTokenExpiry: null 
+        })
+        .where(eq(users.id, userId))
+        .returning();
+      return !!user;
+    } catch (error) {
+      console.error('Failed to clear reset token:', error);
+      return false;
     }
   }
 }
