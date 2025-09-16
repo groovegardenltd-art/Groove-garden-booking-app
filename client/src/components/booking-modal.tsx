@@ -46,7 +46,6 @@ export function BookingModal({
   selectedDuration,
   onBookingSuccess,
 }: BookingModalProps) {
-  const [contactPhone, setContactPhone] = useState("");
   const [promoCode, setPromoCode] = useState("");
   const [appliedPromoCode, setAppliedPromoCode] = useState<any>(null);
   const [promoCodeError, setPromoCodeError] = useState("");
@@ -65,12 +64,7 @@ export function BookingModal({
   // Get current user and prefill phone number
   const { user } = getAuthState();
   
-  // Initialize phone number from user profile
-  React.useEffect(() => {
-    if (user?.phone && !contactPhone) {
-      setContactPhone(user.phone);
-    }
-  }, [user?.phone, contactPhone]);
+  // Removed phone number logic - email confirmations only
 
   const bookingMutation = useMutation({
     mutationFn: async (bookingData: any) => {
@@ -100,8 +94,6 @@ export function BookingModal({
   });
 
   const resetForm = () => {
-    const { user } = getAuthState();
-    setContactPhone(user?.phone || "");
     setPromoCode("");
     setAppliedPromoCode(null);
     setPromoCodeError("");
@@ -240,7 +232,7 @@ export function BookingModal({
       endTime: endTime,
       duration: selectedDuration,
       totalPrice: calculatePrice(selectedDuration),
-      contactPhone: contactPhone || user?.phone,
+      // contactPhone removed - email confirmations only
       paymentIntentId: "test_mode_booking", // Test mode identifier
     };
 
@@ -262,7 +254,7 @@ export function BookingModal({
       endTime: endTime,
       duration: selectedDuration,
       totalPrice: calculatePrice(selectedDuration),
-      contactPhone: contactPhone || user?.phone,
+      // contactPhone removed - email confirmations only
       paymentIntentId, // Include payment intent ID
     };
 
