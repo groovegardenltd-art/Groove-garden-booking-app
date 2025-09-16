@@ -244,6 +244,162 @@ Groove Garden Studios - Music Rehearsal Space
   }
 }
 
+export async function sendBookingConfirmationEmail(
+  userEmail: string,
+  userName: string,
+  booking: {
+    id: number;
+    date: string;
+    startTime: string;
+    endTime: string;
+    accessCode: string;
+    totalPrice: string;
+  },
+  room: {
+    name: string;
+    address?: string;
+  }
+): Promise<boolean> {
+  try {
+    const subject = `Booking Confirmed - ${room.name} | Groove Garden Studios`;
+    
+    // Format date for display
+    const bookingDate = new Date(booking.date + 'T00:00:00');
+    const formattedDate = bookingDate.toLocaleDateString('en-GB', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #2563eb; margin: 0;">Groove Garden Studios</h1>
+          <p style="color: #6b7280; margin: 5px 0;">Music Rehearsal Studio</p>
+        </div>
+        
+        <div style="background-color: #dcfce7; border: 1px solid #16a34a; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+          <h2 style="color: #166534; margin: 0 0 10px 0;">🎉 Booking Confirmed!</h2>
+          <p style="color: #166534; margin: 0; font-size: 16px;">Your rehearsal session is all set!</p>
+        </div>
+        
+        <div style="background-color: #f9fafb; border-radius: 8px; padding: 20px; margin: 20px 0;">
+          <h3 style="color: #374151; margin: 0 0 15px 0;">Booking Details</h3>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px 0; color: #6b7280; font-weight: bold;">Booking ID:</td>
+              <td style="padding: 8px 0; color: #374151;">#${booking.id}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #6b7280; font-weight: bold;">Room:</td>
+              <td style="padding: 8px 0; color: #374151;">${room.name}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #6b7280; font-weight: bold;">Date:</td>
+              <td style="padding: 8px 0; color: #374151;">${formattedDate}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #6b7280; font-weight: bold;">Time:</td>
+              <td style="padding: 8px 0; color: #374151;">${booking.startTime} - ${booking.endTime}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #6b7280; font-weight: bold;">Total Paid:</td>
+              <td style="padding: 8px 0; color: #374151;">£${booking.totalPrice}</td>
+            </tr>
+          </table>
+        </div>
+        
+        <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+          <h3 style="color: #92400e; margin: 0 0 15px 0;">🔑 Your Access Code</h3>
+          <div style="background-color: #fff; border: 2px solid #f59e0b; border-radius: 6px; padding: 15px; margin: 10px 0; font-family: monospace; font-size: 24px; font-weight: bold; color: #92400e; letter-spacing: 3px;">
+            ${booking.accessCode}
+          </div>
+          <p style="color: #92400e; margin: 10px 0 0 0; font-size: 14px;">
+            <strong>Important:</strong> Save this code! You'll need it to access your rehearsal room.
+          </p>
+        </div>
+        
+        <div style="background-color: #eff6ff; border: 1px solid #3b82f6; border-radius: 8px; padding: 16px; margin: 20px 0;">
+          <h4 style="color: #1e40af; margin: 0 0 10px 0;">📍 Studio Access Instructions</h4>
+          <ol style="color: #1e40af; margin: 0; padding-left: 20px;">
+            <li>Arrive at your scheduled time</li>
+            <li>Use your access code (${booking.accessCode}) to enter</li>
+            <li>Set up your equipment and enjoy your session</li>
+            <li>Please leave the room tidy for the next musicians</li>
+          </ol>
+          ${room.address ? `<p style="color: #1e40af; margin: 10px 0 0 0;"><strong>Address:</strong> ${room.address}</p>` : ''}
+        </div>
+        
+        <div style="background-color: #f3f4f6; border-radius: 8px; padding: 16px; margin: 20px 0;">
+          <h4 style="color: #374151; margin: 0 0 10px 0;">Need Help?</h4>
+          <p style="color: #6b7280; margin: 0;">
+            If you have any questions or need to make changes to your booking, 
+            please contact us at groovegardenltd@gmail.com or call during business hours.
+          </p>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+        <p style="color: #9ca3af; font-size: 12px; text-align: center;">
+          Thank you for choosing Groove Garden Studios!<br>
+          Booking confirmation sent to ${userEmail}
+        </p>
+      </div>
+    `;
+    
+    const textContent = `
+Booking Confirmed - ${room.name} | Groove Garden Studios
+
+Hi ${userName},
+
+Your rehearsal session is all set!
+
+BOOKING DETAILS
+---------------
+Booking ID: #${booking.id}
+Room: ${room.name}
+Date: ${formattedDate}
+Time: ${booking.startTime} - ${booking.endTime}
+Total Paid: £${booking.totalPrice}
+
+ACCESS CODE: ${booking.accessCode}
+
+IMPORTANT: Save this access code! You'll need it to enter your rehearsal room.
+
+STUDIO ACCESS INSTRUCTIONS
+--------------------------
+1. Arrive at your scheduled time
+2. Use your access code (${booking.accessCode}) to enter
+3. Set up your equipment and enjoy your session
+4. Please leave the room tidy for the next musicians
+
+${room.address ? `Address: ${room.address}` : ''}
+
+NEED HELP?
+----------
+If you have any questions or need to make changes to your booking, 
+please contact us at groovegardenltd@gmail.com or call during business hours.
+
+Thank you for choosing Groove Garden Studios!
+
+---
+Groove Garden Studios - Music Rehearsal Space
+Booking confirmation sent to ${userEmail}
+    `;
+
+    return await sendEmail({
+      to: userEmail,
+      from: 'groovegardenltd@gmail.com',
+      subject,
+      text: textContent,
+      html: htmlContent
+    });
+  } catch (error) {
+    console.error('Failed to send booking confirmation email:', error);
+    return false;
+  }
+}
+
 export async function sendRejectionNotification(email: string, username: string, reason: string, cancelledBookings: number) {
   if (!process.env.SENDGRID_API_KEY) {
     console.log('SendGrid not configured - skipping email');

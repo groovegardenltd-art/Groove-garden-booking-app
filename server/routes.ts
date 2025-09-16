@@ -8,7 +8,7 @@ import { insertUserSchema, loginSchema, insertBookingSchema } from "@shared/sche
 import { createTTLockService } from "./ttlock";
 import { z } from "zod";
 import Stripe from "stripe";
-import { notifyPendingIdVerification, sendRejectionNotification, sendPasswordResetEmail } from "./email";
+import { notifyPendingIdVerification, sendRejectionNotification, sendPasswordResetEmail, sendBookingConfirmationEmail } from "./email";
 import { comparePassword, hashPassword } from "./password-utils";
 import crypto from "crypto";
 
@@ -583,6 +583,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         originalPrice: bookingData.originalPrice || undefined,
         discountAmount: bookingData.discountAmount || undefined
       });
+
+      // Get user details for email confirmation
+      const user = await storage.getUser(authReq.userId);
+      
+      // Send booking confirmation email
+      if (user) {
+        try {
+          await sendBookingConfirmationEmail(
+            user.email,
+            user.name,
+            {
+              id: booking.id,
+              date: booking.date,
+              startTime: booking.startTime,
+              endTime: booking.endTime,
+              accessCode: booking.accessCode,
+              totalPrice: booking.totalPrice
+            },
+            {
+              name: room.name
+            }
+          );
+          console.log(`Booking confirmation email sent to ${user.email} for booking #${booking.id}`);
+        } catch (error) {
+          console.error('Failed to send booking confirmation email:', error);
+          // Continue even if email fails - don't block the booking process
+        }
+      }
 
       res.status(201).json(booking);
     } catch (error) {

@@ -93,7 +93,14 @@ export const bookings = pgTable("bookings", {
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
 }).extend({
-  phone: z.string().min(10, "Valid mobile phone number is required").transform((val) => val.replace(/\s/g, '')).refine((val) => /^\+?[0-9]{10,15}$/.test(val), "Invalid phone number format"),
+  phone: z.string().optional().transform((val) => {
+    if (!val) return val;
+    // Strip all non-digits except leading +
+    return val.trim().replace(/[^+\d]/g, '').replace(/(?!^)[+]/g, '');
+  }).refine((val) => {
+    if (!val) return true; // Allow empty
+    return /^\+?\d{10,15}$/.test(val);
+  }, "Phone number must be 10-15 digits with optional country code"),
 });
 
 export const loginSchema = z.object({
@@ -117,7 +124,10 @@ export const insertBookingSchema = createInsertSchema(bookings).omit({
   accessCode: true,
   createdAt: true,
 }).extend({
-  contactPhone: z.string().min(10, "Valid phone number is required").transform((val) => val.replace(/\s/g, '')).refine((val) => /^\+?[0-9]{10,15}$/.test(val), "Invalid phone number format"),
+  contactPhone: z.string().min(1, "Phone number is required").transform((val) => {
+    // Strip all non-digits except leading +
+    return val.trim().replace(/[^+\d]/g, '').replace(/(?!^)[+]/g, '');
+  }).refine((val) => /^\+?\d{10,15}$/.test(val), "Phone number must be 10-15 digits with optional country code"),
   idNumber: z.string().min(1, "ID number is required for studio access"),
   idType: z.string().min(1, "ID type is required"),
   totalPrice: z.union([z.string(), z.number()]).transform(val => String(val)),
