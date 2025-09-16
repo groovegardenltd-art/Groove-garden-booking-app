@@ -170,6 +170,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize TTLock service
   const ttlockService = createTTLockService();
 
+  // Health check endpoint for API
+  app.get("/api/health", (req, res) => {
+    res.status(200).json({ 
+      status: "healthy",
+      timestamp: new Date().toISOString(),
+      version: "1.0.0"
+    });
+  });
 
   // Auth routes
   app.post("/api/register", async (req, res) => {
