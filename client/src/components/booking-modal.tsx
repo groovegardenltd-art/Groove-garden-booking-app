@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Room } from "@shared/schema";
+import { Room, User } from "@shared/schema";
 import { CreditCard, Coins, Upload, X, CheckCircle, Clock, XCircle } from "lucide-react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -65,7 +65,7 @@ export function BookingModal({
   const { user: authUser } = getAuthState();
   
   // Fetch complete user data including ID verification fields
-  const { data: user, isLoading: isLoadingUser } = useQuery({
+  const { data: user, isLoading: isLoadingUser } = useQuery<User>({
     queryKey: ['/api/me'],
     enabled: !!authUser,
   });
