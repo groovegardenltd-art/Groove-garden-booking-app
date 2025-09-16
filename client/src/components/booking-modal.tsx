@@ -184,16 +184,6 @@ export function BookingModal({
     }
 
 
-    // User phone is always available from registration
-    if (!user?.phone) {
-      toast({
-        title: "Phone Number Missing",
-        description: "User phone number not found. Please contact support.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     // In test mode, directly process the booking without payment steps
     if (TEST_MODE) {
       await handleDirectBooking();
