@@ -40,11 +40,14 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
-  // Seed admin users on startup (for both development and production)
+  // Conditionally seed admin users based on environment settings
   try {
     await seedAdminUsers();
   } catch (error) {
-    log("⚠️ Warning: Failed to seed admin users:", String(error));
+    // Log errors more securely
+    const isProduction = process.env.NODE_ENV === 'production';
+    const errorMessage = isProduction ? '[Admin seeding error - details hidden in production]' : String(error);
+    log("⚠️ Admin seeding failed:", errorMessage);
   }
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

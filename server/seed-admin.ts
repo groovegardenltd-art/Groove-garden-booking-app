@@ -1,49 +1,63 @@
 import { db } from "./db";
 import { users } from "@shared/schema";
 import { hashPassword } from "./password-utils";
-import { eq } from "drizzle-orm";
 
 /**
- * Seeds the database with admin users for both development and production environments
+ * Securely seeds admin users using environment variables for credentials.
+ * Only runs when ENABLE_ADMIN_SEEDING=true to prevent accidental seeding.
  */
 export async function seedAdminUsers() {
+  // Security gate: Only seed when explicitly enabled
+  if (process.env.ENABLE_ADMIN_SEEDING !== 'true') {
+    console.log('⚠️  Admin seeding disabled. Set ENABLE_ADMIN_SEEDING=true to enable.');
+    return;
+  }
+
+  // Validate required environment variables
+  const requiredEnvVars = [
+    'ADMIN_USERNAME_1', 'ADMIN_EMAIL_1', 'ADMIN_NAME_1', 'ADMIN_PHONE_1', 'ADMIN_PASSWORD_1',
+    'ADMIN_USERNAME_2', 'ADMIN_EMAIL_2', 'ADMIN_NAME_2', 'ADMIN_PHONE_2', 'ADMIN_PASSWORD_2'
+  ];
+  
+  const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+  if (missingVars.length > 0) {
+    console.error('❌ Missing required environment variables for admin seeding:', missingVars.join(', '));
+    throw new Error(`Missing admin environment variables: ${missingVars.join(', ')}`);
+  }
+
   const adminUsers = [
     {
-      username: "grooveadmin",
-      email: "groovegardenltd@gmail.com", 
-      name: "Groove Admin",
-      phone: "+44 7123 456789",
-      password: "Tootingtram1@"
+      username: process.env.ADMIN_USERNAME_1!,
+      email: process.env.ADMIN_EMAIL_1!, 
+      name: process.env.ADMIN_NAME_1!,
+      phone: process.env.ADMIN_PHONE_1!,
+      password: process.env.ADMIN_PASSWORD_1!
     },
     {
-      username: "grooveadmin2",
-      email: "grooveadmin@gmail.com",
-      name: "Groove Admin 2", 
-      phone: "+44 7123 456790",
-      password: "Tootingtram1@"
+      username: process.env.ADMIN_USERNAME_2!,
+      email: process.env.ADMIN_EMAIL_2!,
+      name: process.env.ADMIN_NAME_2!, 
+      phone: process.env.ADMIN_PHONE_2!,
+      password: process.env.ADMIN_PASSWORD_2!
     }
   ];
 
-  console.log("🌱 Seeding admin users...");
+  const isProduction = process.env.NODE_ENV === 'production';
+  if (!isProduction) {
+    console.log('🌱 Seeding admin users...');
+  }
+  
+  let successCount = 0;
+  let errorCount = 0;
   
   for (const adminData of adminUsers) {
     try {
-      // Check if user already exists
-      const [existingUser] = await db
-        .select()
-        .from(users)
-        .where(eq(users.username, adminData.username));
-
-      if (existingUser) {
-        console.log(`✅ Admin user '${adminData.username}' already exists (ID: ${existingUser.id})`);
-        continue;
-      }
-
       // Hash the password
       const hashedPassword = await hashPassword(adminData.password);
 
-      // Create the admin user
-      const [newUser] = await db
+      // Use atomic upsert to prevent race conditions
+      // This will insert if not exists, or update if exists
+      const [result] = await db
         .insert(users)
         .values({
           username: adminData.username,
@@ -54,15 +68,34 @@ export async function seedAdminUsers() {
           idVerificationStatus: "verified", // Admin users are pre-verified
           idVerifiedAt: new Date()
         })
+        .onConflictDoUpdate({
+          target: users.username,
+          set: {
+            email: adminData.email,
+            name: adminData.name,
+            phone: adminData.phone,
+            password: hashedPassword,
+            idVerificationStatus: "verified",
+            idVerifiedAt: new Date()
+          }
+        })
         .returning();
 
-      console.log(`✅ Created admin user '${adminData.username}' (ID: ${newUser.id})`);
+      successCount++;
+      if (!isProduction) {
+        console.log(`✅ Admin user '${adminData.username}' processed successfully (ID: ${result.id})`);
+      }
     } catch (error) {
-      console.error(`❌ Failed to create admin user '${adminData.username}':`, error);
+      errorCount++;
+      console.error(`❌ Failed to process admin user '${adminData.username}':`, isProduction ? '[Error details hidden in production]' : error);
     }
   }
 
-  console.log("🌱 Admin user seeding completed");
+  if (!isProduction) {
+    console.log(`🌱 Admin seeding completed: ${successCount} successful, ${errorCount} errors`);
+  } else {
+    console.log(`Admin seeding completed: ${successCount}/${adminUsers.length} successful`);
+  }
 }
 
 // Run this script directly if called from command line
