@@ -30,7 +30,8 @@ export default function Admin() {
 
   // Check authorization immediately without state to prevent hooks ordering issues
   const { user } = getAuthState();
-  const isAuthorized = user && user.email === "groovegardenltd@gmail.com";
+  const adminEmails = ["groovegardenltd@gmail.com", "tomearl1508@gmail.com"];
+  const isAuthorized = user && adminEmails.includes(user.email);
 
   // ALL hooks must be called unconditionally at the top
   const { data: pendingUsers, isLoading, error } = useQuery({
@@ -86,7 +87,8 @@ export default function Admin() {
       setLocation("/login");
       return;
     }
-    if (user.email !== "groovegardenltd@gmail.com") {
+    const adminEmails = ["groovegardenltd@gmail.com", "tomearl1508@gmail.com"];
+    if (!adminEmails.includes(user.email)) {
       toast({
         title: "Unauthorized Access", 
         description: "You don't have permission to access this page.",

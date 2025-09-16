@@ -987,7 +987,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "User not found" });
       }
       
-      if (user.email !== "groovegardenltd@gmail.com") {
+      const adminEmails = ["groovegardenltd@gmail.com", "tomearl1508@gmail.com"];
+      if (!adminEmails.includes(user.email)) {
         return res.status(403).json({ message: "Admin access required" });
       }
       
