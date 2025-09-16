@@ -28,48 +28,13 @@ export default function Admin() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [isAuthorizing, setIsAuthorizing] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
-  // Check if user is admin
-  useEffect(() => {
-    const { user } = getAuthState();
-    
-    if (!user) {
-      toast({
-        title: "Access Denied",
-        description: "Please log in to access this page.",
-        variant: "destructive",
-      });
-      setLocation("/login");
-      return;
-    }
-    if (user.email !== "groovegardenltd@gmail.com") {
-      toast({
-        title: "Unauthorized Access", 
-        description: "You don't have permission to access this page.",
-        variant: "destructive",
-      });
-      setLocation("/");
-      return;
-    }
-    setIsAuthorizing(false);
-  }, [setLocation, toast]);
-
-  // Show loading while checking authorization
-  if (isAuthorizing) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-music-purple"></div>
-          <span className="ml-3 text-gray-600">Checking authorization...</span>
-        </div>
-      </div>
-    );
-  }
-
+  // ALL hooks must be called unconditionally at the top
   const { data: pendingUsers, isLoading, error } = useQuery({
     queryKey: ["/api/admin/id-verifications"],
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 30000,
+    enabled: isAuthorized, // Only run query if authorized
   });
 
   const approveMutation = useMutation({
@@ -108,6 +73,32 @@ export default function Admin() {
     }
   });
 
+  // Authorization check effect
+  useEffect(() => {
+    const { user } = getAuthState();
+    
+    if (!user) {
+      toast({
+        title: "Access Denied",
+        description: "Please log in to access this page.",
+        variant: "destructive",
+      });
+      setLocation("/login");
+      return;
+    }
+    if (user.email !== "groovegardenltd@gmail.com") {
+      toast({
+        title: "Unauthorized Access", 
+        description: "You don't have permission to access this page.",
+        variant: "destructive",
+      });
+      setLocation("/");
+      return;
+    }
+    setIsAuthorizing(false);
+    setIsAuthorized(true);
+  }, [setLocation, toast]);
+
   const handleApprove = (userId: number) => {
     approveMutation.mutate(userId);
   };
@@ -130,6 +121,31 @@ export default function Admin() {
     if (!phone) return "Not provided";
     return phone;
   };
+
+  // Show loading while checking authorization
+  if (isAuthorizing) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-music-purple"></div>
+          <span className="ml-3 text-gray-600">Checking authorization...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render content if not authorized (backup safety check)
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="flex items-center justify-center py-12">
+          <div className="text-gray-600">Unauthorized access</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
