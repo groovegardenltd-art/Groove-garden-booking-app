@@ -15,6 +15,8 @@ export const users = pgTable("users", {
   selfiePhotoUrl: text("selfie_photo_url"), // URL to uploaded selfie photo
   idVerificationStatus: text("id_verification_status").default("pending"), // "pending", "verified", "rejected"
   idVerifiedAt: timestamp("id_verified_at"),
+  resetToken: text("reset_token"), // Password reset token
+  resetTokenExpiry: timestamp("reset_token_expiry"), // When the reset token expires
 });
 
 export const rooms = pgTable("rooms", {
