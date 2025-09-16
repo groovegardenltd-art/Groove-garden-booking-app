@@ -308,12 +308,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // SECURITY: Invalidate all active sessions for this user after password reset
       // This prevents existing sessions from remaining active after password change
-      const sessionsToDelete = [];
-      for (const [sessionId, session] of sessions.entries()) {
+      const sessionsToDelete: string[] = [];
+      sessions.forEach((session, sessionId) => {
         if (session.userId === user.id) {
           sessionsToDelete.push(sessionId);
         }
-      }
+      });
       sessionsToDelete.forEach(sessionId => sessions.delete(sessionId));
       
       if (passwordUpdated && tokenCleared) {
