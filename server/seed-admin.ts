@@ -13,10 +13,9 @@ export async function seedAdminUsers() {
     return;
   }
 
-  // Validate required environment variables
+  // Validate required environment variables for the primary admin
   const requiredEnvVars = [
-    'ADMIN_USERNAME_1', 'ADMIN_EMAIL_1', 'ADMIN_NAME_1', 'ADMIN_PHONE_1', 'ADMIN_PASSWORD_1',
-    'ADMIN_USERNAME_2', 'ADMIN_EMAIL_2', 'ADMIN_NAME_2', 'ADMIN_PHONE_2', 'ADMIN_PASSWORD_2'
+    'ADMIN_USERNAME_1', 'ADMIN_EMAIL_1', 'ADMIN_NAME_1', 'ADMIN_PHONE_1', 'ADMIN_PASSWORD_1'
   ];
   
   const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
@@ -32,13 +31,6 @@ export async function seedAdminUsers() {
       name: process.env.ADMIN_NAME_1!,
       phone: process.env.ADMIN_PHONE_1!,
       password: process.env.ADMIN_PASSWORD_1!
-    },
-    {
-      username: process.env.ADMIN_USERNAME_2!,
-      email: process.env.ADMIN_EMAIL_2!,
-      name: process.env.ADMIN_NAME_2!, 
-      phone: process.env.ADMIN_PHONE_2!,
-      password: process.env.ADMIN_PASSWORD_2!
     }
   ];
 
