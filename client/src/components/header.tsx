@@ -74,6 +74,18 @@ export function Header({ onLogout }: HeaderProps) {
                 >
                   My Bookings
                 </Link>
+                {user.email === "groovegardenltd@gmail.com" && (
+                  <Link
+                    href="/admin"
+                    className={`transition-colors ${
+                      isActive("/admin")
+                        ? "text-music-purple font-medium border-b-2 border-music-purple pb-1"
+                        : "text-gray-600 hover:text-music-purple"
+                    }`}
+                  >
+                    Admin
+                  </Link>
+                )}
               </nav>
             )}
           </div>
