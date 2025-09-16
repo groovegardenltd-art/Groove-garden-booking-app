@@ -223,6 +223,8 @@ export function BookingModal({
       duration: selectedDuration,
       totalPrice: calculatePrice(selectedDuration),
       // contactPhone removed - email confirmations only
+      idNumber: user?.idNumber || "",
+      idType: user?.idType || "",
       paymentIntentId: "test_mode_booking", // Test mode identifier
     };
 
@@ -245,6 +247,8 @@ export function BookingModal({
       duration: selectedDuration,
       totalPrice: calculatePrice(selectedDuration),
       // contactPhone removed - email confirmations only
+      idNumber: user?.idNumber || "",
+      idType: user?.idType || "",
       paymentIntentId, // Include payment intent ID
     };
 
