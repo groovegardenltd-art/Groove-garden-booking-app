@@ -7,6 +7,8 @@ import Home from "@/pages/home";
 import Bookings from "@/pages/bookings";
 import LockManagement from "@/pages/lock-management";
 import Login from "@/pages/login";
+import ForgotPassword from "@/pages/forgot-password";
+import ResetPassword from "@/pages/reset-password";
 import NotFound from "@/pages/not-found";
 import Website from "@/pages/website";
 import Terms from "@/pages/terms";
@@ -27,6 +29,8 @@ function Router() {
       <Route path="/admin/id-verification" component={IdVerificationAdmin} />
       <Route path="/admin" component={Admin} />
       <Route path="/login" component={Login} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
       <Route component={NotFound} />
     </Switch>
   );
