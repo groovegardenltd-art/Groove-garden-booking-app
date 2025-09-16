@@ -834,10 +834,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin routes for ID verification
-  app.get("/api/admin/id-verifications", requireAuth, async (req, res) => {
+  // Admin authorization middleware
+  const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
+    const authReq = req as AuthenticatedRequest;
+    
+    if (!authReq.userId) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
     try {
-      // In production, add admin role check here
+      const user = await storage.getUser(authReq.userId);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+      
+      if (user.email !== "groovegardenltd@gmail.com") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      next();
+    } catch (error) {
+      console.error('Admin authorization error:', error);
+      return res.status(500).json({ message: "Authorization check failed" });
+    }
+  };
+
+  // Admin routes for ID verification
+  app.get("/api/admin/id-verifications", requireAuth, requireAdmin, async (req, res) => {
+    try {
       const pendingUsers = await storage.getUsersPendingVerification();
       res.json(pendingUsers);
     } catch (error) {
@@ -846,7 +870,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/id-verifications/:userId/approve", requireAuth, async (req, res) => {
+  app.post("/api/admin/id-verifications/:userId/approve", requireAuth, requireAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
       await storage.updateUser(userId, {
@@ -860,7 +884,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/id-verifications/:userId/reject", requireAuth, async (req, res) => {
+  app.post("/api/admin/id-verifications/:userId/reject", requireAuth, requireAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
       const { reason } = req.body;

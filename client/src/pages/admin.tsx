@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, XCircle, Clock, User, FileText, Shield } from "lucide-react";
+import { getAuthState } from "@/lib/auth";
+import { useLocation } from "wouter";
+import { useState, useEffect } from "react";
 
 interface PendingUser {
   id: number;
@@ -23,6 +26,45 @@ interface PendingUser {
 export default function Admin() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
+  const [isAuthorizing, setIsAuthorizing] = useState(true);
+
+  // Check if user is admin
+  useEffect(() => {
+    const { user } = getAuthState();
+    if (!user) {
+      toast({
+        title: "Access Denied",
+        description: "Please log in to access this page.",
+        variant: "destructive",
+      });
+      setLocation("/login");
+      return;
+    }
+    if (user.email !== "groovegardenltd@gmail.com") {
+      toast({
+        title: "Unauthorized Access",
+        description: "You don't have permission to access this page.",
+        variant: "destructive",
+      });
+      setLocation("/");
+      return;
+    }
+    setIsAuthorizing(false);
+  }, [setLocation, toast]);
+
+  // Show loading while checking authorization
+  if (isAuthorizing) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-music-purple"></div>
+          <span className="ml-3 text-gray-600">Checking authorization...</span>
+        </div>
+      </div>
+    );
+  }
 
   const { data: pendingUsers, isLoading, error } = useQuery({
     queryKey: ["/api/admin/id-verifications"],
