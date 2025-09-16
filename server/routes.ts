@@ -9,6 +9,7 @@ import { createTTLockService } from "./ttlock";
 import { z } from "zod";
 import Stripe from "stripe";
 import { notifyPendingIdVerification, sendRejectionNotification, sendPasswordResetEmail } from "./email";
+import { comparePassword, hashPassword } from "./password-utils";
 import crypto from "crypto";
 
 // Test mode configuration
@@ -205,7 +206,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { username, password } = loginSchema.parse(req.body);
       
       const user = await storage.getUserByUsername(username);
-      if (!user || user.password !== password) {
+      if (!user) {
+        return res.status(401).json({ message: "Invalid username or password" });
+      }
+
+      // Use bcrypt to compare password with stored hash
+      const isPasswordValid = await comparePassword(password, user.password);
+      if (!isPasswordValid) {
         return res.status(401).json({ message: "Invalid username or password" });
       }
 
@@ -219,6 +226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
+      console.error('Login error:', error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -291,12 +299,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid or expired reset token" });
       }
 
+      // Hash the new password before storing
+      const hashedPassword = await hashPassword(newPassword);
+      
       // Update user password and clear reset token
-      const passwordUpdated = await storage.updateUser(user.id, { password: newPassword });
+      const passwordUpdated = await storage.updateUser(user.id, { password: hashedPassword });
       const tokenCleared = await storage.clearUserResetToken(user.id);
       
+      // SECURITY: Invalidate all active sessions for this user after password reset
+      // This prevents existing sessions from remaining active after password change
+      const sessionsToDelete = [];
+      for (const [sessionId, session] of sessions.entries()) {
+        if (session.userId === user.id) {
+          sessionsToDelete.push(sessionId);
+        }
+      }
+      sessionsToDelete.forEach(sessionId => sessions.delete(sessionId));
+      
       if (passwordUpdated && tokenCleared) {
-        console.log(`Password successfully reset for user ${user.username}`);
+        console.log(`Password successfully reset for user ${user.username}, ${sessionsToDelete.length} sessions invalidated`);
         res.json({ message: "Password has been reset successfully. You can now log in with your new password." });
       } else {
         console.error(`Failed to reset password for user ${user.username}`);

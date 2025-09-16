@@ -1,6 +1,7 @@
 import { users, rooms, bookings, promoCodes, type User, type InsertUser, type Room, type InsertRoom, type Booking, type InsertBooking, type BookingWithRoom, type PromoCode, type InsertPromoCode } from "@shared/schema";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
+import { hashPassword } from "./password-utils";
 
 export interface IStorage {
   // User methods
@@ -104,9 +105,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
+    // Hash the password before storing
+    const hashedPassword = await hashPassword(insertUser.password);
+    const userWithHashedPassword = { ...insertUser, password: hashedPassword };
+    
     const [user] = await db
       .insert(users)
-      .values(insertUser)
+      .values(userWithHashedPassword)
       .returning();
     return user;
   }
