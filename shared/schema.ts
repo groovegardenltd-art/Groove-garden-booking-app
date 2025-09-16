@@ -124,10 +124,7 @@ export const insertBookingSchema = createInsertSchema(bookings).omit({
   accessCode: true,
   createdAt: true,
 }).extend({
-  contactPhone: z.string().min(1, "Phone number is required").transform((val) => {
-    // Strip all non-digits except leading +
-    return val.trim().replace(/[^+\d]/g, '').replace(/(?!^)[+]/g, '');
-  }).refine((val) => /^\+?\d{10,15}$/.test(val), "Phone number must be 10-15 digits with optional country code"),
+  contactPhone: z.string().optional(),
   idNumber: z.string().min(1, "ID number is required for studio access"),
   idType: z.string().min(1, "ID type is required"),
   totalPrice: z.union([z.string(), z.number()]).transform(val => String(val)),
