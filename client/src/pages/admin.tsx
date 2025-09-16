@@ -27,14 +27,16 @@ export default function Admin() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  const [isAuthorizing, setIsAuthorizing] = useState(true);
-  const [isAuthorized, setIsAuthorized] = useState(false);
+
+  // Check authorization immediately without state to prevent hooks ordering issues
+  const { user } = getAuthState();
+  const isAuthorized = user && user.email === "groovegardenltd@gmail.com";
 
   // ALL hooks must be called unconditionally at the top
   const { data: pendingUsers, isLoading, error } = useQuery({
     queryKey: ["/api/admin/id-verifications"],
     refetchInterval: 30000,
-    enabled: isAuthorized, // Only run query if authorized
+    enabled: !!isAuthorized, // Only run query if authorized
   });
 
   const approveMutation = useMutation({
@@ -75,8 +77,6 @@ export default function Admin() {
 
   // Authorization check effect
   useEffect(() => {
-    const { user } = getAuthState();
-    
     if (!user) {
       toast({
         title: "Access Denied",
@@ -95,9 +95,7 @@ export default function Admin() {
       setLocation("/");
       return;
     }
-    setIsAuthorizing(false);
-    setIsAuthorized(true);
-  }, [setLocation, toast]);
+  }, [user, setLocation, toast]);
 
   const handleApprove = (userId: number) => {
     approveMutation.mutate(userId);
@@ -122,18 +120,6 @@ export default function Admin() {
     return phone;
   };
 
-  // Show loading while checking authorization
-  if (isAuthorizing) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-music-purple"></div>
-          <span className="ml-3 text-gray-600">Checking authorization...</span>
-        </div>
-      </div>
-    );
-  }
 
   // Don't render content if not authorized (backup safety check)
   if (!isAuthorized) {
