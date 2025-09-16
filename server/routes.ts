@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { rooms } from "@shared/schema";
+import { rooms, sessions } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { insertUserSchema, loginSchema, insertBookingSchema } from "@shared/schema";
 import { createTTLockService } from "./ttlock";
@@ -83,36 +83,63 @@ function calculateTimeBasedPricing(room: any, startTime: string, endTime: string
   return totalPrice;
 }
 
-// Simple session management
-const sessions = new Map<string, { userId: number; expires: Date }>();
-
+// Database-backed session management
 function generateSessionId(): string {
-  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+  return crypto.randomBytes(32).toString('hex');
 }
 
-function createSession(userId: number): string {
+async function createSession(userId: number): Promise<string> {
   const sessionId = generateSessionId();
-  const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-  sessions.set(sessionId, { userId, expires });
-  console.log(`Created session ${sessionId} for user ${userId}, expires: ${expires}`);
-  return sessionId;
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+  
+  try {
+    await db.insert(sessions).values({
+      sessionId,
+      userId,
+      expiresAt
+    });
+    console.log(`Created session ${sessionId.slice(0, 4)}...${sessionId.slice(-4)} for user ${userId}, expires: ${expiresAt}`);
+    return sessionId;
+  } catch (error) {
+    console.error('Failed to create session:', error);
+    throw new Error('Failed to create session');
+  }
 }
 
-function getSession(sessionId: string): { userId: number } | null {
-  const session = sessions.get(sessionId);
-  if (!session) {
-    console.log(`Session not found: ${sessionId}`);
+async function getSession(sessionId: string): Promise<{ userId: number } | null> {
+  try {
+    const [session] = await db
+      .select()
+      .from(sessions)
+      .where(eq(sessions.sessionId, sessionId));
+    
+    if (!session) {
+      console.log(`Session not found: ${sessionId.slice(0, 4)}...${sessionId.slice(-4)}`);
+      return null;
+    }
+    
+    if (session.expiresAt < new Date()) {
+      console.log(`Session expired: ${sessionId.slice(0, 4)}...${sessionId.slice(-4)}`);
+      // Clean up expired session
+      await db.delete(sessions).where(eq(sessions.sessionId, sessionId));
+      return null;
+    }
+    
+    console.log(`Valid session found: ${sessionId.slice(0, 4)}...${sessionId.slice(-4)} for user ${session.userId}`);
+    return { userId: session.userId };
+  } catch (error) {
+    console.error('Failed to get session:', error);
     return null;
   }
-  
-  if (session.expires < new Date()) {
-    console.log(`Session expired: ${sessionId}`);
-    sessions.delete(sessionId);
-    return null;
+}
+
+async function deleteSession(sessionId: string): Promise<void> {
+  try {
+    await db.delete(sessions).where(eq(sessions.sessionId, sessionId));
+    console.log(`Deleted session: ${sessionId.slice(0, 4)}...${sessionId.slice(-4)}`);
+  } catch (error) {
+    console.error('Failed to delete session:', error);
   }
-  
-  console.log(`Valid session found: ${sessionId} for user ${session.userId}`);
-  return { userId: session.userId };
 }
 
 function requireAuth(req: Request, res: Response, next: NextFunction) {
@@ -123,14 +150,20 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
     return res.status(401).json({ message: "Authentication required" });
   }
 
-  const session = getSession(sessionId);
-  if (!session) {
-    console.log(`Invalid session: ${sessionId}`);
-    return res.status(401).json({ message: "Invalid or expired session" });
-  }
+  getSession(sessionId)
+    .then(session => {
+      if (!session) {
+        console.log(`Invalid session: ${sessionId.slice(0, 4)}...${sessionId.slice(-4)}`);
+        return res.status(401).json({ message: "Invalid or expired session" });
+      }
 
-  (req as AuthenticatedRequest).userId = session.userId;
-  next();
+      (req as AuthenticatedRequest).userId = session.userId;
+      next();
+    })
+    .catch(error => {
+      console.error('Session validation error:', error);
+      return res.status(401).json({ message: "Authentication failed" });
+    });
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -188,7 +221,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      const sessionId = createSession(user.id);
+      const sessionId = await createSession(user.id);
       
       res.json({ 
         user: { id: user.id, username: user.username, email: user.email, name: user.name },
@@ -218,7 +251,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid username or password" });
       }
 
-      const sessionId = createSession(user.id);
+      const sessionId = await createSession(user.id);
       
       res.json({ 
         user: { id: user.id, username: user.username, email: user.email, name: user.name },
@@ -233,10 +266,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/logout", requireAuth, (req, res) => {
-    const sessionId = req.headers.authorization?.replace('Bearer ', '');
+  app.post("/api/logout", requireAuth, async (req, res) => {
+    const sessionId = (req.headers.authorization?.replace('Bearer ', '') || req.headers['x-session-id']) as string;
     if (sessionId) {
-      sessions.delete(sessionId);
+      await deleteSession(sessionId);
     }
     res.json({ message: "Logged out successfully" });
   });
@@ -310,16 +343,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // SECURITY: Invalidate all active sessions for this user after password reset
       // This prevents existing sessions from remaining active after password change
-      const sessionsToDelete: string[] = [];
-      sessions.forEach((session, sessionId) => {
-        if (session.userId === user.id) {
-          sessionsToDelete.push(sessionId);
-        }
-      });
-      sessionsToDelete.forEach(sessionId => sessions.delete(sessionId));
+      const deletedSessions = await db.delete(sessions).where(eq(sessions.userId, user.id)).returning();
       
       if (passwordUpdated && tokenCleared) {
-        console.log(`Password successfully reset for user ${user.username}, ${sessionsToDelete.length} sessions invalidated`);
+        console.log(`Password successfully reset for user ${user.username}, ${deletedSessions.length} sessions invalidated`);
         res.json({ message: "Password has been reset successfully. You can now log in with your new password." });
       } else {
         console.error(`Failed to reset password for user ${user.username}`);
