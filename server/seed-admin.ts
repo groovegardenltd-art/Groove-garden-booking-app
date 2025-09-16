@@ -99,18 +99,7 @@ export async function seedAdminUsers() {
 }
 
 // Only run this script directly if called from command line (not when imported)
-if (typeof require !== 'undefined' && require.main === module) {
-  // CommonJS detection for direct execution
-  seedAdminUsers()
-    .then(() => {
-      console.log("✅ Seeding completed successfully");
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error("❌ Seeding failed:", error);
-      process.exit(1);
-    });
-} else if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   // ES modules detection for direct execution
   seedAdminUsers()
     .then(() => {
