@@ -39,16 +39,20 @@ localPort = 37803
 externalPort = 5000
 
 [[ports]]
-localPort = 42117
-externalPort = 6800
-
-[[ports]]
 localPort = 42291
 externalPort = 3001
 
 [[ports]]
 localPort = 42417
 externalPort = 4200
+
+[[ports]]
+localPort = 46765
+externalPort = 6800
+
+[[ports]]
+localPort = 46785
+externalPort = 8000
 
 [workflows]
 runButton = "Project"
@@ -72,4 +76,4 @@ args = "npm run dev"
 waitForPort = 5000
 
 [agent]
-integrations = ["javascript_sendgrid:1.0.0", "javascript_object_storage:1.0.0", "javascript_log_in_with_replit:1.0.0", "javascript_database:1.0.0"]
+integrations = ["javascript_sendgrid:1.0.0", "javascript_object_storage:1.0.0", "javascript_log_in_with_replit:1.0.0", "javascript_database:1.0.0", "javascript_stripe:1.0.0"]
