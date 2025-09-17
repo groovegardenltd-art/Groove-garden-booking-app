@@ -130,30 +130,71 @@ export function SuccessModal({
             </div>
           )}
 
-          {/* Access Code */}
-          <div className="bg-music-indigo/5 border border-music-indigo/20 rounded-lg p-4 mb-6">
-            <div className="flex items-center gap-2 mb-2">
-              <RectangleEllipsis className="h-5 w-5 text-music-indigo" />
-              <h4 className="font-medium text-gray-900">Access Code</h4>
+          {/* Access Codes */}
+          <div className="space-y-4 mb-6">
+            {/* Front Door Code */}
+            <div className="bg-music-indigo/5 border border-music-indigo/20 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <RectangleEllipsis className="h-5 w-5 text-music-indigo" />
+                <h4 className="font-medium text-gray-900">Front Door Access Code</h4>
+              </div>
+              <div className="flex items-center justify-center space-x-2 mb-2">
+                <code className="bg-music-indigo text-white px-4 py-2 rounded-lg text-2xl font-mono tracking-wider">
+                  {booking.accessCode}#
+                </code>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={copyAccessCode}
+                  className="p-2 text-music-indigo hover:bg-music-indigo hover:text-white"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="text-sm text-gray-600 space-y-1">
+                <p>Enter this code on the front door keypad to enter building</p>
+                <p className="text-xs text-gray-500">
+                  Available during your booking time
+                </p>
+              </div>
             </div>
-            <div className="flex items-center justify-center space-x-2 mb-2">
-              <code className="bg-music-indigo text-white px-4 py-2 rounded-lg text-2xl font-mono tracking-wider">
-                {booking.accessCode}#
-              </code>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={copyAccessCode}
-                className="p-2 text-music-indigo hover:bg-music-indigo hover:text-white"
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="text-sm text-gray-600 space-y-1">
-              <p>Enter this code on the front door keypad</p>
-              <p className="text-xs text-gray-500">
-                Available during your booking time
-              </p>
+
+            {/* Interior Door Code */}
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <DoorOpen className="h-5 w-5 text-green-600" />
+                <h4 className="font-medium text-gray-900">{booking.room?.name} Interior Door Code</h4>
+              </div>
+              <div className="flex items-center justify-center space-x-2 mb-2">
+                <code className="bg-green-600 text-white px-4 py-2 rounded-lg text-2xl font-mono tracking-wider">
+                  {booking.room?.name === 'Live Room' ? '4537' : 
+                   booking.room?.name === 'Pod 1' ? '5786' : 
+                   booking.room?.name === 'Pod 2' ? '9857' : 'N/A'}#
+                </code>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const interiorCode = booking.room?.name === 'Live Room' ? '4537' : 
+                                       booking.room?.name === 'Pod 1' ? '5786' : 
+                                       booking.room?.name === 'Pod 2' ? '9857' : 'N/A';
+                    navigator.clipboard.writeText(interiorCode);
+                    toast({
+                      title: "Interior Code Copied!",
+                      description: "The interior door code has been copied to your clipboard.",
+                    });
+                  }}
+                  className="p-2 text-green-600 hover:bg-green-600 hover:text-white"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="text-sm text-gray-600 space-y-1">
+                <p>Enter this code on your room's interior door keypad</p>
+                <p className="text-xs text-gray-500">
+                  Available 24/7 - manually set code
+                </p>
+              </div>
             </div>
           </div>
 

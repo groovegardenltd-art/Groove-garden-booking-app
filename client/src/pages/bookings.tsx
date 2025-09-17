@@ -200,21 +200,49 @@ export default function Bookings() {
 
                         </div>
 
-                        {/* Access Code */}
-                        <div className="bg-white rounded-lg p-3 border">
-                          <div className="text-sm font-medium text-gray-900 mb-2">Access Code</div>
-                          <div className="flex items-center justify-between">
-                            <code className="bg-music-indigo text-white px-3 py-1 rounded text-lg font-mono">
-                              {booking.accessCode}#
-                            </code>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => copyAccessCode(booking.accessCode)}
-                              className="text-music-indigo hover:text-music-purple"
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
+                        {/* Access Codes */}
+                        <div className="space-y-2">
+                          {/* Front Door Code */}
+                          <div className="bg-white rounded-lg p-3 border">
+                            <div className="text-sm font-medium text-gray-900 mb-2">Front Door Code</div>
+                            <div className="flex items-center justify-between">
+                              <code className="bg-music-indigo text-white px-3 py-1 rounded text-lg font-mono">
+                                {booking.accessCode}#
+                              </code>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => copyAccessCode(booking.accessCode)}
+                                className="text-music-indigo hover:text-music-purple"
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          {/* Interior Door Code */}
+                          <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                            <div className="text-sm font-medium text-gray-900 mb-2">{booking.room.name} Interior Code</div>
+                            <div className="flex items-center justify-between">
+                              <code className="bg-green-600 text-white px-3 py-1 rounded text-lg font-mono">
+                                {booking.room.name === 'Live Room' ? '4537' : 
+                                 booking.room.name === 'Pod 1' ? '5786' : 
+                                 booking.room.name === 'Pod 2' ? '9857' : 'N/A'}#
+                              </code>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const interiorCode = booking.room.name === 'Live Room' ? '4537' : 
+                                                     booking.room.name === 'Pod 1' ? '5786' : 
+                                                     booking.room.name === 'Pod 2' ? '9857' : 'N/A';
+                                  copyAccessCode(interiorCode);
+                                }}
+                                className="text-green-600 hover:text-green-700"
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
 
@@ -278,18 +306,42 @@ export default function Bookings() {
                             )}
                           </div>
                           {booking.status !== "cancelled" && (
-                            <div className="ml-4 flex items-center space-x-2">
-                              <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">
-                                {booking.accessCode}#
-                              </code>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => copyAccessCode(booking.accessCode)}
-                                className="p-1 text-gray-400 hover:text-gray-600"
-                              >
-                                <Copy className="h-4 w-4" />
-                              </Button>
+                            <div className="ml-4 flex flex-col space-y-2">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-xs text-gray-500">Front:</span>
+                                <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">
+                                  {booking.accessCode}#
+                                </code>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => copyAccessCode(booking.accessCode)}
+                                  className="p-1 text-gray-400 hover:text-gray-600"
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-xs text-gray-500">Interior:</span>
+                                <code className="bg-green-100 px-2 py-1 rounded text-sm font-mono">
+                                  {booking.room.name === 'Live Room' ? '4537' : 
+                                   booking.room.name === 'Pod 1' ? '5786' : 
+                                   booking.room.name === 'Pod 2' ? '9857' : 'N/A'}#
+                                </code>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    const interiorCode = booking.room.name === 'Live Room' ? '4537' : 
+                                                       booking.room.name === 'Pod 1' ? '5786' : 
+                                                       booking.room.name === 'Pod 2' ? '9857' : 'N/A';
+                                    copyAccessCode(interiorCode);
+                                  }}
+                                  className="p-1 text-gray-400 hover:text-gray-600"
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
                           )}
                         </div>
