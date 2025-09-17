@@ -46,9 +46,8 @@ export default function Terms() {
             <section>
               <h2 className="text-xl font-semibold text-gray-900 mb-3">4. Cancellation Policy</h2>
               <div className="space-y-2">
-                <p>• <strong>24+ Hours Notice:</strong> Full refund available.</p>
-                <p>• <strong>2-24 Hours Notice:</strong> 50% refund provided.</p>
-                <p>• <strong>Less than 2 Hours:</strong> No refund available.</p>
+                <p>• <strong>48+ Hours Notice:</strong> Full refund available.</p>
+                <p>• <strong>Less than 48 Hours:</strong> No refund available.</p>
                 <p>• Cancellations can be made through your account dashboard.</p>
                 <p>• Refunds are processed within 3-5 business days to original payment method.</p>
               </div>

@@ -17,23 +17,15 @@ export default function CancellationPolicy() {
                   <div className="flex items-start gap-4">
                     <div className="w-3 h-3 bg-green-500 rounded-full mt-1.5"></div>
                     <div>
-                      <h3 className="font-semibold text-green-800">24+ Hours Before Booking</h3>
+                      <h3 className="font-semibold text-green-800">48+ Hours Before Booking</h3>
                       <p className="text-green-700">Full refund (100% of booking cost)</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-4">
-                    <div className="w-3 h-3 bg-yellow-500 rounded-full mt-1.5"></div>
-                    <div>
-                      <h3 className="font-semibold text-yellow-800">2-24 Hours Before Booking</h3>
-                      <p className="text-yellow-700">Partial refund (50% of booking cost)</p>
                     </div>
                   </div>
                   
                   <div className="flex items-start gap-4">
                     <div className="w-3 h-3 bg-red-500 rounded-full mt-1.5"></div>
                     <div>
-                      <h3 className="font-semibold text-red-800">Less than 2 Hours Before</h3>
+                      <h3 className="font-semibold text-red-800">Less than 48 Hours Before</h3>
                       <p className="text-red-700">No refund available</p>
                     </div>
                   </div>
