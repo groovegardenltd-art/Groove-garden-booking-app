@@ -5,10 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Clock, User, FileText, Shield } from "lucide-react";
+import { CheckCircle, XCircle, Clock, User, FileText, Shield, CalendarX, Plus, Trash2 } from "lucide-react";
 import { getAuthState } from "@/lib/auth";
 import { useLocation } from "wouter";
 import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 interface PendingUser {
   id: number;
@@ -21,6 +26,23 @@ interface PendingUser {
   idPhotoUrl: string;
   selfiePhotoUrl: string;
   idVerificationStatus: string;
+}
+
+interface BlockedSlot {
+  id: number;
+  roomId: number;
+  date: string;
+  startTime: string;
+  endTime: string;
+  reason: string | null;
+  createdBy: number;
+  createdAt: string;
+}
+
+interface Room {
+  id: number;
+  name: string;
+  description: string;
 }
 
 export default function Admin() {
@@ -38,6 +60,25 @@ export default function Admin() {
     queryKey: ["/api/admin/id-verifications"],
     refetchInterval: 30000,
     enabled: !!isAuthorized, // Only run query if authorized
+  });
+
+  const { data: blockedSlots, isLoading: blockedSlotsLoading } = useQuery({
+    queryKey: ["/api/admin/blocked-slots"],
+    enabled: !!isAuthorized,
+  });
+
+  const { data: rooms } = useQuery({
+    queryKey: ["/api/rooms"],
+    enabled: !!isAuthorized,
+  });
+
+  const [blockSlotDialogOpen, setBlockSlotDialogOpen] = useState(false);
+  const [blockSlotData, setBlockSlotData] = useState({
+    roomId: "",
+    date: "",
+    startTime: "",
+    endTime: "",
+    reason: "",
   });
 
   const approveMutation = useMutation({
@@ -76,6 +117,50 @@ export default function Admin() {
     }
   });
 
+  const createBlockedSlotMutation = useMutation({
+    mutationFn: (data: typeof blockSlotData) => apiRequest("POST", "/api/admin/blocked-slots", {
+      roomId: parseInt(data.roomId),
+      date: data.date,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      reason: data.reason || null,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/blocked-slots"] });
+      setBlockSlotDialogOpen(false);
+      setBlockSlotData({ roomId: "", date: "", startTime: "", endTime: "", reason: "" });
+      toast({
+        title: "✅ Time Slot Blocked",
+        description: "The time slot has been successfully blocked.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "❌ Failed to Block Slot",
+        description: "Failed to block the time slot. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deleteBlockedSlotMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/admin/blocked-slots/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/blocked-slots"] });
+      toast({
+        title: "✅ Block Removed",
+        description: "The time slot block has been removed.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "❌ Failed to Remove Block",
+        description: "Failed to remove the time slot block. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
   // Authorization check effect
   useEffect(() => {
     if (!user) {
@@ -105,6 +190,28 @@ export default function Admin() {
 
   const handleReject = (userId: number) => {
     rejectMutation.mutate(userId);
+  };
+
+  const handleCreateBlockedSlot = () => {
+    if (!blockSlotData.roomId || !blockSlotData.date || !blockSlotData.startTime || !blockSlotData.endTime) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+    createBlockedSlotMutation.mutate(blockSlotData);
+  };
+
+  const handleDeleteBlockedSlot = (id: number) => {
+    deleteBlockedSlotMutation.mutate(id);
+  };
+
+  const getRoomName = (roomId: number): string => {
+    if (!rooms || !Array.isArray(rooms)) return `Room ${roomId}`;
+    const room = rooms.find((r: Room) => r.id === roomId);
+    return room?.name || `Room ${roomId}`;
   };
 
   const getIdTypeLabel = (idType: string) => {
@@ -144,9 +251,156 @@ export default function Admin() {
             <Shield className="h-8 w-8 text-music-purple" />
             <div>
               <h1 data-testid="admin-title" className="text-2xl font-bold text-gray-900">Admin Panel</h1>
-              <p className="text-gray-600 mt-1">Review and manage ID verifications</p>
+              <p className="text-gray-600 mt-1">Review ID verifications and manage blocked time slots</p>
             </div>
           </div>
+        </div>
+
+        {/* Blocked Slots Management */}
+        <div className="mb-8">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <CalendarX className="h-5 w-5 text-red-500" />
+                  Blocked Time Slots
+                </CardTitle>
+                <Dialog open={blockSlotDialogOpen} onOpenChange={setBlockSlotDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-red-600 hover:bg-red-700" data-testid="add-blocked-slot">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Block Time Slot
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Block Time Slot</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="room">Room</Label>
+                        <Select value={blockSlotData.roomId} onValueChange={(value) => 
+                          setBlockSlotData(prev => ({ ...prev, roomId: value }))
+                        }>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a room" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.isArray(rooms) && rooms.map((room: Room) => (
+                              <SelectItem key={room.id} value={room.id.toString()}>
+                                {room.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="date">Date</Label>
+                        <Input
+                          id="date"
+                          type="date"
+                          value={blockSlotData.date}
+                          onChange={(e) => setBlockSlotData(prev => ({ ...prev, date: e.target.value }))}
+                          min={new Date().toISOString().split('T')[0]}
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="startTime">Start Time</Label>
+                          <Input
+                            id="startTime"
+                            type="time"
+                            value={blockSlotData.startTime}
+                            onChange={(e) => setBlockSlotData(prev => ({ ...prev, startTime: e.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="endTime">End Time</Label>
+                          <Input
+                            id="endTime"
+                            type="time"
+                            value={blockSlotData.endTime}
+                            onChange={(e) => setBlockSlotData(prev => ({ ...prev, endTime: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="reason">Reason (Optional)</Label>
+                        <Textarea
+                          id="reason"
+                          placeholder="e.g., Maintenance, Cleaning, Equipment repair..."
+                          value={blockSlotData.reason}
+                          onChange={(e) => setBlockSlotData(prev => ({ ...prev, reason: e.target.value }))}
+                        />
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button 
+                          onClick={handleCreateBlockedSlot}
+                          disabled={createBlockedSlotMutation.isPending}
+                          className="flex-1 bg-red-600 hover:bg-red-700"
+                        >
+                          {createBlockedSlotMutation.isPending ? "Blocking..." : "Block Time Slot"}
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setBlockSlotDialogOpen(false)}
+                          className="flex-1"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {blockedSlotsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-500"></div>
+                  <span className="ml-3 text-gray-600">Loading blocked slots...</span>
+                </div>
+              ) : !blockedSlots || !Array.isArray(blockedSlots) || blockedSlots.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <CalendarX className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>No blocked time slots</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {Array.isArray(blockedSlots) && blockedSlots.map((slot: BlockedSlot) => (
+                    <div key={slot.id} className="flex items-center justify-between p-3 border border-red-200 rounded-lg bg-red-50">
+                      <div>
+                        <div className="flex items-center gap-4 text-sm">
+                          <Badge variant="secondary" className="bg-red-100 text-red-800">
+                            {getRoomName(slot.roomId)}
+                          </Badge>
+                          <span className="font-medium">{slot.date}</span>
+                          <span>{slot.startTime} - {slot.endTime}</span>
+                        </div>
+                        {slot.reason && (
+                          <p className="text-xs text-gray-600 mt-1">{slot.reason}</p>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteBlockedSlot(slot.id)}
+                        disabled={deleteBlockedSlotMutation.isPending}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-100"
+                        data-testid={`remove-block-${slot.id}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {isLoading ? (

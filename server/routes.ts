@@ -1149,6 +1149,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin routes for blocked slots management
+  app.get("/api/admin/blocked-slots", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const blockedSlots = await storage.getAllBlockedSlots();
+      res.json(blockedSlots);
+    } catch (error) {
+      console.error('Failed to fetch blocked slots:', error);
+      res.status(500).json({ message: "Failed to fetch blocked slots" });
+    }
+  });
+
+  app.post("/api/admin/blocked-slots", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const { roomId, date, startTime, endTime, reason } = req.body;
+
+      if (!roomId || !date || !startTime || !endTime) {
+        return res.status(400).json({ message: "Room ID, date, start time, and end time are required" });
+      }
+
+      // Verify room exists
+      const room = await storage.getRoom(roomId);
+      if (!room) {
+        return res.status(400).json({ message: "Invalid room ID" });
+      }
+
+      const blockedSlot = await storage.createBlockedSlot({
+        roomId,
+        date,
+        startTime,
+        endTime,
+        reason: reason || null,
+        createdBy: authReq.userId!,
+      });
+
+      res.status(201).json(blockedSlot);
+    } catch (error) {
+      console.error('Failed to create blocked slot:', error);
+      res.status(500).json({ message: "Failed to create blocked slot" });
+    }
+  });
+
+  app.delete("/api/admin/blocked-slots/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid blocked slot ID" });
+      }
+
+      const success = await storage.deleteBlockedSlot(id);
+      if (!success) {
+        return res.status(404).json({ message: "Blocked slot not found" });
+      }
+
+      res.json({ message: "Blocked slot deleted successfully" });
+    } catch (error) {
+      console.error('Failed to delete blocked slot:', error);
+      res.status(500).json({ message: "Failed to delete blocked slot" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

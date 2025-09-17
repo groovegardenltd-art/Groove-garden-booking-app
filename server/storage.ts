@@ -1,4 +1,4 @@
-import { users, rooms, bookings, promoCodes, type User, type InsertUser, type Room, type InsertRoom, type Booking, type InsertBooking, type BookingWithRoom, type PromoCode, type InsertPromoCode } from "@shared/schema";
+import { users, rooms, bookings, promoCodes, blockedSlots, type User, type InsertUser, type Room, type InsertRoom, type Booking, type InsertBooking, type BookingWithRoom, type PromoCode, type InsertPromoCode, type BlockedSlot, type InsertBlockedSlot } from "@shared/schema";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
 import { hashPassword } from "./password-utils";
@@ -33,6 +33,12 @@ export interface IStorage {
   getPromoCodeByCode(code: string): Promise<PromoCode | undefined>;
   validatePromoCode(code: string, bookingAmount: number, roomId?: number): Promise<{ valid: boolean; promoCode?: PromoCode; error?: string }>;
   incrementPromoCodeUsage(promoCodeId: number): Promise<void>;
+
+  // Blocked slots methods
+  getAllBlockedSlots(): Promise<BlockedSlot[]>;
+  getBlockedSlotsByRoomAndDate(roomId: number, date: string): Promise<BlockedSlot[]>;
+  createBlockedSlot(blockedSlot: InsertBlockedSlot & { createdBy: number }): Promise<BlockedSlot>;
+  deleteBlockedSlot(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -333,6 +339,36 @@ export class DatabaseStorage implements IStorage {
       return !!user;
     } catch (error) {
       console.error('Failed to clear reset token:', error);
+      return false;
+    }
+  }
+
+  // Blocked slots methods
+  async getAllBlockedSlots(): Promise<BlockedSlot[]> {
+    return await db.select().from(blockedSlots);
+  }
+
+  async getBlockedSlotsByRoomAndDate(roomId: number, date: string): Promise<BlockedSlot[]> {
+    return await db
+      .select()
+      .from(blockedSlots)
+      .where(and(eq(blockedSlots.roomId, roomId), eq(blockedSlots.date, date)));
+  }
+
+  async createBlockedSlot(insertBlockedSlot: InsertBlockedSlot & { createdBy: number }): Promise<BlockedSlot> {
+    const [blockedSlot] = await db
+      .insert(blockedSlots)
+      .values(insertBlockedSlot)
+      .returning();
+    return blockedSlot;
+  }
+
+  async deleteBlockedSlot(id: number): Promise<boolean> {
+    try {
+      const result = await db.delete(blockedSlots).where(eq(blockedSlots.id, id));
+      return result.rowCount !== null && result.rowCount > 0;
+    } catch (error) {
+      console.error('Failed to delete blocked slot:', error);
       return false;
     }
   }

@@ -92,6 +92,17 @@ export const bookings = pgTable("bookings", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const blockedSlots = pgTable("blocked_slots", {
+  id: serial("id").primaryKey(),
+  roomId: integer("room_id").notNull(),
+  date: text("date").notNull(), // YYYY-MM-DD format
+  startTime: text("start_time").notNull(), // HH:MM format
+  endTime: text("end_time").notNull(), // HH:MM format
+  reason: text("reason"), // Optional reason for blocking (e.g., "Maintenance", "Cleaning")
+  createdBy: integer("created_by").notNull(), // Admin user ID who created the block
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
 }).extend({
@@ -133,6 +144,12 @@ export const insertBookingSchema = createInsertSchema(bookings).omit({
   promoCode: z.string().optional(),
 });
 
+export const insertBlockedSlotSchema = createInsertSchema(blockedSlots).omit({
+  id: true,
+  createdBy: true,
+  createdAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type LoginUser = z.infer<typeof loginSchema>;
 export type User = typeof users.$inferSelect;
@@ -142,6 +159,8 @@ export type InsertPromoCode = z.infer<typeof insertPromoCodeSchema>;
 export type PromoCode = typeof promoCodes.$inferSelect;
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
 export type Booking = typeof bookings.$inferSelect;
+export type InsertBlockedSlot = z.infer<typeof insertBlockedSlotSchema>;
+export type BlockedSlot = typeof blockedSlots.$inferSelect;
 
 export type BookingWithRoom = Booking & {
   room: Room;
