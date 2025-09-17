@@ -82,18 +82,21 @@ export class TTLockService {
 
   private generatePasscode(bookingId?: number): string {
     // Generate simple 5-digit passcode for better user experience
-    if (bookingId) {
+    if (bookingId !== undefined && bookingId !== null && Number.isFinite(bookingId)) {
+      // Validate and normalize booking ID to ensure safe calculation
+      const normalizedId = Math.trunc(Math.abs(bookingId));
+      
       // Create unique 5-digit code based on booking ID
       // Use base of 10000 to ensure 5 digits, add booking ID modulo to create uniqueness
       const base = 10000;
-      const uniqueComponent = (bookingId % 89999); // Keep it within 5-digit range
+      const uniqueComponent = normalizedId % 90000; // Full 5-digit range: 10000-99999
       const code = base + uniqueComponent;
       
-      return code.toString().padStart(5, '0');
+      return code.toString().padStart(5, '0'); // Safety net to ensure 5 digits
     } else {
-      // Use current time for unique 5-digit code when no booking ID
-      const timeBasedCode = 10000 + (Date.now() % 89999);
-      return timeBasedCode.toString().padStart(5, '0');
+      // Use current time for unique 5-digit code when no booking ID or invalid booking ID
+      const timeBasedCode = 10000 + (Date.now() % 90000);
+      return timeBasedCode.toString();
     }
   }
 
