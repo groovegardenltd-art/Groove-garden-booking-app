@@ -12,6 +12,18 @@ import { notifyPendingIdVerification, sendRejectionNotification, sendPasswordRes
 import { comparePassword, hashPassword } from "./password-utils";
 import crypto from "crypto";
 
+// Security utility: Mask passcode for logging (show first 2 and last 2 digits)
+function maskPasscode(passcode: string): string {
+  if (!passcode || passcode.length < 4) {
+    return '****';
+  }
+  const first2 = passcode.slice(0, 2);
+  const last2 = passcode.slice(-2);
+  const maskLength = Math.max(2, passcode.length - 4);
+  const mask = '*'.repeat(maskLength);
+  return `${first2}${mask}${last2}`;
+}
+
 // Test mode configuration - only enabled when explicitly set
 const TEST_MODE = process.env.ENABLE_TEST_MODE === 'true';
 
@@ -524,12 +536,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (ttlockService) {
         try {
-          // Room details already fetched above for pricing
-          if (!room.lockId) {
-            console.log(`No lock configured for room ${bookingData.roomId}`);
+          // Gather all lock IDs for this room (front door + interior door)
+          const lockIds: string[] = [];
+          if (room.lockId) {
+            lockIds.push(room.lockId); // Front door lock
+          }
+          if (room.interiorLockId) {
+            lockIds.push(room.interiorLockId); // Interior door lock
+          }
+
+          if (lockIds.length === 0) {
+            console.log(`No locks configured for room ${bookingData.roomId}`);
           } else {
-            // Check lock status first
-            const lockStatus = await ttlockService.getLockStatus(room.lockId);
+            console.log(`🚪 Setting up access for ${room.name}: Front Door ${room.lockId ? '✅' : '❌'} | Interior Door ${room.interiorLockId ? '✅' : '❌'}`);
             
             // Create dates in local timezone (UK is UTC+1 in summer)
             const [startHours, startMinutes = '00'] = bookingData.startTime.split(':');
@@ -543,26 +562,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const startDateTime = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), adjustedStartHour, parseInt(startMinutes)));
             const endDateTime = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), adjustedEndHour, parseInt(endMinutes)));
             
-            const lockResult = await ttlockService.createTimeLimitedPasscode(
-              room.lockId,
+            // Use new multi-lock method to create same passcode on all locks
+            const lockResult = await ttlockService.createMultiLockPasscode(
+              lockIds,
               startDateTime,
               endDateTime,
               Date.now() // temporary booking ID
             );
             
             ttlockPasscode = lockResult.passcode;
-            ttlockPasscodeId = lockResult.passcodeId;
+            ttlockPasscodeId = lockResult.passcodeIds[0]; // Use first successful passcode ID
             lockAccessEnabled = false; // Disable smart lock due to persistent sync issues
             
-            if (!lockStatus.isOnline) {
-              console.warn(`🚨 TTLock SYNC ISSUE: Temporary passcodes not reaching lock hardware despite gateway connectivity`);
-              console.warn(`🔧 RELIABLE ACCESS: Use initialization passcode 1123334 - works independently of gateway`);
-              console.warn(`📋 STATUS: Remote unlock works but temporary passcode sync remains broken`);
+            // Check status of primary lock
+            if (room.lockId) {
+              const lockStatus = await ttlockService.getLockStatus(room.lockId);
+              if (!lockStatus.isOnline) {
+                console.warn(`🚨 TTLock SYNC ISSUE: Temporary passcodes not reaching lock hardware despite gateway connectivity`);
+                console.warn(`🔧 RELIABLE ACCESS: Use initialization passcode 1123334 - works independently of gateway`);
+                console.warn(`📋 STATUS: Remote unlock works but temporary passcode sync remains broken`);
+              }
             }
             
-            console.log(`Smart lock passcode created: ${ttlockPasscode} for booking ${bookingData.date} ${bookingData.startTime}-${bookingData.endTime}`);
-            console.log(`⏰ TTLock connectivity: Lock offline status confirmed - passcodes won't sync until reconnected`);
-            console.log(`🔑 Reliable access: Initialization passcode 1123334 guaranteed to work (stored locally on lock)`);
+            console.log(`🔑 Multi-lock passcode created: ${maskPasscode(ttlockPasscode)} for booking ${bookingData.date} ${bookingData.startTime}-${bookingData.endTime}`);
+            console.log(`🚪 Access configured: ${lockResult.passcodeIds.filter(id => id !== -1).length}/${lockIds.length} locks successful`);
+            console.log(`⚡ Customer can use code ${maskPasscode(ttlockPasscode)}# on both front door and ${room.name} interior door`);
           }
         } catch (error) {
           console.warn('Failed to create smart lock passcode:', error);

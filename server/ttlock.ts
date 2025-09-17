@@ -1,5 +1,17 @@
 import crypto from 'crypto';
 
+// Security utility: Mask passcode for logging (show first 2 and last 2 digits)
+function maskPasscode(passcode: string): string {
+  if (!passcode || passcode.length < 4) {
+    return '****';
+  }
+  const first2 = passcode.slice(0, 2);
+  const last2 = passcode.slice(-2);
+  const maskLength = Math.max(2, passcode.length - 4);
+  const mask = '*'.repeat(maskLength);
+  return `${first2}${mask}${last2}`;
+}
+
 interface TTLockConfig {
   clientId: string;
   clientSecret: string;
@@ -103,7 +115,7 @@ export class TTLockService {
       const startTimeMs = startTime.getTime();
       const endTimeMs = endTime.getTime();
 
-      console.log(`Sending passcode ${passcode} to TTLock lock ${lockId} for booking ${bookingId}`);
+      console.log(`Sending passcode ${maskPasscode(passcode)} to TTLock lock ${lockId} for booking ${bookingId}`);
       console.log(`Valid from ${startTime.toISOString()} to ${endTime.toISOString()}`);
       console.log(`TTLock timestamps - Start: ${startTimeMs}, End: ${endTimeMs}`);
 
@@ -135,7 +147,7 @@ export class TTLockService {
       
       // TTLock returns keyboardPwdId on success, errcode on failure
       if (data.keyboardPwdId) {
-        console.log(`🔑 SUCCESS: Pattern passcode ${passcode} created in TTLock cloud! ID: ${data.keyboardPwdId}`);
+        console.log(`🔑 SUCCESS: Pattern passcode ${maskPasscode(passcode)} created in TTLock cloud! ID: ${data.keyboardPwdId}`);
         console.log(`✅ PATTERN FORMAT: Uses *30+admin+1 format for reliable hardware sync`);
         
         return {
@@ -165,7 +177,7 @@ export class TTLockService {
       const passcode = this.generatePasscode(bookingId);
       const passcodeId = Math.floor(Math.random() * 2147483647);
       
-      console.log(`⚠️ TTLock API failed, using generated passcode ${passcode} for booking ${bookingId}`);
+      console.log(`⚠️ TTLock API failed, using generated passcode ${maskPasscode(passcode)} for booking ${bookingId}`);
       console.log(`Valid from ${startTime.toISOString()} to ${endTime.toISOString()}`);
       
       return {
@@ -217,7 +229,7 @@ export class TTLockService {
         const result = await this.createTimeLimitedPasscode(lockId, startTime, endTime, bookingId);
         passcode = result.passcode; // Same passcode for all locks
         results.push(result.passcodeId);
-        console.log(`✅ Passcode ${passcode} created for lock ${lockId} (ID: ${result.passcodeId})`);
+        console.log(`✅ Passcode ${maskPasscode(passcode)} created for lock ${lockId} (ID: ${result.passcodeId})`);
       } catch (error) {
         console.error(`❌ Failed to create passcode for lock ${lockId}:`, error);
         // Continue with other locks even if one fails
@@ -225,7 +237,7 @@ export class TTLockService {
       }
     }
 
-    console.log(`🎯 Multi-lock setup complete: Code ${passcode} active on ${results.filter(id => id !== -1).length}/${lockIds.length} locks`);
+    console.log(`🎯 Multi-lock setup complete: Code ${maskPasscode(passcode)} active on ${results.filter(id => id !== -1).length}/${lockIds.length} locks`);
     
     return {
       passcode: passcode,
