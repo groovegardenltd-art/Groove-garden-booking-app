@@ -81,23 +81,19 @@ export class TTLockService {
   }
 
   private generatePasscode(bookingId?: number): string {
-    // TTLock WORKING PATTERN: Use *30 + admin base + unique suffix for reliable hardware sync
-    // CONFIRMED: Long pattern 3011233341 works on physical lock hardware
-    const adminBase = "1123334";  // Required for hardware sync
-    
+    // Generate simple 5-digit passcode for better user experience
     if (bookingId) {
-      // Create unique code using proven working pattern: 30 + adminBase + unique digit
-      const baseCode = "30" + adminBase;
+      // Create unique 5-digit code based on booking ID
+      // Use base of 10000 to ensure 5 digits, add booking ID modulo to create uniqueness
+      const base = 10000;
+      const uniqueComponent = (bookingId % 89999); // Keep it within 5-digit range
+      const code = base + uniqueComponent;
       
-      // Generate single unique digit (1-9) based on booking ID
-      const uniqueDigit = (bookingId % 9) + 1;
-      
-      // Return working long pattern format
-      return baseCode + uniqueDigit.toString();
+      return code.toString().padStart(5, '0');
     } else {
-      // Use current time for unique digit when no booking ID
-      const timeDigit = (Date.now() % 9) + 1;
-      return `30${adminBase}${timeDigit}`;
+      // Use current time for unique 5-digit code when no booking ID
+      const timeBasedCode = 10000 + (Date.now() % 89999);
+      return timeBasedCode.toString().padStart(5, '0');
     }
   }
 
@@ -147,8 +143,8 @@ export class TTLockService {
       
       // TTLock returns keyboardPwdId on success, errcode on failure
       if (data.keyboardPwdId) {
-        console.log(`🔑 SUCCESS: Pattern passcode ${maskPasscode(passcode)} created in TTLock cloud! ID: ${data.keyboardPwdId}`);
-        console.log(`✅ PATTERN FORMAT: Uses *30+admin+1 format for reliable hardware sync`);
+        console.log(`🔑 SUCCESS: 5-digit passcode ${maskPasscode(passcode)} created in TTLock cloud! ID: ${data.keyboardPwdId}`);
+        console.log(`✅ FORMAT: Simple 5-digit code for easy customer entry`);
         
         return {
           passcode: passcode,
