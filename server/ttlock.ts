@@ -200,6 +200,39 @@ export class TTLockService {
     }
   }
 
+  // New method to create the same passcode on multiple locks (front door + interior door)
+  async createMultiLockPasscode(
+    lockIds: string[],
+    startTime: Date,
+    endTime: Date,
+    bookingId: number
+  ): Promise<{ passcode: string; passcodeIds: number[] }> {
+    const results: number[] = [];
+    let passcode = '';
+    
+    console.log(`🔑 Creating unified passcode for ${lockIds.length} locks: ${lockIds.join(', ')}`);
+
+    for (const lockId of lockIds) {
+      try {
+        const result = await this.createTimeLimitedPasscode(lockId, startTime, endTime, bookingId);
+        passcode = result.passcode; // Same passcode for all locks
+        results.push(result.passcodeId);
+        console.log(`✅ Passcode ${passcode} created for lock ${lockId} (ID: ${result.passcodeId})`);
+      } catch (error) {
+        console.error(`❌ Failed to create passcode for lock ${lockId}:`, error);
+        // Continue with other locks even if one fails
+        results.push(-1); // Use -1 to indicate failure for this lock
+      }
+    }
+
+    console.log(`🎯 Multi-lock setup complete: Code ${passcode} active on ${results.filter(id => id !== -1).length}/${lockIds.length} locks`);
+    
+    return {
+      passcode: passcode,
+      passcodeIds: results
+    };
+  }
+
   async getLockStatus(lockId: string): Promise<{ isOnline: boolean; batteryLevel?: number; lockData?: any }> {
     try {
       const accessToken = await this.getAccessToken();

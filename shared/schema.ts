@@ -41,8 +41,10 @@ export const rooms = pgTable("rooms", {
   dayHoursStart: text("day_hours_start").default("09:00"),
   dayHoursEnd: text("day_hours_end").default("17:00"),
   // TTLock integration
-  lockId: text("lock_id"), // TTLock ID for this room's door
-  lockName: text("lock_name"), // Human-readable lock name
+  lockId: text("lock_id"), // TTLock ID for front door (shared access)
+  lockName: text("lock_name"), // Human-readable front door lock name
+  interiorLockId: text("interior_lock_id"), // TTLock ID for this room's interior door
+  interiorLockName: text("interior_lock_name"), // Human-readable interior door lock name
 });
 
 export const promoCodes = pgTable("promo_codes", {
