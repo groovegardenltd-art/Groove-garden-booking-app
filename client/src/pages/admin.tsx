@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Clock, User, FileText, Shield, CalendarX, Plus, Trash2 } from "lucide-react";
+import { CheckCircle, XCircle, Clock, User, FileText, Shield, CalendarX, Plus, Trash2, Repeat } from "lucide-react";
 import { getAuthState } from "@/lib/auth";
 import { useLocation } from "wouter";
 import { useState, useEffect } from "react";
@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface PendingUser {
   id: number;
@@ -37,6 +38,9 @@ interface BlockedSlot {
   reason: string | null;
   createdBy: number;
   createdAt: string;
+  isRecurring: boolean;
+  recurringUntil: string | null;
+  parentBlockId: number | null;
 }
 
 interface Room {
@@ -79,6 +83,8 @@ export default function Admin() {
     startTime: "",
     endTime: "",
     reason: "",
+    isRecurring: false,
+    recurringUntil: "",
   });
 
   const approveMutation = useMutation({
@@ -124,14 +130,17 @@ export default function Admin() {
       startTime: data.startTime,
       endTime: data.endTime,
       reason: data.reason || null,
+      isRecurring: data.isRecurring,
+      recurringUntil: data.isRecurring ? data.recurringUntil : null,
     }),
-    onSuccess: () => {
+    onSuccess: (createdSlots) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/blocked-slots"] });
       setBlockSlotDialogOpen(false);
-      setBlockSlotData({ roomId: "", date: "", startTime: "", endTime: "", reason: "" });
+      setBlockSlotData({ roomId: "", date: "", startTime: "", endTime: "", reason: "", isRecurring: false, recurringUntil: "" });
+      const count = Array.isArray(createdSlots) ? createdSlots.length : 1;
       toast({
         title: "✅ Time Slot Blocked",
-        description: "The time slot has been successfully blocked.",
+        description: `${count} time slot${count > 1 ? 's' : ''} successfully blocked.`,
       });
     },
     onError: () => {
@@ -201,10 +210,35 @@ export default function Admin() {
       });
       return;
     }
+    
+    if (blockSlotData.isRecurring && !blockSlotData.recurringUntil) {
+      toast({
+        title: "Missing Information",
+        description: "Please select an end date for weekly recurring blocks.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (blockSlotData.isRecurring && new Date(blockSlotData.recurringUntil) <= new Date(blockSlotData.date)) {
+      toast({
+        title: "Invalid Date",
+        description: "Recurring end date must be after the start date.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     createBlockedSlotMutation.mutate(blockSlotData);
   };
 
-  const handleDeleteBlockedSlot = (id: number) => {
+  const handleDeleteBlockedSlot = (id: number, isParentBlock: boolean = false) => {
+    if (isParentBlock) {
+      toast({
+        title: "Delete Recurring Series?",
+        description: "This will delete all recurring blocks in this series. This action cannot be undone.",
+      });
+    }
     deleteBlockedSlotMutation.mutate(id);
   };
 
@@ -336,6 +370,40 @@ export default function Admin() {
                           onChange={(e) => setBlockSlotData(prev => ({ ...prev, reason: e.target.value }))}
                         />
                       </div>
+
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="recurring"
+                            checked={blockSlotData.isRecurring}
+                            onCheckedChange={(checked) => setBlockSlotData(prev => ({ 
+                              ...prev, 
+                              isRecurring: !!checked,
+                              recurringUntil: checked ? prev.recurringUntil : ""
+                            }))}
+                          />
+                          <Label htmlFor="recurring" className="flex items-center gap-2">
+                            <Repeat className="h-4 w-4" />
+                            Repeat weekly
+                          </Label>
+                        </div>
+                        
+                        {blockSlotData.isRecurring && (
+                          <div>
+                            <Label htmlFor="recurringUntil">Repeat until</Label>
+                            <Input
+                              id="recurringUntil"
+                              type="date"
+                              value={blockSlotData.recurringUntil}
+                              onChange={(e) => setBlockSlotData(prev => ({ ...prev, recurringUntil: e.target.value }))}
+                              min={new Date(new Date(blockSlotData.date).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              This will create blocks every week from {blockSlotData.date} until the selected date
+                            </p>
+                          </div>
+                        )}
+                      </div>
                       
                       <div className="flex gap-2">
                         <Button 
@@ -371,32 +439,77 @@ export default function Admin() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {Array.isArray(blockedSlots) && blockedSlots.map((slot: BlockedSlot) => (
-                    <div key={slot.id} className="flex items-center justify-between p-3 border border-red-200 rounded-lg bg-red-50">
-                      <div>
-                        <div className="flex items-center gap-4 text-sm">
-                          <Badge variant="secondary" className="bg-red-100 text-red-800">
-                            {getRoomName(slot.roomId)}
-                          </Badge>
-                          <span className="font-medium">{slot.date}</span>
-                          <span>{slot.startTime} - {slot.endTime}</span>
+                  {Array.isArray(blockedSlots) && blockedSlots
+                    .sort((a, b) => {
+                      // Sort by date first, then by isRecurring (parent blocks first)
+                      const dateCompare = a.date.localeCompare(b.date);
+                      if (dateCompare !== 0) return dateCompare;
+                      if (a.isRecurring && !a.parentBlockId) return -1;
+                      if (b.isRecurring && !b.parentBlockId) return 1;
+                      return 0;
+                    })
+                    .map((slot: BlockedSlot) => {
+                      const isParentBlock = slot.isRecurring && slot.parentBlockId === null;
+                      const isChildBlock = slot.isRecurring && slot.parentBlockId !== null;
+                      
+                      return (
+                        <div 
+                          key={slot.id} 
+                          className={`flex items-center justify-between p-3 border rounded-lg ${
+                            isParentBlock 
+                              ? 'border-purple-300 bg-purple-50' 
+                              : isChildBlock 
+                                ? 'border-red-200 bg-red-50 ml-6' 
+                                : 'border-red-200 bg-red-50'
+                          }`}
+                        >
+                          <div>
+                            <div className="flex items-center gap-4 text-sm">
+                              <Badge variant="secondary" className={
+                                isParentBlock 
+                                  ? "bg-purple-100 text-purple-800" 
+                                  : "bg-red-100 text-red-800"
+                              }>
+                                {getRoomName(slot.roomId)}
+                              </Badge>
+                              <span className="font-medium">{slot.date}</span>
+                              <span>{slot.startTime} - {slot.endTime}</span>
+                              
+                              {isParentBlock && (
+                                <Badge variant="outline" className="bg-white text-purple-700 border-purple-300">
+                                  <Repeat className="h-3 w-3 mr-1" />
+                                  Weekly until {slot.recurringUntil}
+                                </Badge>
+                              )}
+                              
+                              {isChildBlock && (
+                                <Badge variant="outline" className="bg-white text-gray-600 border-gray-300">
+                                  Recurring
+                                </Badge>
+                              )}
+                            </div>
+                            {slot.reason && (
+                              <p className="text-xs text-gray-600 mt-1">{slot.reason}</p>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteBlockedSlot(slot.id, isParentBlock)}
+                            disabled={deleteBlockedSlotMutation.isPending}
+                            className={`hover:bg-red-100 ${
+                              isParentBlock 
+                                ? 'text-purple-600 hover:text-purple-700' 
+                                : 'text-red-600 hover:text-red-700'
+                            }`}
+                            data-testid={`remove-block-${slot.id}`}
+                            title={isParentBlock ? "Delete entire recurring series" : "Delete this block"}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
-                        {slot.reason && (
-                          <p className="text-xs text-gray-600 mt-1">{slot.reason}</p>
-                        )}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteBlockedSlot(slot.id)}
-                        disabled={deleteBlockedSlotMutation.isPending}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-100"
-                        data-testid={`remove-block-${slot.id}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+                      );
+                    })}
                 </div>
               )}
             </CardContent>

@@ -1163,10 +1163,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/blocked-slots", requireAuth, requireAdmin, async (req, res) => {
     try {
       const authReq = req as AuthenticatedRequest;
-      const { roomId, date, startTime, endTime, reason } = req.body;
+      const { roomId, date, startTime, endTime, reason, isRecurring, recurringUntil } = req.body;
 
       if (!roomId || !date || !startTime || !endTime) {
         return res.status(400).json({ message: "Room ID, date, start time, and end time are required" });
+      }
+
+      if (isRecurring && !recurringUntil) {
+        return res.status(400).json({ message: "Recurring end date is required for weekly recurring blocks" });
       }
 
       // Verify room exists
@@ -1175,16 +1179,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid room ID" });
       }
 
-      const blockedSlot = await storage.createBlockedSlot({
+      const blockedSlots = await storage.createBlockedSlot({
         roomId,
         date,
         startTime,
         endTime,
         reason: reason || null,
+        isRecurring: isRecurring || false,
+        recurringUntil: recurringUntil || null,
         createdBy: authReq.userId!,
       });
 
-      res.status(201).json(blockedSlot);
+      res.status(201).json(blockedSlots);
     } catch (error) {
       console.error('Failed to create blocked slot:', error);
       res.status(500).json({ message: "Failed to create blocked slot" });

@@ -100,6 +100,9 @@ export const blockedSlots = pgTable("blocked_slots", {
   endTime: text("end_time").notNull(), // HH:MM format
   reason: text("reason"), // Optional reason for blocking (e.g., "Maintenance", "Cleaning")
   createdBy: integer("created_by").notNull(), // Admin user ID who created the block
+  isRecurring: boolean("is_recurring").notNull().default(false), // Whether this is part of a recurring block
+  recurringUntil: text("recurring_until"), // YYYY-MM-DD format - last date for recurring blocks
+  parentBlockId: integer("parent_block_id"), // ID of the parent block for recurring entries
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -148,6 +151,10 @@ export const insertBlockedSlotSchema = createInsertSchema(blockedSlots).omit({
   id: true,
   createdBy: true,
   createdAt: true,
+  parentBlockId: true, // Will be set by the backend for recurring blocks
+}).extend({
+  isRecurring: z.boolean().optional().default(false),
+  recurringUntil: z.string().optional(),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

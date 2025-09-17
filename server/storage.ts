@@ -37,7 +37,7 @@ export interface IStorage {
   // Blocked slots methods
   getAllBlockedSlots(): Promise<BlockedSlot[]>;
   getBlockedSlotsByRoomAndDate(roomId: number, date: string): Promise<BlockedSlot[]>;
-  createBlockedSlot(blockedSlot: InsertBlockedSlot & { createdBy: number }): Promise<BlockedSlot>;
+  createBlockedSlot(blockedSlot: InsertBlockedSlot & { createdBy: number }): Promise<BlockedSlot[]>;
   deleteBlockedSlot(id: number): Promise<boolean>;
 }
 
@@ -355,18 +355,89 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(blockedSlots.roomId, roomId), eq(blockedSlots.date, date)));
   }
 
-  async createBlockedSlot(insertBlockedSlot: InsertBlockedSlot & { createdBy: number }): Promise<BlockedSlot> {
-    const [blockedSlot] = await db
+  async createBlockedSlot(insertBlockedSlot: InsertBlockedSlot & { createdBy: number }): Promise<BlockedSlot[]> {
+    // If not recurring, create just one block
+    if (!insertBlockedSlot.isRecurring || !insertBlockedSlot.recurringUntil) {
+      const [blockedSlot] = await db
+        .insert(blockedSlots)
+        .values({
+          ...insertBlockedSlot,
+          isRecurring: false,
+          recurringUntil: null,
+          parentBlockId: null,
+        })
+        .returning();
+      return [blockedSlot];
+    }
+
+    // Create recurring blocks
+    const startDate = new Date(insertBlockedSlot.date);
+    const endDate = new Date(insertBlockedSlot.recurringUntil);
+    const blocksToCreate = [];
+
+    // Create the parent block first
+    const [parentBlock] = await db
       .insert(blockedSlots)
-      .values(insertBlockedSlot)
+      .values({
+        ...insertBlockedSlot,
+        isRecurring: true,
+        parentBlockId: null, // This is the parent
+      })
       .returning();
-    return blockedSlot;
+
+    blocksToCreate.push(parentBlock);
+
+    // Create weekly recurring blocks
+    let currentDate = new Date(startDate);
+    currentDate.setDate(currentDate.getDate() + 7); // Start from next week
+
+    while (currentDate <= endDate) {
+      const dateStr = currentDate.toISOString().split('T')[0];
+      
+      const [recurringBlock] = await db
+        .insert(blockedSlots)
+        .values({
+          ...insertBlockedSlot,
+          date: dateStr,
+          isRecurring: true,
+          parentBlockId: parentBlock.id,
+        })
+        .returning();
+      
+      blocksToCreate.push(recurringBlock);
+      currentDate.setDate(currentDate.getDate() + 7); // Add another week
+    }
+
+    return blocksToCreate;
   }
 
   async deleteBlockedSlot(id: number): Promise<boolean> {
     try {
-      const result = await db.delete(blockedSlots).where(eq(blockedSlots.id, id));
-      return result.rowCount !== null && result.rowCount > 0;
+      // First check if this is a parent block or part of a recurring series
+      const blockToDelete = await db
+        .select()
+        .from(blockedSlots)
+        .where(eq(blockedSlots.id, id))
+        .limit(1);
+
+      if (blockToDelete.length === 0) {
+        return false;
+      }
+
+      const block = blockToDelete[0];
+
+      // If this is a parent block (isRecurring=true and parentBlockId=null), delete all children too
+      if (block.isRecurring && block.parentBlockId === null) {
+        // Delete all child blocks first
+        await db.delete(blockedSlots).where(eq(blockedSlots.parentBlockId, id));
+        // Then delete the parent
+        const result = await db.delete(blockedSlots).where(eq(blockedSlots.id, id));
+        return result.rowCount !== null && result.rowCount > 0;
+      } else {
+        // Just delete this single block
+        const result = await db.delete(blockedSlots).where(eq(blockedSlots.id, id));
+        return result.rowCount !== null && result.rowCount > 0;
+      }
     } catch (error) {
       console.error('Failed to delete blocked slot:', error);
       return false;
