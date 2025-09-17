@@ -81,21 +81,21 @@ export class TTLockService {
   }
 
   private generatePasscode(bookingId?: number): string {
-    // Generate simple 5-digit passcode for better user experience
+    // Generate 6-digit passcode (TTLock requires 6-9 digits)
     if (bookingId !== undefined && bookingId !== null && Number.isFinite(bookingId)) {
       // Validate and normalize booking ID to ensure safe calculation
       const normalizedId = Math.trunc(Math.abs(bookingId));
       
-      // Create unique 5-digit code based on booking ID
-      // Use base of 10000 to ensure 5 digits, add booking ID modulo to create uniqueness
-      const base = 10000;
-      const uniqueComponent = normalizedId % 90000; // Full 5-digit range: 10000-99999
+      // Create unique 6-digit code based on booking ID
+      // Use base of 100000 to ensure 6 digits, add booking ID modulo to create uniqueness
+      const base = 100000;
+      const uniqueComponent = normalizedId % 900000; // Full 6-digit range: 100000-999999
       const code = base + uniqueComponent;
       
-      return code.toString().padStart(5, '0'); // Safety net to ensure 5 digits
+      return code.toString().padStart(6, '0'); // Safety net to ensure 6 digits
     } else {
-      // Use current time for unique 5-digit code when no booking ID or invalid booking ID
-      const timeBasedCode = 10000 + (Date.now() % 90000);
+      // Use current time for unique 6-digit code when no booking ID or invalid booking ID
+      const timeBasedCode = 100000 + (Date.now() % 900000);
       return timeBasedCode.toString();
     }
   }
@@ -146,8 +146,8 @@ export class TTLockService {
       
       // TTLock returns keyboardPwdId on success, errcode on failure
       if (data.keyboardPwdId) {
-        console.log(`🔑 SUCCESS: 5-digit passcode ${maskPasscode(passcode)} created in TTLock cloud! ID: ${data.keyboardPwdId}`);
-        console.log(`✅ FORMAT: Simple 5-digit code for easy customer entry`);
+        console.log(`🔑 SUCCESS: 6-digit passcode ${maskPasscode(passcode)} created in TTLock cloud! ID: ${data.keyboardPwdId}`);
+        console.log(`✅ FORMAT: 6-digit code (TTLock requires 6-9 digits)`);
         
         return {
           passcode: passcode,
