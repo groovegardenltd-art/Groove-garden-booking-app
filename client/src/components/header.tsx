@@ -74,7 +74,7 @@ export function Header({ onLogout }: HeaderProps) {
                 >
                   My Bookings
                 </Link>
-                {user.email === "groovegardenltd@gmail.com" && (
+                {(user.email === "groovegardenltd@gmail.com" || user.email === "tomearl1508@gmail.com") && (
                   <Link
                     href="/admin"
                     className={`transition-colors ${
