@@ -448,11 +448,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Date parameter is required" });
       }
 
+      // Get both regular bookings and blocked slots
       const bookings = await storage.getBookingsByRoomAndDate(roomId, date);
-      const bookedSlots = bookings.map(booking => ({
-        startTime: booking.startTime,
-        endTime: booking.endTime
-      }));
+      const blockedSlots = await storage.getBlockedSlotsByRoomAndDate(roomId, date);
+      
+      const bookedSlots = [
+        // Regular bookings
+        ...bookings.map(booking => ({
+          startTime: booking.startTime,
+          endTime: booking.endTime
+        })),
+        // Blocked slots (admin blocks)
+        ...blockedSlots.map(slot => ({
+          startTime: slot.startTime,
+          endTime: slot.endTime
+        }))
+      ];
       
       res.json({ date, bookedSlots });
     } catch (error) {

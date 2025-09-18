@@ -381,17 +381,12 @@ export function BookingCalendar({
                     const isInBookingRange = selectedDate === dateStr && isTimeInBookingRange(hour.time);
                     const isStart = selectedDate === dateStr && isStartTime(hour.time);
                     const isPast = isPastDate(date);
-                    const isClosed = date.getDay() === 0; // Sunday
                     
                     let buttonClass = "p-1 sm:p-2 border rounded text-xs sm:text-sm transition-all duration-200 min-h-[40px] sm:min-h-[35px] flex items-center justify-center min-w-[70px] sm:min-w-[75px] ";
                     let buttonText = "•";
                     let disabled = false;
 
-                    if (isClosed) {
-                      buttonClass += "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed";
-                      buttonText = "×";
-                      disabled = true;
-                    } else if (isPast) {
+                    if (isPast) {
                       buttonClass += "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed";
                       buttonText = "×";
                       disabled = true;
@@ -420,7 +415,7 @@ export function BookingCalendar({
                         className={buttonClass}
                         disabled={disabled}
                         onClick={() => !disabled && dateStr === selectedDate && handleTimeClick(hour.time)}
-                        title={buttonText === "•" ? "Available" : buttonText === "✓" ? "Selected" : buttonText === "×" ? (isClosed ? "Closed" : isPast ? "Past" : "Unavailable") : ""}
+                        title={buttonText === "•" ? "Available" : buttonText === "✓" ? "Selected" : buttonText === "×" ? (isPast ? "Past" : "Unavailable") : ""}
                       >
                         <span className="block">
                           {buttonText === "•" ? (dateStr === selectedDate ? "○" : "•") : 
