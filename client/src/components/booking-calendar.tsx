@@ -215,7 +215,7 @@ export function BookingCalendar({
           <div className="text-sm text-purple-700">
             <span className="font-medium">
               {selectedDuration} hour{selectedDuration > 1 ? 's' : ''} selected
-              {selectedTime && isEveningTime(selectedTime) && (
+              {selectedTime && isEveningTime(selectedTime) && selectedRoom?.name === "Live Room" && (
                 <span className="block text-blue-600 text-xs">Evening booking (minimum 3 hours)</span>
               )}
               {selectedDuration > 4 && (
