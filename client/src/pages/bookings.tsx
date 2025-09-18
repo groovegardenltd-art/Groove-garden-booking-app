@@ -28,7 +28,7 @@ export default function Bookings() {
 
   // Fetch user bookings
   const { data: bookings = [], isLoading } = useQuery<BookingWithRoom[]>({
-    queryKey: ["/api/bookings"],
+    queryKey: ["/api/bookings", user?.id],
     enabled: !!user,
   });
 
@@ -39,7 +39,7 @@ export default function Bookings() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/bookings", user?.id] });
       toast({
         title: "Booking Cancelled",
         description: "Your booking has been cancelled successfully.",

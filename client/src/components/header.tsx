@@ -5,6 +5,7 @@ import { getAuthState, clearAuthState } from "@/lib/auth";
 import { useState, useEffect } from "react";
 import { User } from "@shared/schema";
 import logoImage from "@assets/groove-garden-logo.jpeg";
+import { queryClient } from "@/lib/queryClient";
 
 interface HeaderProps {
   onLogout?: () => void;
@@ -21,6 +22,7 @@ export function Header({ onLogout }: HeaderProps) {
 
   const handleLogout = () => {
     clearAuthState();
+    queryClient.clear(); // Clear all cached data to prevent cross-user data exposure
     setUser(null);
     onLogout?.();
     setLocation("/login");
