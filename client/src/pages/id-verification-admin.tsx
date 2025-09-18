@@ -22,7 +22,7 @@ export default function IdVerificationAdmin() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: pendingUsers, isLoading } = useQuery({
+  const { data: pendingUsers, isLoading, error } = useQuery({
     queryKey: ["/api/admin/id-verifications"],
     refetchInterval: 30000, // Refresh every 30 seconds
   });
@@ -85,6 +85,35 @@ export default function IdVerificationAdmin() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">ID Verification Admin</h1>
+            <p className="text-gray-600 mt-2">Review and approve pending ID verifications</p>
+          </div>
+          
+          <Card>
+            <CardContent className="py-8 text-center">
+              <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Data</h3>
+              <p className="text-gray-600 mb-4">
+                {(error as any)?.message === "Authentication required" 
+                  ? "You need to be logged in as an admin to access this page."
+                  : "Failed to load ID verifications. Please try refreshing the page."
+                }
+              </p>
+              <Button onClick={() => window.location.reload()} variant="outline">
+                Refresh Page
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
