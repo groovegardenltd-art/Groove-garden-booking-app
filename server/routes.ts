@@ -504,6 +504,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/bookings", requireAuth, async (req, res) => {
     try {
+      const authReq = req as AuthenticatedRequest;
+      
+      // 🚨 SECURITY GATE: Check user ID verification status before allowing bookings
+      const user = await storage.getUser(authReq.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Block rejected users from making new bookings
+      if (user.idVerificationStatus === "rejected") {
+        return res.status(403).json({ 
+          message: "Account verification required",
+          details: "Your ID verification was declined. Please resubmit your verification documents to continue booking.",
+          action: "resubmit_verification"
+        });
+      }
+
+      // Block pending users from making new bookings (optional - can be removed if you want to allow pending users to book)
+      if (user.idVerificationStatus === "pending") {
+        return res.status(403).json({ 
+          message: "Account verification pending",
+          details: "Your ID verification is currently under review. You'll be able to book once approved.",
+          action: "wait_for_approval"
+        });
+      }
+
       const bookingData = insertBookingSchema.parse(req.body);
       
       // Check for booking conflicts
@@ -605,7 +631,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      const authReq = req as AuthenticatedRequest;
       const booking = await storage.createBooking({
         ...bookingData,
         totalPrice: totalPrice.toString(),
@@ -620,14 +645,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Get user details for email confirmation
-      const user = await storage.getUser(authReq.userId);
+      const bookingUser = await storage.getUser(authReq.userId);
       
       // Send booking confirmation email
-      if (user) {
+      if (bookingUser) {
         try {
           await sendBookingConfirmationEmail(
-            user.email,
-            user.name,
+            bookingUser.email,
+            bookingUser.name,
             {
               id: booking.id,
               date: booking.date,
@@ -640,7 +665,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               name: room.name
             }
           );
-          console.log(`Booking confirmation email sent to ${user.email} for booking #${booking.id}`);
+          console.log(`Booking confirmation email sent to ${bookingUser.email} for booking #${booking.id}`);
         } catch (error) {
           console.error('Failed to send booking confirmation email:', error);
           // Continue even if email fails - don't block the booking process
@@ -1198,14 +1223,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return bookingDate > new Date() && booking.status === 'confirmed';
       });
 
-      // Cancel all future bookings
+      // 🚨 SECURITY: Revoke TTLock access and cancel all future bookings
       let cancelledCount = 0;
+      let revokedPasscodes = 0;
+      
       for (const booking of futureBookings) {
+        // First, revoke TTLock passcode if it exists (SECURITY CRITICAL)
+        if (ttlockService && booking.ttlockPasscodeId && booking.lockAccessEnabled) {
+          try {
+            const room = await storage.getRoom(booking.roomId);
+            if (room && room.lockId) {
+              await ttlockService.deletePasscode(room.lockId, parseInt(booking.ttlockPasscodeId));
+              console.log(`🔒 SECURITY: Revoked TTLock passcode for rejected user ${userId}, booking ${booking.id}`);
+              revokedPasscodes++;
+            }
+          } catch (error) {
+            console.error(`⚠️ SECURITY WARNING: Failed to revoke TTLock access for booking ${booking.id}:`, error);
+            // Continue with cancellation even if TTLock revocation fails
+          }
+        }
+
+        // Disable lock access for this booking (backup security measure)
+        await storage.updateBookingLockAccess(booking.id, false);
+
+        // Cancel the booking
         const success = await storage.cancelBooking(booking.id);
         if (success) {
           cancelledCount++;
         }
       }
+
+      console.log(`🛡️ SECURITY ACTION: User ${userId} ID rejected - ${cancelledCount} bookings cancelled, ${revokedPasscodes} TTLock passcodes revoked`);
 
       // Update user verification status
       await storage.updateUser(userId, {

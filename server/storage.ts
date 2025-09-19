@@ -27,6 +27,7 @@ export interface IStorage {
   getBookingsByRoomAndDate(roomId: number, date: string): Promise<Booking[]>;
   createBooking(booking: InsertBooking & { userId: number; accessCode: string; ttlockPasscode?: string; ttlockPasscodeId?: string; lockAccessEnabled?: boolean; promoCodeId?: number; originalPrice?: string; discountAmount?: string }): Promise<Booking>;
   updateBookingStatus(id: number, status: string): Promise<Booking | undefined>;
+  updateBookingLockAccess(id: number, lockAccessEnabled: boolean): Promise<boolean>;
   cancelBooking(id: number): Promise<boolean>;
 
   // Promo code methods
@@ -219,6 +220,15 @@ export class DatabaseStorage implements IStorage {
       .where(eq(bookings.id, id))
       .returning();
     return booking || undefined;
+  }
+
+  async updateBookingLockAccess(id: number, lockAccessEnabled: boolean): Promise<boolean> {
+    const result = await db
+      .update(bookings)
+      .set({ lockAccessEnabled })
+      .where(eq(bookings.id, id))
+      .returning();
+    return result.length > 0;
   }
 
   async cancelBooking(id: number): Promise<boolean> {
