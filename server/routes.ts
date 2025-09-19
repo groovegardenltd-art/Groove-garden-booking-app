@@ -1007,6 +1007,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ID Verification routes
+  // ID Verification resubmission endpoint for rejected users
+  app.post("/api/id-verification/resubmit", requireAuth, async (req, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const { idType, idNumber, idPhotoBase64, selfiePhotoBase64 } = req.body;
+
+      if (!idType || !idNumber || !idPhotoBase64 || !selfiePhotoBase64) {
+        return res.status(400).json({ message: "All fields are required: ID type, number, ID photo, and selfie" });
+      }
+
+      // Verify user exists and is rejected
+      const user = await storage.getUser(authReq.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.idVerificationStatus !== "rejected") {
+        return res.status(400).json({ message: "Only users with rejected verification can resubmit" });
+      }
+
+      // Update user with new ID verification information and reset status to pending
+      await storage.updateUser(authReq.userId, {
+        idType,
+        idNumber,
+        idPhotoUrl: idPhotoBase64,
+        selfiePhotoUrl: selfiePhotoBase64,
+        idVerificationStatus: "pending"
+      });
+
+      // Send notification to admin about resubmission
+      const adminEmail = process.env.ADMIN_EMAIL || "groovegardenltd@gmail.com";
+      const idTypeLabel = idType === "drivers_license" ? "Driver's License" : 
+                         idType === "state_id" ? "State ID" : 
+                         idType === "passport" ? "Passport" : 
+                         idType === "military_id" ? "Military ID" : idType;
+      
+      try {
+        await notifyPendingIdVerification(user.name, user.email, idTypeLabel, adminEmail);
+        console.log(`ID verification resubmission notification sent to ${adminEmail} for user ${user.name}`);
+      } catch (error) {
+        console.error('Failed to send resubmission notification:', error);
+        // Continue even if email fails
+      }
+
+      res.json({ 
+        message: "ID verification resubmitted successfully",
+        status: "pending"
+      });
+    } catch (error) {
+      console.error('ID verification resubmission error:', error);
+      res.status(500).json({ message: "Failed to resubmit ID verification" });
+    }
+  });
+
   app.post("/api/id-verification/upload", requireAuth, async (req, res) => {
     try {
       const authReq = req as AuthenticatedRequest;

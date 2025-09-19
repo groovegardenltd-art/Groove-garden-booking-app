@@ -8,7 +8,8 @@ import { SuccessModal } from "@/components/success-modal";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Copy, AlertTriangle, Clock, CheckCircle, Upload } from "lucide-react";
 import { Room, BookingWithRoom } from "@shared/schema";
 import { getAuthState } from "@/lib/auth";
 import { useLocation } from "wouter";
@@ -191,6 +192,39 @@ export default function Home() {
       <Header />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* ID Verification Status Alerts */}
+        {user.idVerificationStatus === "rejected" && (
+          <Alert className="mb-6 border-red-200 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-200" data-testid="alert-verification-rejected">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <div>
+                <strong>ID Verification Required</strong>
+                <p className="mt-1 text-sm">Your ID verification was declined. Please resubmit your documents to continue booking studios.</p>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="ml-4 border-red-300 text-red-700 hover:bg-red-100 dark:border-red-600 dark:text-red-300 dark:hover:bg-red-800/30"
+                onClick={() => setLocation("/resubmit-verification")}
+                data-testid="button-resubmit-verification"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Resubmit ID
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {user.idVerificationStatus === "pending" && (
+          <Alert className="mb-6 border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200" data-testid="alert-verification-pending">
+            <Clock className="h-4 w-4" />
+            <AlertDescription>
+              <strong>ID Verification Under Review</strong>
+              <p className="mt-1 text-sm">Your ID documents are being reviewed by our team. You'll be able to book studios once approved (usually within 24 hours).</p>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Welcome Section */}
         <div className="mb-8">
           <div className="flex items-center mb-4">

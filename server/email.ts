@@ -439,8 +439,13 @@ export async function sendRejectionNotification(email: string, username: string,
       </ul>
       
       <div style="text-align: center; margin: 30px 0;">
-        <a href="#" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Update Verification</a>
+        <a href="${process.env.NODE_ENV === 'production' ? 'https://replit.app/@groovegardenltd/groove-garden-music-studios' : 'http://localhost:5000'}/resubmit-verification" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Resubmit ID Verification</a>
       </div>
+      
+      <p style="color: #6b7280; font-size: 14px; text-align: center; margin: 20px 0;">
+        Can't click the button? Copy and paste this link:<br>
+        <span style="color: #2563eb; font-family: monospace;">${process.env.NODE_ENV === 'production' ? 'https://replit.app/@groovegardenltd/groove-garden-music-studios' : 'http://localhost:5000'}/resubmit-verification</span>
+      </p>
       
       <p style="color: #6b7280; font-size: 14px;">Questions? Contact our support team at groovegardenltd@gmail.com</p>
       
