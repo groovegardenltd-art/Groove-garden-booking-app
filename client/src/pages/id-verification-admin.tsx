@@ -4,7 +4,95 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Clock, User, CreditCard, FileText } from "lucide-react";
+import { CheckCircle, XCircle, Clock, User, CreditCard, FileText, Image } from "lucide-react";
+import { useState } from "react";
+
+// Lazy loading photo component
+function LazyPhoto({ userId, type, label }: { userId: number; type: 'id' | 'selfie'; label: string }) {
+  const [loading, setLoading] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [error, setError] = useState(false);
+
+  const loadPhoto = async () => {
+    if (photoUrl || loading) return; // Already loaded or loading
+    
+    setLoading(true);
+    setError(false);
+    
+    try {
+      const response = await apiRequest('GET', `/api/admin/id-verifications/${userId}/photo?type=${type}`) as any;
+      setPhotoUrl(response.photoUrl);
+    } catch (err) {
+      console.error('Failed to load photo:', err);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 mb-2">
+        <FileText className="h-4 w-4 text-gray-400" />
+        <span className="text-sm font-medium text-gray-700">{label}</span>
+      </div>
+      
+      <div className="border border-gray-200 rounded-lg p-4 bg-white">
+        <p className="text-sm text-gray-600 mb-3 font-medium">{label} for Review</p>
+        
+        {!photoUrl && !loading && !error && (
+          <div 
+            className="bg-gray-100 rounded p-4 cursor-pointer hover:bg-gray-200 transition-colors flex items-center justify-center"
+            onClick={loadPhoto}
+            style={{ minHeight: '120px' }}
+          >
+            <div className="text-center">
+              <Image className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-sm text-gray-500">Click to load photo</p>
+            </div>
+          </div>
+        )}
+        
+        {loading && (
+          <div 
+            className="bg-gray-100 rounded p-4 flex items-center justify-center"
+            style={{ minHeight: '120px' }}
+          >
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto mb-2"></div>
+              <p className="text-sm text-gray-500">Loading photo...</p>
+            </div>
+          </div>
+        )}
+        
+        {error && (
+          <div 
+            className="bg-red-50 rounded p-4 flex items-center justify-center cursor-pointer hover:bg-red-100"
+            onClick={loadPhoto}
+            style={{ minHeight: '120px' }}
+          >
+            <div className="text-center">
+              <XCircle className="h-8 w-8 text-red-400 mx-auto mb-2" />
+              <p className="text-sm text-red-500">Failed to load photo</p>
+              <p className="text-xs text-red-400">Click to retry</p>
+            </div>
+          </div>
+        )}
+        
+        {photoUrl && (
+          <div className="bg-gray-100 rounded p-2">
+            <img 
+              src={photoUrl} 
+              alt={label} 
+              className="w-full h-48 object-contain rounded"
+              style={{ maxHeight: '200px', minHeight: '100px' }}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 interface PendingUser {
   id: number;
@@ -13,8 +101,8 @@ interface PendingUser {
   username: string;
   idType: string;
   idNumber: string;
-  idPhotoUrl: string;
-  selfiePhotoUrl: string;
+  hasIdPhoto: boolean;
+  hasSelfiePhoto: boolean;
   idVerificationStatus: string;
 }
 
@@ -174,56 +262,36 @@ export default function IdVerificationAdmin() {
                   {/* Photos Grid */}
                   <div className="grid md:grid-cols-2 gap-6 mb-6">
                     {/* ID Photo */}
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <FileText className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm font-medium text-gray-700">ID Photo</span>
-                      </div>
-                      
-                      {user.idPhotoUrl ? (
-                        <div className="border border-gray-200 rounded-lg p-4 bg-white">
-                          <p className="text-sm text-gray-600 mb-3 font-medium">ID Photo for Review</p>
-                          <div className="bg-gray-100 rounded p-2">
-                            <img 
-                              src={user.idPhotoUrl} 
-                              alt="ID Photo" 
-                              className="w-full h-48 object-contain rounded"
-                              style={{ maxHeight: '200px', minHeight: '100px' }}
-                            />
-                          </div>
+                    {user.hasIdPhoto && (
+                      <LazyPhoto userId={user.id} type="id" label="ID Photo" />
+                    )}
+                    {!user.hasIdPhoto && (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <FileText className="h-4 w-4 text-gray-400" />
+                          <span className="text-sm font-medium text-gray-700">ID Photo</span>
                         </div>
-                      ) : (
                         <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                           <p className="text-sm text-gray-500">No photo uploaded</p>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
 
                     {/* Selfie Photo */}
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <User className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm font-medium text-gray-700">Selfie Photo</span>
-                      </div>
-                      
-                      {user.selfiePhotoUrl ? (
-                        <div className="border border-gray-200 rounded-lg p-4 bg-white">
-                          <p className="text-sm text-gray-600 mb-3 font-medium">Selfie Photo for Review</p>
-                          <div className="bg-gray-100 rounded p-2">
-                            <img 
-                              src={user.selfiePhotoUrl} 
-                              alt="Selfie Photo" 
-                              className="w-full h-48 object-contain rounded"
-                              style={{ maxHeight: '200px', minHeight: '100px' }}
-                            />
-                          </div>
+                    {user.hasSelfiePhoto && (
+                      <LazyPhoto userId={user.id} type="selfie" label="Selfie Photo" />
+                    )}
+                    {!user.hasSelfiePhoto && (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <User className="h-4 w-4 text-gray-400" />
+                          <span className="text-sm font-medium text-gray-700">Selfie Photo</span>
                         </div>
-                      ) : (
                         <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                           <p className="text-sm text-gray-500">No selfie uploaded</p>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Review Instructions */}

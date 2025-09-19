@@ -1099,10 +1099,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/id-verifications", requireAuth, requireAdmin, async (req, res) => {
     try {
       const pendingUsers = await storage.getUsersPendingVerification();
-      res.json(pendingUsers);
+      
+      // Remove photos from response to prevent large payloads and 500 errors
+      const usersWithoutPhotos = pendingUsers.map(user => ({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        name: user.name,
+        phone: user.phone,
+        idNumber: user.idNumber,
+        idType: user.idType,
+        idVerificationStatus: user.idVerificationStatus,
+        idVerifiedAt: user.idVerifiedAt,
+        // Indicate whether photos exist without sending the data
+        hasIdPhoto: !!user.idPhotoUrl,
+        hasSelfiePhoto: !!user.selfiePhotoUrl
+      }));
+      
+      // Add security headers to prevent caching of sensitive data
+      res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
+      
+      res.json(usersWithoutPhotos);
     } catch (error) {
       console.error('Failed to fetch pending verifications:', error);
       res.status(500).json({ message: "Failed to fetch pending verifications" });
+    }
+  });
+
+  // Individual photo endpoints for on-demand loading
+  app.get("/api/admin/id-verifications/:userId/photo", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const photoType = req.query.type as string; // 'id' or 'selfie'
+      
+      if (!photoType || !['id', 'selfie'].includes(photoType)) {
+        return res.status(400).json({ message: "Photo type must be 'id' or 'selfie'" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const photoUrl = photoType === 'id' ? user.idPhotoUrl : user.selfiePhotoUrl;
+      if (!photoUrl) {
+        return res.status(404).json({ message: "Photo not found" });
+      }
+
+      // Add security headers to prevent caching
+      res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
+
+      // Return the photo data
+      res.json({ photoUrl });
+    } catch (error) {
+      console.error('Failed to fetch photo:', error);
+      res.status(500).json({ message: "Failed to fetch photo" });
     }
   });
 
