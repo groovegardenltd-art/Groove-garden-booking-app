@@ -1174,6 +1174,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin routes for bookings overview
+  app.get("/api/admin/bookings", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const allBookings = await storage.getAllBookings();
+      
+      // Batch fetch users and rooms to avoid N+1 queries
+      const uniqueUserIds = Array.from(new Set(allBookings.map(b => b.userId)));
+      const uniqueRoomIds = Array.from(new Set(allBookings.map(b => b.roomId)));
+      
+      const [users, rooms] = await Promise.all([
+        Promise.all(uniqueUserIds.map(id => storage.getUser(id))),
+        Promise.all(uniqueRoomIds.map(id => storage.getRoom(id)))
+      ]);
+      
+      // Create lookup maps
+      const userMap = new Map();
+      const roomMap = new Map();
+      
+      users.forEach(user => {
+        if (user) userMap.set(user.id, user);
+      });
+      
+      rooms.forEach(room => {
+        if (room) roomMap.set(room.id, room);
+      });
+      
+      // Create safe booking data (exclude sensitive fields)
+      const bookingsWithDetails = allBookings.map(booking => {
+        const user = userMap.get(booking.userId);
+        const room = roomMap.get(booking.roomId);
+        
+        return {
+          id: booking.id,
+          userId: booking.userId,
+          roomId: booking.roomId,
+          date: booking.date,
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+          duration: booking.duration,
+          totalPrice: parseFloat(booking.totalPrice), // Convert to number
+          status: booking.status,
+          accessCode: booking.accessCode,
+          lockAccessEnabled: booking.lockAccessEnabled,
+          createdAt: booking.createdAt,
+          // Safe user data
+          userName: user?.name || 'Unknown User',
+          userEmail: user?.email || 'N/A',
+          userPhone: user?.phone || 'N/A',
+          roomName: room?.name || `Room ${booking.roomId}`,
+          idVerificationStatus: user?.idVerificationStatus || 'unknown'
+        };
+      });
+
+      // Sort by creation date (newest first) and limit to 50 recent bookings
+      bookingsWithDetails.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      
+      res.json(bookingsWithDetails.slice(0, 50));
+    } catch (error) {
+      console.error('Failed to fetch admin bookings:', error);
+      res.status(500).json({ message: "Failed to fetch bookings" });
+    }
+  });
+
   // Admin routes for ID verification
   app.get("/api/admin/id-verifications", requireAuth, requireAdmin, async (req, res) => {
     try {

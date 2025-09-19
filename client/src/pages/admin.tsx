@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Clock, User, FileText, Shield, CalendarX, Plus, Trash2, Repeat } from "lucide-react";
+import { CheckCircle, XCircle, Clock, User, FileText, Shield, CalendarX, Plus, Trash2, Repeat, Calendar, MapPin, CreditCard, Phone, Mail } from "lucide-react";
 import { getAuthState } from "@/lib/auth";
 import { useLocation } from "wouter";
 import { useState, useEffect } from "react";
@@ -49,6 +49,27 @@ interface Room {
   description: string;
 }
 
+interface AdminBooking {
+  id: number;
+  userId: number;
+  roomId: number;
+  date: string;
+  startTime: string;
+  endTime: string;
+  duration: number;
+  totalPrice: number;
+  status: string;
+  accessCode: string;
+  userName: string;
+  userEmail: string;
+  userPhone: string;
+  roomName: string;
+  idVerificationStatus: string;
+  createdAt: string;
+  contactPhone?: string;
+  lockAccessEnabled: boolean;
+}
+
 export default function Admin() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -74,6 +95,12 @@ export default function Admin() {
   const { data: rooms } = useQuery({
     queryKey: ["/api/rooms"],
     enabled: !!isAuthorized,
+  });
+
+  const { data: adminBookings, isLoading: bookingsLoading } = useQuery<AdminBooking[]>({
+    queryKey: ["/api/admin/bookings"],
+    enabled: !!isAuthorized,
+    refetchInterval: 60000, // Refresh every minute
   });
 
   const [blockSlotDialogOpen, setBlockSlotDialogOpen] = useState(false);
@@ -263,6 +290,63 @@ export default function Admin() {
     return phone;
   };
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "confirmed":
+        return <Badge className="bg-green-100 text-green-800 border-green-200">Confirmed</Badge>;
+      case "cancelled":
+        return <Badge className="bg-red-100 text-red-800 border-red-200">Cancelled</Badge>;
+      case "completed":
+        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Completed</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
+  const getVerificationBadge = (status: string) => {
+    switch (status) {
+      case "verified":
+        return <Badge className="bg-green-100 text-green-800 border-green-200">✓ Verified</Badge>;
+      case "pending":
+        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">⏳ Pending</Badge>;
+      case "rejected":
+        return <Badge className="bg-red-100 text-red-800 border-red-200">✗ Rejected</Badge>;
+      default:
+        return <Badge variant="secondary">Unknown</Badge>;
+    }
+  };
+
+  const formatDateTime = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('en-US', { 
+        weekday: 'short', 
+        month: 'short', 
+        day: 'numeric',
+        year: 'numeric'
+      }) + ' at ' + date.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const formatBookingDate = (date: string) => {
+    try {
+      const [year, month, day] = date.split('-');
+      const bookingDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      return bookingDate.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        month: 'long', 
+        day: 'numeric',
+        year: 'numeric'
+      });
+    } catch {
+      return date;
+    }
+  };
 
   // Don't render content if not authorized (backup safety check)
   if (!isAuthorized) {
@@ -285,7 +369,7 @@ export default function Admin() {
             <Shield className="h-8 w-8 text-music-purple" />
             <div>
               <h1 data-testid="admin-title" className="text-2xl font-bold text-gray-900">Admin Panel</h1>
-              <p className="text-gray-600 mt-1">Review ID verifications and manage blocked time slots</p>
+              <p className="text-gray-600 mt-1">Manage bookings, review ID verifications, and block time slots</p>
             </div>
           </div>
         </div>
@@ -516,6 +600,97 @@ export default function Admin() {
           </Card>
         </div>
 
+        {/* Bookings Overview */}
+        <div className="mb-8" data-testid="section-admin-bookings">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-blue-500" />
+                Recent Bookings
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {bookingsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                  <span className="ml-3 text-gray-600">Loading bookings...</span>
+                </div>
+              ) : !adminBookings || adminBookings.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>No bookings found</p>
+                </div>
+              ) : (
+                <div className="space-y-4" data-testid="admin-bookings-list">
+                  {adminBookings.slice(0, 10).map((booking: AdminBooking) => (
+                    <div key={booking.id} className="border rounded-lg p-4 bg-gray-50" data-testid={`admin-booking-${booking.id}`}>
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        {/* Left Column - User & Booking Info */}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-gray-500" />
+                            <span className="font-medium" data-testid={`text-username-${booking.id}`}>{booking.userName}</span>
+                            <span data-testid={`badge-verification-${booking.id}`}>{getVerificationBadge(booking.idVerificationStatus)}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Mail className="h-4 w-4" />
+                            <span data-testid={`text-email-${booking.id}`}>{booking.userEmail}</span>
+                          </div>
+                          {booking.userPhone && (
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <Phone className="h-4 w-4" />
+                              <span data-testid={`text-phone-${booking.id}`}>{booking.userPhone}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Middle Column - Booking Details */}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-gray-500" />
+                            <span className="font-medium" data-testid={`text-room-${booking.id}`}>{booking.roomName}</span>
+                            <span data-testid={`badge-status-${booking.id}`}>{getStatusBadge(booking.status)}</span>
+                          </div>
+                          <div className="text-sm text-gray-600" data-testid={`text-datetime-${booking.id}`}>
+                            <div>{formatBookingDate(booking.date)}</div>
+                            <div>{booking.startTime} - {booking.endTime} ({booking.duration}h)</div>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <CreditCard className="h-4 w-4 text-gray-500" />
+                            <span className="font-medium text-green-600" data-testid={`text-price-${booking.id}`}>£{booking.totalPrice.toFixed(2)}</span>
+                          </div>
+                        </div>
+
+                        {/* Right Column - Access & Details */}
+                        <div className="space-y-2">
+                          <div className="text-sm">
+                            <div className="text-gray-600">Access Code:</div>
+                            <div className="font-mono bg-white px-2 py-1 rounded border text-music-purple" data-testid={`text-access-code-${booking.id}`}>
+                              {booking.accessCode}#
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            <div data-testid={`text-lock-access-${booking.id}`}>Lock Access: {booking.lockAccessEnabled ? "✅ Enabled" : "❌ Disabled"}</div>
+                            <div data-testid={`text-created-${booking.id}`}>Booked: {formatDateTime(booking.createdAt)}</div>
+                            <div data-testid={`text-booking-id-${booking.id}`}>ID: #{booking.id}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {adminBookings.length > 10 && (
+                    <div className="text-center py-4 text-gray-500" data-testid="bookings-count-info">
+                      <p>Showing 10 most recent bookings out of {adminBookings.length} total</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* ID Verification Reviews */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-music-purple"></div>
