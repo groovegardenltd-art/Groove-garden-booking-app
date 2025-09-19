@@ -110,10 +110,6 @@ interface PendingUser {
 }
 
 export default function IdVerificationAdmin() {
-  console.log("🚀 PRODUCTION DEBUG - ID Verification Admin page loaded!");
-  console.log("🚀 PRODUCTION DEBUG - Current URL:", window.location.href);
-  console.log("🚀 PRODUCTION DEBUG - User agent:", navigator.userAgent);
-  
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -123,19 +119,6 @@ export default function IdVerificationAdmin() {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
-  // Debug logging when data changes
-  useEffect(() => {
-    console.log("🟢 PRODUCTION DEBUG - Query state changed:");
-    console.log("  isLoading:", isLoading);
-    console.log("  error:", error);
-    console.log("  data:", pendingUsers);
-    if (Array.isArray(pendingUsers)) {
-      console.log("  Array length:", pendingUsers.length);
-      if (pendingUsers.length > 0) {
-        console.log("  First user:", pendingUsers[0]);
-      }
-    }
-  }, [pendingUsers, isLoading, error]);
 
   const approveMutation = useMutation({
     mutationFn: (userId: number) => apiRequest("POST", `/api/admin/id-verifications/${userId}/approve`),
@@ -236,16 +219,6 @@ export default function IdVerificationAdmin() {
           <p className="text-gray-600 mt-2">Review and approve pending ID verifications</p>
         </div>
 
-        <div className="bg-red-100 border border-red-400 rounded p-4 mb-4">
-          <h3 className="font-bold text-red-800">🐛 FRONTEND DEBUG INFO</h3>
-          <p><strong>pendingUsers type:</strong> {typeof pendingUsers}</p>
-          <p><strong>pendingUsers:</strong> {pendingUsers ? JSON.stringify(pendingUsers).substring(0, 200) + '...' : 'null'}</p>
-          <p><strong>isLoading:</strong> {isLoading ? 'true' : 'false'}</p>
-          <p><strong>error:</strong> {error ? String(error) : 'null'}</p>
-          <p><strong>Array.isArray(pendingUsers):</strong> {Array.isArray(pendingUsers) ? 'true' : 'false'}</p>
-          <p><strong>pendingUsers.length:</strong> {Array.isArray(pendingUsers) ? pendingUsers.length : 'N/A'}</p>
-          <p><strong>First user hasIdPhoto:</strong> {Array.isArray(pendingUsers) && pendingUsers[0] ? pendingUsers[0].hasIdPhoto : 'N/A'}</p>
-        </div>
 
         {!pendingUsers || (Array.isArray(pendingUsers) && pendingUsers.length === 0) ? (
           <Card>

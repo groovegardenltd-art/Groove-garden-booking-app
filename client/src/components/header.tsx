@@ -77,16 +77,29 @@ export function Header({ onLogout }: HeaderProps) {
                   My Bookings
                 </Link>
                 {(user.email === "groovegardenltd@gmail.com" || user.email === "tomearl1508@gmail.com") && (
-                  <Link
-                    href="/admin"
-                    className={`transition-colors ${
-                      isActive("/admin")
-                        ? "text-music-purple font-medium border-b-2 border-music-purple pb-1"
-                        : "text-gray-600 hover:text-music-purple"
-                    }`}
-                  >
-                    Admin
-                  </Link>
+                  <>
+                    <Link
+                      href="/admin"
+                      className={`transition-colors ${
+                        isActive("/admin")
+                          ? "text-music-purple font-medium border-b-2 border-music-purple pb-1"
+                          : "text-gray-600 hover:text-music-purple"
+                      }`}
+                    >
+                      Admin
+                    </Link>
+                    <Link
+                      href="/admin/id-verification"
+                      className={`transition-colors ${
+                        isActive("/admin/id-verification")
+                          ? "text-music-purple font-medium border-b-2 border-music-purple pb-1"
+                          : "text-gray-600 hover:text-music-purple"
+                      }`}
+                      data-testid="nav-id-check"
+                    >
+                      ID Check
+                    </Link>
+                  </>
                 )}
               </nav>
             )}

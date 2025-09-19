@@ -155,35 +155,25 @@ async function deleteSession(sessionId: string): Promise<void> {
 }
 
 function requireAuth(req: Request, res: Response, next: NextFunction) {
-  console.log(`🔐 PRODUCTION DEBUG - Auth check for ${req.method} ${req.path}`);
-  console.log(`🔐 PRODUCTION DEBUG - Headers:`, {
-    authorization: req.headers.authorization,
-    'x-session-id': req.headers['x-session-id'],
-    'user-agent': req.headers['user-agent']
-  });
-  
   const sessionId = (req.headers.authorization?.replace('Bearer ', '') || req.headers['x-session-id']) as string;
   
   if (!sessionId) {
-    console.log('🔐 PRODUCTION DEBUG - No session ID found in request headers');
+    console.log('No session ID found in request headers');
     return res.status(401).json({ message: "Authentication required" });
   }
-
-  console.log(`🔐 PRODUCTION DEBUG - Found sessionId: ${sessionId.slice(0, 8)}...${sessionId.slice(-8)}`);
 
   getSession(sessionId)
     .then(session => {
       if (!session) {
-        console.log(`🔐 PRODUCTION DEBUG - Invalid session: ${sessionId.slice(0, 4)}...${sessionId.slice(-4)}`);
+        console.log(`Invalid session: ${sessionId.slice(0, 4)}...${sessionId.slice(-4)}`);
         return res.status(401).json({ message: "Invalid or expired session" });
       }
 
-      console.log(`🔐 PRODUCTION DEBUG - Valid session for userId: ${session.userId}`);
       (req as AuthenticatedRequest).userId = session.userId;
       next();
     })
     .catch(error => {
-      console.error('🔐 PRODUCTION DEBUG - Session validation error:', error);
+      console.error('Session validation error:', error);
       return res.status(401).json({ message: "Authentication failed" });
     });
 }
@@ -1050,34 +1040,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
     const authReq = req as AuthenticatedRequest;
     
-    console.log(`👤 PRODUCTION DEBUG - Admin check for userId: ${authReq.userId}`);
-    
     if (!authReq.userId) {
-      console.log(`👤 PRODUCTION DEBUG - No userId in request`);
       return res.status(401).json({ message: "Authentication required" });
     }
 
     try {
       const user = await storage.getUser(authReq.userId);
-      console.log(`👤 PRODUCTION DEBUG - Found user:`, user ? { id: user.id, email: user.email } : 'null');
-      
       if (!user) {
-        console.log(`👤 PRODUCTION DEBUG - User ${authReq.userId} not found in database`);
         return res.status(401).json({ message: "User not found" });
       }
       
       const adminEmails = ["groovegardenltd@gmail.com", "tomearl1508@gmail.com"];
-      console.log(`👤 PRODUCTION DEBUG - Checking if ${user.email} is in admin list:`, adminEmails);
-      
       if (!adminEmails.includes(user.email)) {
-        console.log(`👤 PRODUCTION DEBUG - ${user.email} is NOT an admin`);
         return res.status(403).json({ message: "Admin access required" });
       }
       
-      console.log(`👤 PRODUCTION DEBUG - ${user.email} is confirmed admin, proceeding`);
       next();
     } catch (error) {
-      console.error('👤 PRODUCTION DEBUG - Admin authorization error:', error);
+      console.error('Admin authorization error:', error);
       return res.status(500).json({ message: "Authorization check failed" });
     }
   };
@@ -1118,18 +1098,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin routes for ID verification
   app.get("/api/admin/id-verifications", requireAuth, requireAdmin, async (req, res) => {
     try {
-      console.log(`🔍 PRODUCTION DEBUG - DATABASE_URL exists: ${process.env.DATABASE_URL ? 'YES' : 'NO'}`);
-      console.log(`🔍 PRODUCTION DEBUG - NODE_ENV: ${process.env.NODE_ENV}`);
-      
       const pendingUsers = await storage.getUsersPendingVerification();
-      console.log(`📋 PRODUCTION DEBUG - Found ${pendingUsers.length} pending ID verifications`);
-      console.log(`📋 PRODUCTION DEBUG - Raw data:`, pendingUsers.map(u => ({
-        id: u.id, 
-        username: u.username,
-        status: u.idVerificationStatus,
-        hasIdPhoto: !!u.idPhotoUrl,
-        hasSelfiePhoto: !!u.selfiePhotoUrl
-      })));
       
       // Remove photos from response to prevent large payloads and 500 errors
       const usersWithoutPhotos = pendingUsers.map(user => ({
