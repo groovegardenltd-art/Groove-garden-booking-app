@@ -1040,36 +1040,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
     const authReq = req as AuthenticatedRequest;
     
-    console.log(`[ADMIN DEBUG] Checking admin access for userId: ${authReq.userId}`);
-    
     if (!authReq.userId) {
-      console.log('[ADMIN DEBUG] No userId found in request');
       return res.status(401).json({ message: "Authentication required" });
     }
 
     try {
       const user = await storage.getUser(authReq.userId);
-      console.log(`[ADMIN DEBUG] User found: ${user ? user.email : 'null'}`);
-      
       if (!user) {
-        console.log('[ADMIN DEBUG] User not found in database');
         return res.status(401).json({ message: "User not found" });
       }
       
       const adminEmails = ["groovegardenltd@gmail.com", "tomearl1508@gmail.com"];
-      const isAdmin = adminEmails.includes(user.email);
-      console.log(`[ADMIN DEBUG] User ${user.email} admin status: ${isAdmin}`);
-      
-      if (!isAdmin) {
-        console.log(`[ADMIN DEBUG] Access denied for ${user.email} - not in admin list`);
+      if (!adminEmails.includes(user.email)) {
         return res.status(403).json({ message: "Admin access required" });
       }
       
-      console.log(`[ADMIN DEBUG] Admin access granted for ${user.email}`);
       next();
     } catch (error) {
-      console.error('[ADMIN DEBUG] Admin authorization error:', error);
-      return res.status(500).json({ message: "Authorization check failed", error: error instanceof Error ? error.message : String(error) });
+      console.error('Admin authorization error:', error);
+      return res.status(500).json({ message: "Authorization check failed" });
     }
   };
 
@@ -1109,35 +1098,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin routes for ID verification
   app.get("/api/admin/id-verifications", requireAuth, requireAdmin, async (req, res) => {
     try {
-      console.log('[ID-VERIFICATION] Starting to fetch pending users...');
       const pendingUsers = await storage.getUsersPendingVerification();
-      console.log(`[ID-VERIFICATION] Found ${pendingUsers.length} pending users`);
-      
-      // Test if the issue is JSON serialization
-      try {
-        const jsonString = JSON.stringify(pendingUsers);
-        console.log(`[ID-VERIFICATION] JSON serialization successful, size: ${jsonString.length} characters`);
-      } catch (jsonError) {
-        console.error('[ID-VERIFICATION] JSON serialization failed:', jsonError);
-        throw new Error('Failed to serialize user data to JSON');
-      }
-      
-      // Clean up large photo data for safe transmission
-      const cleanedUsers = pendingUsers.map(user => ({
-        ...user,
-        idPhotoUrl: user.idPhotoUrl?.substring(0, 50) + '...' || null,
-        selfiePhotoUrl: user.selfiePhotoUrl?.substring(0, 50) + '...' || null
-      }));
-      
-      console.log('[ID-VERIFICATION] Sending cleaned response...');
-      res.json(cleanedUsers);
+      res.json(pendingUsers);
     } catch (error) {
-      console.error('[ID-VERIFICATION] Failed to fetch pending verifications:', error);
-      console.error('[ID-VERIFICATION] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-      res.status(500).json({ 
-        message: "Failed to fetch pending verifications",
-        error: error instanceof Error ? error.message : String(error)
-      });
+      console.error('Failed to fetch pending verifications:', error);
+      res.status(500).json({ message: "Failed to fetch pending verifications" });
     }
   });
 
