@@ -1116,10 +1116,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         hasSelfiePhoto: !!user.selfiePhotoUrl
       }));
       
-      console.log(`📷 Admin ID verification list response: ${usersWithoutPhotos.length} users`);
-      usersWithoutPhotos.forEach(user => {
-        console.log(`  User ${user.id} (${user.username}): hasIdPhoto=${user.hasIdPhoto}, hasSelfiePhoto=${user.hasSelfiePhoto}`);
-      });
       
       // Add security headers to prevent caching of sensitive data
       res.set({
