@@ -236,6 +236,17 @@ export default function IdVerificationAdmin() {
           <p className="text-gray-600 mt-2">Review and approve pending ID verifications</p>
         </div>
 
+        <div className="bg-red-100 border border-red-400 rounded p-4 mb-4">
+          <h3 className="font-bold text-red-800">🐛 FRONTEND DEBUG INFO</h3>
+          <p><strong>pendingUsers type:</strong> {typeof pendingUsers}</p>
+          <p><strong>pendingUsers:</strong> {pendingUsers ? JSON.stringify(pendingUsers).substring(0, 200) + '...' : 'null'}</p>
+          <p><strong>isLoading:</strong> {isLoading ? 'true' : 'false'}</p>
+          <p><strong>error:</strong> {error ? String(error) : 'null'}</p>
+          <p><strong>Array.isArray(pendingUsers):</strong> {Array.isArray(pendingUsers) ? 'true' : 'false'}</p>
+          <p><strong>pendingUsers.length:</strong> {Array.isArray(pendingUsers) ? pendingUsers.length : 'N/A'}</p>
+          <p><strong>First user hasIdPhoto:</strong> {Array.isArray(pendingUsers) && pendingUsers[0] ? pendingUsers[0].hasIdPhoto : 'N/A'}</p>
+        </div>
+
         {!pendingUsers || (Array.isArray(pendingUsers) && pendingUsers.length === 0) ? (
           <Card>
             <CardContent className="py-8 text-center">
