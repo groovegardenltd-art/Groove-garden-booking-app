@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, XCircle, Clock, User, CreditCard, FileText, Image } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // Lazy loading photo component
 function LazyPhoto({ userId, type, label }: { userId: number; type: 'id' | 'selfie'; label: string }) {
@@ -110,6 +110,10 @@ interface PendingUser {
 }
 
 export default function IdVerificationAdmin() {
+  console.log("🚀 PRODUCTION DEBUG - ID Verification Admin page loaded!");
+  console.log("🚀 PRODUCTION DEBUG - Current URL:", window.location.href);
+  console.log("🚀 PRODUCTION DEBUG - User agent:", navigator.userAgent);
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -118,6 +122,20 @@ export default function IdVerificationAdmin() {
     queryKey: ["/api/admin/id-verifications"],
     refetchInterval: 30000, // Refresh every 30 seconds
   });
+
+  // Debug logging when data changes
+  useEffect(() => {
+    console.log("🟢 PRODUCTION DEBUG - Query state changed:");
+    console.log("  isLoading:", isLoading);
+    console.log("  error:", error);
+    console.log("  data:", pendingUsers);
+    if (Array.isArray(pendingUsers)) {
+      console.log("  Array length:", pendingUsers.length);
+      if (pendingUsers.length > 0) {
+        console.log("  First user:", pendingUsers[0]);
+      }
+    }
+  }, [pendingUsers, isLoading, error]);
 
   const approveMutation = useMutation({
     mutationFn: (userId: number) => apiRequest("POST", `/api/admin/id-verifications/${userId}/approve`),
