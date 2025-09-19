@@ -9,21 +9,28 @@ import { useState } from "react";
 
 // Lazy loading photo component
 function LazyPhoto({ userId, type, label }: { userId: number; type: 'id' | 'selfie'; label: string }) {
+  console.log(`🖼️ LazyPhoto rendering for user ${userId}, type ${type}, label ${label}`);
+  
   const [loading, setLoading] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [error, setError] = useState(false);
 
   const loadPhoto = async () => {
+    console.log(`📸 Loading photo for user ${userId}, type ${type}`);
     if (photoUrl || loading) return; // Already loaded or loading
     
     setLoading(true);
     setError(false);
     
     try {
+      console.log(`🌐 Making API request to /api/admin/id-verifications/${userId}/photo?type=${type}`);
       const response = await apiRequest('GET', `/api/admin/id-verifications/${userId}/photo?type=${type}`) as any;
-      setPhotoUrl(response.photoUrl);
+      console.log(`✅ Photo API response:`, response);
+      const json = await response.json();
+      console.log(`✅ Photo JSON data:`, json);
+      setPhotoUrl(json.photoUrl);
     } catch (err) {
-      console.error('Failed to load photo:', err);
+      console.error('❌ Failed to load photo:', err);
       setError(true);
     } finally {
       setLoading(false);
@@ -42,13 +49,14 @@ function LazyPhoto({ userId, type, label }: { userId: number; type: 'id' | 'self
         
         {!photoUrl && !loading && !error && (
           <div 
-            className="bg-gray-100 rounded p-4 cursor-pointer hover:bg-gray-200 transition-colors flex items-center justify-center"
+            className="bg-blue-100 border-2 border-blue-300 rounded p-4 cursor-pointer hover:bg-blue-200 transition-colors flex items-center justify-center"
             onClick={loadPhoto}
             style={{ minHeight: '120px' }}
           >
             <div className="text-center">
-              <Image className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-sm text-gray-500">Click to load photo</p>
+              <Image className="h-8 w-8 text-blue-500 mx-auto mb-2" />
+              <p className="text-sm font-semibold text-blue-700">🔍 Click to load photo</p>
+              <p className="text-xs text-blue-600">User {userId} - {type}</p>
             </div>
           </div>
         )}
@@ -109,6 +117,22 @@ interface PendingUser {
 export default function IdVerificationAdmin() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Debug localStorage on component mount
+  console.log('🔍 Admin panel localStorage check:', localStorage.getItem('groove_garden_studios_auth'));
+  
+  // Test function to manually trigger photo load
+  const testPhotoLoad = async () => {
+    console.log('🧪 Manual photo test starting...');
+    try {
+      const response = await apiRequest('GET', '/api/admin/id-verifications/146/photo?type=id') as any;
+      console.log('🧪 Manual photo test response:', response);
+      const json = await response.json();
+      console.log('🧪 Manual photo test JSON:', json);
+    } catch (error) {
+      console.error('🧪 Manual photo test failed:', error);
+    }
+  };
 
   const { data: pendingUsers, isLoading, error } = useQuery({
     queryKey: ["/api/admin/id-verifications"],
@@ -210,8 +234,15 @@ export default function IdVerificationAdmin() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">ID Verification Admin</h1>
-          <p className="text-gray-600 mt-2">Review and approve pending ID verifications</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">ID Verification Admin</h1>
+              <p className="text-gray-600 mt-2">Review and approve pending ID verifications</p>
+            </div>
+            <Button onClick={testPhotoLoad} className="bg-purple-600 hover:bg-purple-700">
+              🧪 Test Photo Load
+            </Button>
+          </div>
         </div>
 
         {!pendingUsers || (Array.isArray(pendingUsers) && pendingUsers.length === 0) ? (
