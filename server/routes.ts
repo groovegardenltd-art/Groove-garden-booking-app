@@ -1040,25 +1040,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
     const authReq = req as AuthenticatedRequest;
     
+    console.log(`[ADMIN DEBUG] Checking admin access for userId: ${authReq.userId}`);
+    
     if (!authReq.userId) {
+      console.log('[ADMIN DEBUG] No userId found in request');
       return res.status(401).json({ message: "Authentication required" });
     }
 
     try {
       const user = await storage.getUser(authReq.userId);
+      console.log(`[ADMIN DEBUG] User found: ${user ? user.email : 'null'}`);
+      
       if (!user) {
+        console.log('[ADMIN DEBUG] User not found in database');
         return res.status(401).json({ message: "User not found" });
       }
       
       const adminEmails = ["groovegardenltd@gmail.com", "tomearl1508@gmail.com"];
-      if (!adminEmails.includes(user.email)) {
+      const isAdmin = adminEmails.includes(user.email);
+      console.log(`[ADMIN DEBUG] User ${user.email} admin status: ${isAdmin}`);
+      
+      if (!isAdmin) {
+        console.log(`[ADMIN DEBUG] Access denied for ${user.email} - not in admin list`);
         return res.status(403).json({ message: "Admin access required" });
       }
       
+      console.log(`[ADMIN DEBUG] Admin access granted for ${user.email}`);
       next();
     } catch (error) {
-      console.error('Admin authorization error:', error);
-      return res.status(500).json({ message: "Authorization check failed" });
+      console.error('[ADMIN DEBUG] Admin authorization error:', error);
+      return res.status(500).json({ message: "Authorization check failed", error: error instanceof Error ? error.message : String(error) });
     }
   };
 
