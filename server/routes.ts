@@ -1098,7 +1098,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin routes for ID verification
   app.get("/api/admin/id-verifications", requireAuth, requireAdmin, async (req, res) => {
     try {
+      console.log(`🔍 PRODUCTION DEBUG - DATABASE_URL exists: ${process.env.DATABASE_URL ? 'YES' : 'NO'}`);
+      console.log(`🔍 PRODUCTION DEBUG - NODE_ENV: ${process.env.NODE_ENV}`);
+      
       const pendingUsers = await storage.getUsersPendingVerification();
+      console.log(`📋 PRODUCTION DEBUG - Found ${pendingUsers.length} pending ID verifications`);
+      console.log(`📋 PRODUCTION DEBUG - Raw data:`, pendingUsers.map(u => ({
+        id: u.id, 
+        username: u.username,
+        status: u.idVerificationStatus,
+        hasIdPhoto: !!u.idPhotoUrl,
+        hasSelfiePhoto: !!u.selfiePhotoUrl
+      })));
       
       // Remove photos from response to prevent large payloads and 500 errors
       const usersWithoutPhotos = pendingUsers.map(user => ({
