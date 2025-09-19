@@ -1109,11 +1109,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin routes for ID verification
   app.get("/api/admin/id-verifications", requireAuth, requireAdmin, async (req, res) => {
     try {
+      console.log('[ID-VERIFICATION] Starting to fetch pending users...');
       const pendingUsers = await storage.getUsersPendingVerification();
-      res.json(pendingUsers);
+      console.log(`[ID-VERIFICATION] Found ${pendingUsers.length} pending users`);
+      
+      // Test if the issue is JSON serialization
+      try {
+        const jsonString = JSON.stringify(pendingUsers);
+        console.log(`[ID-VERIFICATION] JSON serialization successful, size: ${jsonString.length} characters`);
+      } catch (jsonError) {
+        console.error('[ID-VERIFICATION] JSON serialization failed:', jsonError);
+        throw new Error('Failed to serialize user data to JSON');
+      }
+      
+      // Clean up large photo data for safe transmission
+      const cleanedUsers = pendingUsers.map(user => ({
+        ...user,
+        idPhotoUrl: user.idPhotoUrl?.substring(0, 50) + '...' || null,
+        selfiePhotoUrl: user.selfiePhotoUrl?.substring(0, 50) + '...' || null
+      }));
+      
+      console.log('[ID-VERIFICATION] Sending cleaned response...');
+      res.json(cleanedUsers);
     } catch (error) {
-      console.error('Failed to fetch pending verifications:', error);
-      res.status(500).json({ message: "Failed to fetch pending verifications" });
+      console.error('[ID-VERIFICATION] Failed to fetch pending verifications:', error);
+      console.error('[ID-VERIFICATION] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      res.status(500).json({ 
+        message: "Failed to fetch pending verifications",
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
