@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { rooms, sessions } from "@shared/schema";
+import { rooms, sessions, users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { insertUserSchema, loginSchema, insertBookingSchema } from "@shared/schema";
 import { createTTLockService } from "./ttlock";
@@ -1072,6 +1072,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Authorization check failed", error: error instanceof Error ? error.message : String(error) });
     }
   };
+
+  // Debug endpoint for production troubleshooting
+  app.get("/api/admin/debug", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      // Test database connection and schema
+      const totalUsers = await db.select().from(users);
+      const pendingUsers = await storage.getUsersPendingVerification();
+      
+      res.json({
+        status: "success",
+        environment: process.env.NODE_ENV || "unknown",
+        database: {
+          totalUsers: totalUsers.length,
+          pendingUsers: pendingUsers.length,
+          sampleUser: totalUsers[0] ? {
+            id: totalUsers[0].id,
+            username: totalUsers[0].username,
+            email: totalUsers[0].email,
+            idVerificationStatus: totalUsers[0].idVerificationStatus
+          } : null
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('[DEBUG] Error in debug endpoint:', error);
+      res.status(500).json({ 
+        status: "error",
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
 
   // Admin routes for ID verification
   app.get("/api/admin/id-verifications", requireAuth, requireAdmin, async (req, res) => {
