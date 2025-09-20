@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Bell } from "lucide-react";
+import { Bell, Menu, X } from "lucide-react";
 import { getAuthState, clearAuthState } from "@/lib/auth";
 import { useState, useEffect } from "react";
 import { User } from "@shared/schema";
@@ -14,6 +14,7 @@ interface HeaderProps {
 export function Header({ onLogout }: HeaderProps) {
   const [location, setLocation] = useLocation();
   const [user, setUser] = useState<User | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const { user: authUser } = getAuthState();
@@ -40,6 +41,10 @@ export function Header({ onLogout }: HeaderProps) {
   const isActive = (path: string) => {
     return location === path;
   };
+
+  const isAdmin = user && (user.email === "groovegardenltd@gmail.com" || user.email === "tomearl1508@gmail.com");
+
+  const closeMobileMenu = () => setMobileMenuOpen(false);
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
@@ -105,6 +110,16 @@ export function Header({ onLogout }: HeaderProps) {
             )}
           </div>
           <div className="flex items-center space-x-4">
+            {/* Mobile menu button */}
+            {user && (
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="md:hidden p-2 rounded-md text-gray-600 hover:text-music-purple"
+                data-testid="mobile-menu-toggle"
+              >
+                {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              </button>
+            )}
             {user ? (
               <>
                 <Button variant="ghost" size="sm" className="text-gray-600 hover:text-music-purple">
@@ -136,6 +151,66 @@ export function Header({ onLogout }: HeaderProps) {
             )}
           </div>
         </div>
+        
+        {/* Mobile menu */}
+        {user && mobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-200 bg-white" data-testid="mobile-menu">
+            <div className="px-4 py-3 space-y-3">
+              <Link
+                href="/"
+                onClick={closeMobileMenu}
+                className={`block py-2 px-3 rounded-md transition-colors ${
+                  isActive("/")
+                    ? "bg-music-purple text-white"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+                data-testid="mobile-nav-book"
+              >
+                Book Now
+              </Link>
+              <Link
+                href="/bookings"
+                onClick={closeMobileMenu}
+                className={`block py-2 px-3 rounded-md transition-colors ${
+                  isActive("/bookings")
+                    ? "bg-music-purple text-white"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+                data-testid="mobile-nav-bookings"
+              >
+                My Bookings
+              </Link>
+              {isAdmin && (
+                <>
+                  <Link
+                    href="/admin"
+                    onClick={closeMobileMenu}
+                    className={`block py-2 px-3 rounded-md transition-colors ${
+                      isActive("/admin")
+                        ? "bg-music-purple text-white"
+                        : "text-gray-600 hover:bg-gray-100"
+                    }`}
+                    data-testid="mobile-nav-admin"
+                  >
+                    Admin
+                  </Link>
+                  <Link
+                    href="/admin/id-verification"
+                    onClick={closeMobileMenu}
+                    className={`block py-2 px-3 rounded-md transition-colors ${
+                      isActive("/admin/id-verification")
+                        ? "bg-music-purple text-white"
+                        : "text-gray-600 hover:bg-gray-100"
+                    }`}
+                    data-testid="mobile-nav-id-check"
+                  >
+                    ID Check
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </header>
   );
