@@ -894,7 +894,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           enabled: true,
           allow_redirects: "never", // Keep users on your site
         },
-        payment_method_types: ["card", "apple_pay", "google_pay"], // Explicitly enable Apple Pay and Google Pay
         metadata: {
           userId: (req as AuthenticatedRequest).userId.toString(),
         },
