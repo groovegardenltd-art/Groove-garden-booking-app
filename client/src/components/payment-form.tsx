@@ -1,4 +1,5 @@
 import { useState } from "react";
+import React from "react";
 import { useStripe, useElements, PaymentElement } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -58,6 +59,33 @@ export function PaymentForm({ amount, onSuccess, onCancel }: PaymentFormProps) {
     }
   };
 
+  // Debug Apple Pay availability
+  const debugApplePay = () => {
+    console.log('🍎 Apple Pay Debug Info:');
+    console.log('- User Agent:', navigator.userAgent);
+    console.log('- Current domain:', window.location.hostname);
+    console.log('- HTTPS:', window.location.protocol === 'https:');
+    
+    // Type-safe Apple Pay detection
+    const hasApplePaySession = 'ApplePaySession' in window;
+    console.log('- ApplePaySession available:', hasApplePaySession);
+    
+    if (hasApplePaySession) {
+      try {
+        const ApplePaySession = (window as any).ApplePaySession;
+        console.log('- Apple Pay supported:', ApplePaySession.supportsVersion(3));
+        console.log('- Can make payments:', ApplePaySession.canMakePayments());
+      } catch (error) {
+        console.log('- Apple Pay check failed:', error);
+      }
+    }
+  };
+
+  // Run debug on mount
+  React.useEffect(() => {
+    debugApplePay();
+  }, []);
+
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -65,6 +93,11 @@ export function PaymentForm({ amount, onSuccess, onCancel }: PaymentFormProps) {
         <p className="text-gray-600">
           Total: <span className="font-semibold text-music-purple">£{amount}</span>
         </p>
+        
+        {/* Debug info for development */}
+        <div className="text-xs text-gray-400 mt-2">
+          Domain: {window.location.hostname}
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
