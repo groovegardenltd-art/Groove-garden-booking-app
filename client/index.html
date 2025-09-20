@@ -3,6 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    
+    <!-- Performance optimizations -->
+    <link rel="preconnect" href="https://js.stripe.com" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="//js.stripe.com" />
+    
+    <!-- App metadata -->
+    <title>Groove Garden Studios - Book Your Rehearsal Space</title>
+    <meta name="description" content="Book professional music rehearsal studios at Groove Garden Studios. Secure booking, smart lock access, and flexible hours." />
+    
+    <!-- Preload critical CSS to prevent FOUC -->
+    <link rel="preload" href="/src/index.css" as="style" />
   </head>
   <body>
     <div id="root"></div>

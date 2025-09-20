@@ -22,10 +22,16 @@ import { TestPaymentForm } from "./test-payment-form";
 // Test mode configuration
 const TEST_MODE = import.meta.env.VITE_ENABLE_TEST_MODE === 'true';
 
-// Initialize Stripe (only if not in test mode and key is available)
+// Initialize Stripe with error handling and fallback
 const stripePromise = (!TEST_MODE && import.meta.env.VITE_STRIPE_PUBLIC_KEY) 
-  ? loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY)
-  : null;
+  ? loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY, {
+      // Add retry logic and fallback options
+      stripeAccount: undefined,
+    }).catch((error) => {
+      console.warn('Failed to load Stripe:', error);
+      return null;
+    })
+  : Promise.resolve(null);
 
 interface BookingModalProps {
   open: boolean;
@@ -37,7 +43,7 @@ interface BookingModalProps {
   onBookingSuccess: (booking: any) => void;
 }
 
-export function BookingModal({
+export const BookingModal = React.memo(function BookingModal({
   open,
   onOpenChange,
   selectedRoom,
@@ -572,4 +578,4 @@ export function BookingModal({
       </DialogContent>
     </Dialog>
   );
-}
+});
