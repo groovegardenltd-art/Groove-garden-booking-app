@@ -68,7 +68,12 @@ export function PaymentForm({ amount, onSuccess, onCancel }: PaymentFormProps) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <PaymentElement />
+        <PaymentElement 
+          options={{
+            layout: "tabs",
+            paymentMethodOrder: ["apple_pay", "google_pay", "card"],
+          }}
+        />
         
         <div className="flex gap-3 pt-4">
           <Button
