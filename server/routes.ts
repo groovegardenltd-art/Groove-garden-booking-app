@@ -506,29 +506,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const authReq = req as AuthenticatedRequest;
       
-      // 🚨 SECURITY GATE: Check user ID verification status before allowing bookings
+      // Get user for logging purposes (ID verification is post-booking process)
       const user = await storage.getUser(authReq.userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      // Block rejected users from making new bookings
-      if (user.idVerificationStatus === "rejected") {
-        return res.status(403).json({ 
-          message: "Account verification required",
-          details: "Your ID verification was declined. Please resubmit your verification documents to continue booking.",
-          action: "resubmit_verification"
-        });
-      }
-
-      // Block pending users from making new bookings (optional - can be removed if you want to allow pending users to book)
-      if (user.idVerificationStatus === "pending") {
-        return res.status(403).json({ 
-          message: "Account verification pending",
-          details: "Your ID verification is currently under review. You'll be able to book once approved.",
-          action: "wait_for_approval"
-        });
-      }
+      // ✅ PAYMENT FIRST POLICY: Allow booking regardless of ID verification status
+      // ID verification rejection will trigger booking cancellation via admin panel
 
       const bookingData = insertBookingSchema.parse(req.body);
       
