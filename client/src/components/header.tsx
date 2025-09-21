@@ -114,7 +114,7 @@ export function Header({ onLogout }: HeaderProps) {
             {user && (
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden p-2 rounded-md text-gray-600 hover:text-music-purple"
+                className="md:hidden relative z-50 p-2 rounded-md text-gray-600 hover:text-music-purple bg-white shadow-sm"
                 data-testid="mobile-menu-toggle"
               >
                 {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -154,7 +154,7 @@ export function Header({ onLogout }: HeaderProps) {
         
         {/* Mobile menu */}
         {user && mobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 bg-white" data-testid="mobile-menu">
+          <div className="md:hidden border-t border-gray-200 bg-white relative z-40 shadow-lg" data-testid="mobile-menu">
             <div className="px-4 py-3 space-y-3">
               <Link
                 href="/"
