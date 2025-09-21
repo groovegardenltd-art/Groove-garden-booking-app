@@ -5,10 +5,9 @@ import { seedAdminUsers } from "./seed-admin";
 
 const app = express();
 
-// Health check endpoints - must be first to avoid being intercepted by Vite catch-all
+// Health check endpoint for monitoring
 app.get('/healthz', (req, res) => res.status(200).type('application/health+json').send(JSON.stringify({ status: 'healthy', timestamp: new Date().toISOString(), version: '1.0.0' })));
-app.get('/', (req, res) => res.status(200).type('application/health+json').send(JSON.stringify({ status: 'healthy', timestamp: new Date().toISOString(), version: '1.0.0' })));
-app.head('/', (_req, res) => res.sendStatus(200));
+// Root route is handled by Vite/static serving - DO NOT intercept with health checks
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
