@@ -89,19 +89,23 @@ export const BookingModal = React.memo(function BookingModal({
       return response.json();
     },
     onSuccess: (booking) => {
+      console.log('✅ Booking created successfully:', booking);
       queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
       onBookingSuccess(booking);
       resetForm();
       onOpenChange(false);
+      setIsSubmitting(false); // Reset loading state
       toast({
         title: "Booking Confirmed!",
         description: "Your rehearsal room has been successfully booked.",
       });
     },
     onError: (error: any) => {
+      console.error('❌ Booking creation failed:', error);
+      setIsSubmitting(false); // ✅ Fix: Reset loading state on error
       toast({
         title: "Booking Failed",
-        description: error.message || "Failed to create booking. Please try again.",
+        description: error.message || "Failed to create booking after payment. Please contact support.",
         variant: "destructive",
       });
     },
@@ -248,8 +252,18 @@ export const BookingModal = React.memo(function BookingModal({
   const handlePaymentSuccess = async () => {
     // Create the booking after successful payment
     setIsSubmitting(true);
+    console.log('🎵 Payment successful, creating booking...');
 
-    if (!selectedRoom || !selectedDate || !selectedTime) return;
+    if (!selectedRoom || !selectedDate || !selectedTime) {
+      console.error('Missing booking data:', { selectedRoom, selectedDate, selectedTime });
+      setIsSubmitting(false);
+      toast({
+        title: "Booking Error",
+        description: "Missing booking information. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const endTime = `${String(parseInt(selectedTime.split(':')[0]) + selectedDuration).padStart(2, '0')}:00`;
     
@@ -260,13 +274,25 @@ export const BookingModal = React.memo(function BookingModal({
       endTime: endTime,
       duration: selectedDuration,
       totalPrice: calculatePrice(selectedDuration),
-      // contactPhone removed - email confirmations only
       idNumber: currentUser?.idNumber || "",
       idType: currentUser?.idType || "",
       paymentIntentId, // Include payment intent ID
     };
 
-    bookingMutation.mutate(bookingData);
+    console.log('📋 Creating booking with data:', bookingData);
+    
+    // Add timeout protection to prevent freezing
+    try {
+      bookingMutation.mutate(bookingData);
+    } catch (error) {
+      console.error('Booking mutation error:', error);
+      setIsSubmitting(false);
+      toast({
+        title: "Booking Failed",
+        description: "Failed to create booking after payment. Please contact support.",
+        variant: "destructive",
+      });
+    }
   };
 
   const formatDate = (dateStr: string) => {
