@@ -313,10 +313,13 @@ export async function sendBookingConfirmationEmail(
         <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
           <h3 style="color: #92400e; margin: 0 0 15px 0;">🔑 Your Access Code</h3>
           <div style="background-color: #fff; border: 2px solid #f59e0b; border-radius: 6px; padding: 15px; margin: 10px 0; font-family: monospace; font-size: 24px; font-weight: bold; color: #92400e; letter-spacing: 3px;">
-            ${booking.accessCode}
+            ${booking.accessCode}#
           </div>
           <p style="color: #92400e; margin: 10px 0 0 0; font-size: 14px;">
-            <strong>Important:</strong> Save this code! You'll need it to access your rehearsal room.
+            <strong>Important:</strong> This single code works on both the front door AND your ${room.name} door.
+          </p>
+          <p style="color: #92400e; margin: 5px 0 0 0; font-size: 12px;">
+            Add # after entering the code on the keypad.
           </p>
         </div>
         
@@ -324,7 +327,8 @@ export async function sendBookingConfirmationEmail(
           <h4 style="color: #1e40af; margin: 0 0 10px 0;">📍 Studio Access Instructions</h4>
           <ol style="color: #1e40af; margin: 0; padding-left: 20px;">
             <li>Arrive at your scheduled time</li>
-            <li>Use your access code (${booking.accessCode}) to enter</li>
+            <li><strong>Front Door:</strong> Enter ${booking.accessCode}# on the main entrance keypad</li>
+            <li><strong>${room.name} Door:</strong> Use the same code ${booking.accessCode}# to access your studio</li>
             <li>Set up your equipment and enjoy your session</li>
             <li>Please leave the room tidy for the next musicians</li>
           </ol>
@@ -362,16 +366,18 @@ Date: ${formattedDate}
 Time: ${booking.startTime} - ${booking.endTime}
 Total Paid: £${booking.totalPrice}
 
-ACCESS CODE: ${booking.accessCode}
+ACCESS CODE: ${booking.accessCode}#
 
-IMPORTANT: Save this access code! You'll need it to enter your rehearsal room.
+IMPORTANT: This single code works on both the front door AND your ${room.name} door.
+Add # after entering the code on the keypad.
 
 STUDIO ACCESS INSTRUCTIONS
 --------------------------
 1. Arrive at your scheduled time
-2. Use your access code (${booking.accessCode}) to enter
-3. Set up your equipment and enjoy your session
-4. Please leave the room tidy for the next musicians
+2. Front Door: Enter ${booking.accessCode}# on the main entrance keypad
+3. ${room.name} Door: Use the same code ${booking.accessCode}# to access your studio
+4. Set up your equipment and enjoy your session
+5. Please leave the room tidy for the next musicians
 
 ${room.address ? `Address: ${room.address}` : ''}
 
