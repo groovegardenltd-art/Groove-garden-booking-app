@@ -311,16 +311,27 @@ export async function sendBookingConfirmationEmail(
         </div>
         
         <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
-          <h3 style="color: #92400e; margin: 0 0 15px 0;">🔑 Your Access Code</h3>
-          <div style="background-color: #fff; border: 2px solid #f59e0b; border-radius: 6px; padding: 15px; margin: 10px 0; font-family: monospace; font-size: 24px; font-weight: bold; color: #92400e; letter-spacing: 3px;">
-            ${booking.accessCode}#
+          <h3 style="color: #92400e; margin: 0 0 15px 0;">🔑 Your Access Codes</h3>
+          
+          <div style="margin-bottom: 15px;">
+            <p style="color: #92400e; margin: 0 0 8px 0; font-weight: bold;">Smart Lock Code (TTLock):</p>
+            <div style="background-color: #fff; border: 2px solid #f59e0b; border-radius: 6px; padding: 15px; margin: 10px 0; font-family: monospace; font-size: 24px; font-weight: bold; color: #92400e; letter-spacing: 3px;">
+              ${booking.accessCode}#
+            </div>
+            <p style="color: #92400e; margin: 5px 0 0 0; font-size: 12px;">
+              Works on both front door AND ${room.name} door.
+            </p>
           </div>
-          <p style="color: #92400e; margin: 10px 0 0 0; font-size: 14px;">
-            <strong>Important:</strong> This single code works on both the front door AND your ${room.name} door.
-          </p>
-          <p style="color: #92400e; margin: 5px 0 0 0; font-size: 12px;">
-            Add # after entering the code on the keypad.
-          </p>
+          
+          <div style="border-top: 1px solid #f59e0b; padding-top: 15px;">
+            <p style="color: #92400e; margin: 0 0 8px 0; font-weight: bold;">Backup Code (${room.name}):</p>
+            <div style="background-color: #fff; border: 2px solid #10b981; border-radius: 6px; padding: 15px; margin: 10px 0; font-family: monospace; font-size: 24px; font-weight: bold; color: #065f46; letter-spacing: 3px;">
+              ${room.name === 'Live Room' ? '4537' : room.name === 'Pod 1' ? '5786' : room.name === 'Pod 2' ? '9857' : 'N/A'}#
+            </div>
+            <p style="color: #92400e; margin: 5px 0 0 0; font-size: 12px;">
+              Manual backup code - works 24/7 for ${room.name} door only.
+            </p>
+          </div>
         </div>
         
         <div style="background-color: #eff6ff; border: 1px solid #3b82f6; border-radius: 8px; padding: 16px; margin: 20px 0;">
@@ -328,10 +339,15 @@ export async function sendBookingConfirmationEmail(
           <ol style="color: #1e40af; margin: 0; padding-left: 20px;">
             <li>Arrive at your scheduled time</li>
             <li><strong>Front Door:</strong> Enter ${booking.accessCode}# on the main entrance keypad</li>
-            <li><strong>${room.name} Door:</strong> Use the same code ${booking.accessCode}# to access your studio</li>
+            <li><strong>${room.name} Door:</strong> Use smart code ${booking.accessCode}# OR backup code ${room.name === 'Live Room' ? '4537' : room.name === 'Pod 1' ? '5786' : room.name === 'Pod 2' ? '9857' : 'N/A'}#</li>
             <li>Set up your equipment and enjoy your session</li>
             <li>Please leave the room tidy for the next musicians</li>
           </ol>
+          <div style="background-color: #dbeafe; border-radius: 4px; padding: 10px; margin: 10px 0;">
+            <p style="color: #1e40af; margin: 0; font-size: 13px;">
+              <strong>💡 Tip:</strong> If the smart code doesn't work, use the backup code for ${room.name}. It's available 24/7!
+            </p>
+          </div>
           ${room.address ? `<p style="color: #1e40af; margin: 10px 0 0 0;"><strong>Address:</strong> ${room.address}</p>` : ''}
         </div>
         
@@ -366,18 +382,23 @@ Date: ${formattedDate}
 Time: ${booking.startTime} - ${booking.endTime}
 Total Paid: £${booking.totalPrice}
 
-ACCESS CODE: ${booking.accessCode}#
+ACCESS CODES
+------------
+Smart Lock Code (TTLock): ${booking.accessCode}#
+- Works on both front door AND ${room.name} door
 
-IMPORTANT: This single code works on both the front door AND your ${room.name} door.
-Add # after entering the code on the keypad.
+Backup Code (${room.name}): ${room.name === 'Live Room' ? '4537' : room.name === 'Pod 1' ? '5786' : room.name === 'Pod 2' ? '9857' : 'N/A'}#
+- Manual backup code - works 24/7 for ${room.name} door only
 
 STUDIO ACCESS INSTRUCTIONS
 --------------------------
 1. Arrive at your scheduled time
 2. Front Door: Enter ${booking.accessCode}# on the main entrance keypad
-3. ${room.name} Door: Use the same code ${booking.accessCode}# to access your studio
+3. ${room.name} Door: Use smart code ${booking.accessCode}# OR backup code ${room.name === 'Live Room' ? '4537' : room.name === 'Pod 1' ? '5786' : room.name === 'Pod 2' ? '9857' : 'N/A'}#
 4. Set up your equipment and enjoy your session
 5. Please leave the room tidy for the next musicians
+
+TIP: If the smart code doesn't work, use the backup code for ${room.name}. It's available 24/7!
 
 ${room.address ? `Address: ${room.address}` : ''}
 
