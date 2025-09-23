@@ -28,28 +28,54 @@ export default function Home() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successBooking, setSuccessBooking] = useState<any>(null);
 
-  // Check authentication
-  const { user } = getAuthState();
+  // Check authentication with better state management
+  const [authChecked, setAuthChecked] = useState(false);
+  const [user, setUser] = useState<any>(null);
   
   useEffect(() => {
-    if (!user) {
-      setLocation("/login");
-    }
-  }, [user, setLocation]);
+    const checkAuth = () => {
+      const { user: authUser } = getAuthState();
+      setUser(authUser);
+      setAuthChecked(true);
+      
+      if (!authUser) {
+        // Small delay to prevent immediate redirect after login
+        setTimeout(() => {
+          if (!getAuthState().user) {
+            setLocation("/login");
+          }
+        }, 100);
+      }
+    };
+    
+    checkAuth();
+  }, [setLocation]);
 
   // Fetch rooms with better caching
   const { data: rooms = [], isLoading: roomsLoading } = useQuery<Room[]>({
     queryKey: ["/api/rooms"],
-    enabled: !!user,
+    enabled: !!user && authChecked, // Only fetch after auth is confirmed
     staleTime: 0, // Force fresh data to show updated equipment
   });
 
   // Fetch user bookings with better caching
   const { data: userBookings = [], isLoading: bookingsLoading } = useQuery<BookingWithRoom[]>({
     queryKey: ["/api/bookings"],
-    enabled: !!user,
+    enabled: !!user && authChecked, // Only fetch after auth is confirmed
     staleTime: 2 * 60 * 1000, // Bookings change more often, cache for 2 minutes
   });
+
+  // Show loading state while checking authentication
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-music-purple border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleRoomSelect = (room: Room) => {
     setSelectedRoom(room);

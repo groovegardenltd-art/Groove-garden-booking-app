@@ -49,12 +49,19 @@ export default function Login() {
       return response.json();
     },
     onSuccess: (data) => {
+      // Clear any existing state first
+      console.log("Login successful, setting auth state:", data);
       setAuthState({ user: data.user, sessionId: data.sessionId });
+      
       toast({
         title: "Welcome back!",
         description: "You have successfully logged in.",
       });
-      setLocation("/");
+      
+      // Small delay to ensure auth state is properly set before redirect
+      setTimeout(() => {
+        setLocation("/");
+      }, 50);
     },
     onError: (error: any) => {
       toast({
@@ -71,12 +78,18 @@ export default function Login() {
       return response.json();
     },
     onSuccess: (data) => {
+      console.log("Registration successful, setting auth state:", data);
       setAuthState({ user: data.user, sessionId: data.sessionId });
+      
       toast({
         title: "Account Created!",
         description: "Welcome to Groove Garden Studios!",
       });
-      setLocation("/");
+      
+      // Small delay to ensure auth state is properly set before redirect
+      setTimeout(() => {
+        setLocation("/");
+      }, 50);
     },
     onError: (error: any) => {
       toast({
