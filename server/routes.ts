@@ -258,11 +258,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/login", async (req, res) => {
     try {
-      const { username, password } = loginSchema.parse(req.body);
+      const { usernameOrEmail, password } = loginSchema.parse(req.body);
       
-      const user = await storage.getUserByUsername(username);
+      // Try to find user by username first, then by email
+      let user = await storage.getUserByUsername(usernameOrEmail);
       if (!user) {
-        return res.status(401).json({ message: "Invalid username or password" });
+        // If not found by username, try by email
+        user = await storage.getUserByEmail(usernameOrEmail);
+      }
+      
+      if (!user) {
+        return res.status(401).json({ message: "Invalid username or email, or password" });
       }
 
       // Use bcrypt to compare password with stored hash

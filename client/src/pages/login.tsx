@@ -19,7 +19,7 @@ export default function Login() {
   const { toast } = useToast();
 
   // Login form state
-  const [loginUsername, setLoginUsername] = useState("");
+  const [loginUsernameOrEmail, setLoginUsernameOrEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
 
   // Register form state
@@ -44,7 +44,7 @@ export default function Login() {
   const [showCamera, setShowCamera] = useState(false);
 
   const loginMutation = useMutation({
-    mutationFn: async (data: { username: string; password: string }) => {
+    mutationFn: async (data: { usernameOrEmail: string; password: string }) => {
       const response = await apiRequest("POST", "/api/login", data);
       return response.json();
     },
@@ -66,7 +66,7 @@ export default function Login() {
     onError: (error: any) => {
       toast({
         title: "Login Failed",
-        description: error.message || "Invalid username or password.",
+        description: error.message || "Invalid username/email or password.",
         variant: "destructive",
       });
     },
@@ -102,15 +102,15 @@ export default function Login() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!loginUsername || !loginPassword) {
+    if (!loginUsernameOrEmail || !loginPassword) {
       toast({
         title: "Missing Information",
-        description: "Please enter both username and password.",
+        description: "Please enter both username/email and password.",
         variant: "destructive",
       });
       return;
     }
-    loginMutation.mutate({ username: loginUsername, password: loginPassword });
+    loginMutation.mutate({ usernameOrEmail: loginUsernameOrEmail, password: loginPassword });
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -279,13 +279,13 @@ export default function Login() {
               <TabsContent value="login" className="space-y-4">
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div>
-                    <Label htmlFor="login-username">Username</Label>
+                    <Label htmlFor="login-username-email">Username or Email</Label>
                     <Input
-                      id="login-username"
+                      id="login-username-email"
                       type="text"
-                      value={loginUsername}
-                      onChange={(e) => setLoginUsername(e.target.value)}
-                      placeholder="Enter your username"
+                      value={loginUsernameOrEmail}
+                      onChange={(e) => setLoginUsernameOrEmail(e.target.value)}
+                      placeholder="Enter your username or email"
                       required
                     />
                   </div>
