@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Clock, User, FileText, Shield, CalendarX, Plus, Trash2, Repeat, Calendar, MapPin, CreditCard, Phone, Mail } from "lucide-react";
+import { CheckCircle, XCircle, Clock, User, FileText, Shield, CalendarX, Plus, Trash2, Repeat, Calendar, MapPin, CreditCard, Phone, Mail, List, Grid3X3 } from "lucide-react";
+import { AdminCalendar } from "@/components/admin-calendar";
 import { getAuthState } from "@/lib/auth";
 import { useLocation } from "wouter";
 import { useState, useEffect } from "react";
@@ -104,6 +105,7 @@ export default function Admin() {
   });
 
   const [blockSlotDialogOpen, setBlockSlotDialogOpen] = useState(false);
+  const [bookingsViewMode, setBookingsViewMode] = useState<"calendar" | "list">("calendar");
   const [blockSlotData, setBlockSlotData] = useState({
     roomId: "",
     date: "",
@@ -604,10 +606,32 @@ export default function Admin() {
         <div className="mb-8" data-testid="section-admin-bookings">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-blue-500" />
-                Recent Bookings
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-blue-500" />
+                  {bookingsViewMode === "calendar" ? "Bookings Calendar" : "Recent Bookings"}
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={bookingsViewMode === "calendar" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setBookingsViewMode("calendar")}
+                    data-testid="button-calendar-view"
+                  >
+                    <Grid3X3 className="h-4 w-4 mr-2" />
+                    Calendar
+                  </Button>
+                  <Button
+                    variant={bookingsViewMode === "list" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setBookingsViewMode("list")}
+                    data-testid="button-list-view"
+                  >
+                    <List className="h-4 w-4 mr-2" />
+                    List
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {bookingsLoading ? (
@@ -620,6 +644,8 @@ export default function Admin() {
                   <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                   <p>No bookings found</p>
                 </div>
+              ) : bookingsViewMode === "calendar" ? (
+                <AdminCalendar bookings={adminBookings} />
               ) : (
                 <div className="space-y-4" data-testid="admin-bookings-list">
                   {adminBookings.slice(0, 10).map((booking: AdminBooking) => (
