@@ -376,6 +376,120 @@ export default function Admin() {
           </div>
         </div>
 
+        {/* Bookings Overview */}
+        <div className="mb-8" data-testid="section-admin-bookings">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-blue-500" />
+                  {bookingsViewMode === "calendar" ? "Bookings Calendar" : "Recent Bookings"}
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={bookingsViewMode === "calendar" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setBookingsViewMode("calendar")}
+                    data-testid="button-calendar-view"
+                  >
+                    <Grid3X3 className="h-4 w-4 mr-2" />
+                    Calendar
+                  </Button>
+                  <Button
+                    variant={bookingsViewMode === "list" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setBookingsViewMode("list")}
+                    data-testid="button-list-view"
+                  >
+                    <List className="h-4 w-4 mr-2" />
+                    List
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {bookingsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                  <span className="ml-3 text-gray-600">Loading bookings...</span>
+                </div>
+              ) : !adminBookings || adminBookings.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>No bookings found</p>
+                </div>
+              ) : bookingsViewMode === "calendar" ? (
+                <AdminCalendar bookings={adminBookings} />
+              ) : (
+                <div className="space-y-4" data-testid="admin-bookings-list">
+                  {adminBookings.slice(0, 10).map((booking: AdminBooking) => (
+                    <div key={booking.id} className="border rounded-lg p-4 bg-gray-50" data-testid={`admin-booking-${booking.id}`}>
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        {/* Left Column - User & Booking Info */}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-gray-500" />
+                            <span className="font-medium" data-testid={`text-username-${booking.id}`}>{booking.userName}</span>
+                            <span data-testid={`badge-verification-${booking.id}`}>{getVerificationBadge(booking.idVerificationStatus)}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Mail className="h-4 w-4" />
+                            <span data-testid={`text-email-${booking.id}`}>{booking.userEmail}</span>
+                          </div>
+                          {booking.userPhone && (
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <Phone className="h-4 w-4" />
+                              <span data-testid={`text-phone-${booking.id}`}>{booking.userPhone}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Middle Column - Booking Details */}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-gray-500" />
+                            <span className="font-medium" data-testid={`text-room-${booking.id}`}>{booking.roomName}</span>
+                            <span data-testid={`badge-status-${booking.id}`}>{getStatusBadge(booking.status)}</span>
+                          </div>
+                          <div className="text-sm text-gray-600" data-testid={`text-datetime-${booking.id}`}>
+                            <div>{formatBookingDate(booking.date)}</div>
+                            <div>{booking.startTime} - {booking.endTime} ({booking.duration}h)</div>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <CreditCard className="h-4 w-4 text-gray-500" />
+                            <span className="font-medium text-green-600" data-testid={`text-price-${booking.id}`}>£{booking.totalPrice.toFixed(2)}</span>
+                          </div>
+                        </div>
+
+                        {/* Right Column - Access & Details */}
+                        <div className="space-y-2">
+                          <div className="text-sm">
+                            <div className="text-gray-600">Access Code:</div>
+                            <div className="font-mono bg-white px-2 py-1 rounded border text-music-purple" data-testid={`text-access-code-${booking.id}`}>
+                              {booking.accessCode}#
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            <div data-testid={`text-lock-access-${booking.id}`}>Lock Access: {booking.lockAccessEnabled ? "✅ Enabled" : "❌ Disabled"}</div>
+                            <div data-testid={`text-created-${booking.id}`}>Booked: {formatDateTime(booking.createdAt)}</div>
+                            <div data-testid={`text-booking-id-${booking.id}`}>ID: #{booking.id}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {adminBookings.length > 10 && (
+                    <div className="text-center py-4 text-gray-500" data-testid="bookings-count-info">
+                      <p>Showing 10 most recent bookings out of {adminBookings.length} total</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Blocked Slots Management */}
         <div className="mb-8">
           <Card>
@@ -596,120 +710,6 @@ export default function Admin() {
                         </div>
                       );
                     })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Bookings Overview */}
-        <div className="mb-8" data-testid="section-admin-bookings">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-blue-500" />
-                  {bookingsViewMode === "calendar" ? "Bookings Calendar" : "Recent Bookings"}
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant={bookingsViewMode === "calendar" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setBookingsViewMode("calendar")}
-                    data-testid="button-calendar-view"
-                  >
-                    <Grid3X3 className="h-4 w-4 mr-2" />
-                    Calendar
-                  </Button>
-                  <Button
-                    variant={bookingsViewMode === "list" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setBookingsViewMode("list")}
-                    data-testid="button-list-view"
-                  >
-                    <List className="h-4 w-4 mr-2" />
-                    List
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {bookingsLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
-                  <span className="ml-3 text-gray-600">Loading bookings...</span>
-                </div>
-              ) : !adminBookings || adminBookings.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>No bookings found</p>
-                </div>
-              ) : bookingsViewMode === "calendar" ? (
-                <AdminCalendar bookings={adminBookings} />
-              ) : (
-                <div className="space-y-4" data-testid="admin-bookings-list">
-                  {adminBookings.slice(0, 10).map((booking: AdminBooking) => (
-                    <div key={booking.id} className="border rounded-lg p-4 bg-gray-50" data-testid={`admin-booking-${booking.id}`}>
-                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                        {/* Left Column - User & Booking Info */}
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-gray-500" />
-                            <span className="font-medium" data-testid={`text-username-${booking.id}`}>{booking.userName}</span>
-                            <span data-testid={`badge-verification-${booking.id}`}>{getVerificationBadge(booking.idVerificationStatus)}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Mail className="h-4 w-4" />
-                            <span data-testid={`text-email-${booking.id}`}>{booking.userEmail}</span>
-                          </div>
-                          {booking.userPhone && (
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <Phone className="h-4 w-4" />
-                              <span data-testid={`text-phone-${booking.id}`}>{booking.userPhone}</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Middle Column - Booking Details */}
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-gray-500" />
-                            <span className="font-medium" data-testid={`text-room-${booking.id}`}>{booking.roomName}</span>
-                            <span data-testid={`badge-status-${booking.id}`}>{getStatusBadge(booking.status)}</span>
-                          </div>
-                          <div className="text-sm text-gray-600" data-testid={`text-datetime-${booking.id}`}>
-                            <div>{formatBookingDate(booking.date)}</div>
-                            <div>{booking.startTime} - {booking.endTime} ({booking.duration}h)</div>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm">
-                            <CreditCard className="h-4 w-4 text-gray-500" />
-                            <span className="font-medium text-green-600" data-testid={`text-price-${booking.id}`}>£{booking.totalPrice.toFixed(2)}</span>
-                          </div>
-                        </div>
-
-                        {/* Right Column - Access & Details */}
-                        <div className="space-y-2">
-                          <div className="text-sm">
-                            <div className="text-gray-600">Access Code:</div>
-                            <div className="font-mono bg-white px-2 py-1 rounded border text-music-purple" data-testid={`text-access-code-${booking.id}`}>
-                              {booking.accessCode}#
-                            </div>
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            <div data-testid={`text-lock-access-${booking.id}`}>Lock Access: {booking.lockAccessEnabled ? "✅ Enabled" : "❌ Disabled"}</div>
-                            <div data-testid={`text-created-${booking.id}`}>Booked: {formatDateTime(booking.createdAt)}</div>
-                            <div data-testid={`text-booking-id-${booking.id}`}>ID: #{booking.id}</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {adminBookings.length > 10 && (
-                    <div className="text-center py-4 text-gray-500" data-testid="bookings-count-info">
-                      <p>Showing 10 most recent bookings out of {adminBookings.length} total</p>
-                    </div>
-                  )}
                 </div>
               )}
             </CardContent>

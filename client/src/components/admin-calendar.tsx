@@ -242,7 +242,7 @@ export function AdminCalendar({ bookings }: AdminCalendarProps) {
               <Dialog key={day}>
                 <DialogTrigger asChild>
                   <button
-                    className={`p-2 h-24 border rounded-lg text-left transition-colors hover:bg-gray-50 ${
+                    className={`p-1 sm:p-2 h-20 sm:h-24 border rounded-lg text-left transition-colors hover:bg-gray-50 ${
                       isToday ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
                     } ${
                       isSelected ? 'ring-2 ring-blue-500' : ''
@@ -250,17 +250,21 @@ export function AdminCalendar({ bookings }: AdminCalendarProps) {
                     onClick={() => setSelectedDate(dateStr)}
                     data-testid={`calendar-day-${day}`}
                   >
-                    <div className="font-medium text-sm">{day}</div>
+                    <div className="font-medium text-xs sm:text-sm truncate">{day}</div>
                     {hasBookings && (
-                      <div className="mt-1 space-y-1">
-                        <div className="text-xs text-gray-600">
-                          {totalBookings} booking{totalBookings !== 1 ? 's' : ''}
+                      <div className="mt-1 space-y-1 overflow-hidden">
+                        <div className="text-xs sm:text-xs text-gray-600 truncate">
+                          {totalBookings}{totalBookings > 9 ? '+' : ''} 
+                          <span className="hidden sm:inline">
+                            {' booking'}
+                            {totalBookings !== 1 ? 's' : ''}
+                          </span>
                         </div>
-                        <div className="flex flex-wrap gap-1">
+                        <div className="flex flex-wrap gap-0.5 sm:gap-1">
                           {Object.entries(bookingCounts).map(([roomName, count]) => (
                             <div
                               key={roomName}
-                              className={`w-2 h-2 rounded-full ${getRoomColor(roomName)}`}
+                              className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${getRoomColor(roomName)}`}
                               title={`${roomName}: ${count} booking${count !== 1 ? 's' : ''}`}
                             />
                           ))}
