@@ -205,18 +205,20 @@ export function AdminCalendar({ bookings, blockedSlots }: AdminCalendarProps) {
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
+      <CardHeader className="pb-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-blue-500" />
-            Bookings Calendar
+            <span className="hidden sm:inline">Bookings Calendar</span>
+            <span className="sm:hidden">Calendar</span>
           </CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto">
             <Button
               variant="outline"
               size="sm"
               onClick={goToToday}
               data-testid="button-today"
+              className="text-xs sm:text-sm px-2 sm:px-3"
             >
               Today
             </Button>
@@ -225,10 +227,11 @@ export function AdminCalendar({ bookings, blockedSlots }: AdminCalendarProps) {
               size="sm"
               onClick={goToPreviousMonth}
               data-testid="button-prev-month"
+              className="px-2 sm:px-3"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="font-medium px-4" data-testid="text-month-year">
+            <span className="font-medium px-2 sm:px-4 text-sm sm:text-base min-w-0 text-center" data-testid="text-month-year">
               {monthYear}
             </span>
             <Button
@@ -236,27 +239,29 @@ export function AdminCalendar({ bookings, blockedSlots }: AdminCalendarProps) {
               size="sm"
               onClick={goToNextMonth}
               data-testid="button-next-month"
+              className="px-2 sm:px-3"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-2 sm:px-6">
         {/* Day headers */}
-        <div className="grid grid-cols-7 gap-1 mb-2">
+        <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-2">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="p-2 text-center text-sm font-medium text-gray-500">
-              {day}
+            <div key={day} className="p-1 sm:p-2 text-center text-xs sm:text-sm font-medium text-gray-500">
+              <span className="hidden sm:inline">{day}</span>
+              <span className="sm:hidden">{day.slice(0, 1)}</span>
             </div>
           ))}
         </div>
 
         {/* Calendar grid */}
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-0.5 sm:gap-1 overflow-hidden">
           {calendarDays.map((day, index) => {
             if (day === null) {
-              return <div key={index} className="p-2 h-24"></div>;
+              return <div key={index} className="p-1 sm:p-2 h-16 sm:h-20 lg:h-24"></div>;
             }
 
             const dateStr = formatDate(day);

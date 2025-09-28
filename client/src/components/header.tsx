@@ -122,7 +122,7 @@ export function Header({ onLogout }: HeaderProps) {
             )}
             {user ? (
               <>
-                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-music-purple">
+                <Button variant="ghost" size="sm" className="hidden md:flex text-gray-600 hover:text-music-purple">
                   <Bell className="h-5 w-5" />
                 </Button>
                 <div className="flex items-center space-x-3">
