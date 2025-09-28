@@ -26,8 +26,23 @@ interface AdminBooking {
   lockAccessEnabled: boolean;
 }
 
+interface BlockedSlot {
+  id: number;
+  roomId: number;
+  date: string;
+  startTime: string;
+  endTime: string;
+  reason: string | null;
+  createdBy: number;
+  createdAt: string;
+  isRecurring: boolean;
+  recurringUntil: string | null;
+  parentBlockId: number | null;
+}
+
 interface AdminCalendarProps {
   bookings: AdminBooking[];
+  blockedSlots: BlockedSlot[];
 }
 
 interface BookingsByDate {
@@ -38,7 +53,11 @@ interface DayBookingCounts {
   [roomName: string]: number;
 }
 
-export function AdminCalendar({ bookings }: AdminCalendarProps) {
+interface BlockedSlotsByDate {
+  [date: string]: BlockedSlot[];
+}
+
+export function AdminCalendar({ bookings, blockedSlots }: AdminCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
@@ -68,6 +87,16 @@ export function AdminCalendar({ bookings }: AdminCalendarProps) {
     acc[date].push(booking);
     return acc;
   }, {} as BookingsByDate);
+
+  // Group blocked slots by date
+  const blockedSlotsByDate: BlockedSlotsByDate = blockedSlots.reduce((acc, slot) => {
+    const date = slot.date;
+    if (!acc[date]) {
+      acc[date] = [];
+    }
+    acc[date].push(slot);
+    return acc;
+  }, {} as BlockedSlotsByDate);
 
   // Calculate booking counts by room for each date
   const getBookingCounts = (date: string): DayBookingCounts => {
@@ -235,6 +264,9 @@ export function AdminCalendar({ bookings }: AdminCalendarProps) {
             const totalBookings = Object.values(bookingCounts).reduce((sum, count) => sum + count, 0);
             const hasBookings = totalBookings > 0;
             
+            const dayBlockedSlots = blockedSlotsByDate[dateStr] || [];
+            const hasBlockedSlots = dayBlockedSlots.length > 0;
+            
             const isToday = dateStr === new Date().toISOString().split('T')[0];
             const isSelected = selectedDate === dateStr;
 
@@ -251,23 +283,41 @@ export function AdminCalendar({ bookings }: AdminCalendarProps) {
                     data-testid={`calendar-day-${day}`}
                   >
                     <div className="font-medium text-xs sm:text-sm truncate">{day}</div>
-                    {hasBookings && (
+                    {(hasBookings || hasBlockedSlots) && (
                       <div className="mt-1 space-y-1 overflow-hidden">
-                        <div className="text-xs sm:text-xs text-gray-600 truncate">
-                          {totalBookings}{totalBookings > 9 ? '+' : ''} 
-                          <span className="hidden sm:inline">
-                            {' booking'}
-                            {totalBookings !== 1 ? 's' : ''}
-                          </span>
-                        </div>
+                        {hasBookings && (
+                          <div className="text-xs sm:text-xs text-gray-600 truncate">
+                            {totalBookings}{totalBookings > 9 ? '+' : ''} 
+                            <span className="hidden sm:inline">
+                              {' booking'}
+                              {totalBookings !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        )}
+                        {hasBlockedSlots && (
+                          <div className="text-xs sm:text-xs text-red-600 truncate">
+                            {dayBlockedSlots.length}{dayBlockedSlots.length > 9 ? '+' : ''} 
+                            <span className="hidden sm:inline">
+                              {' blocked'}
+                            </span>
+                          </div>
+                        )}
                         <div className="flex flex-wrap gap-0.5 sm:gap-1">
+                          {/* Booking indicators */}
                           {Object.entries(bookingCounts).map(([roomName, count]) => (
                             <div
-                              key={roomName}
+                              key={`booking-${roomName}`}
                               className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${getRoomColor(roomName)}`}
                               title={`${roomName}: ${count} booking${count !== 1 ? 's' : ''}`}
                             />
                           ))}
+                          {/* Blocked slot indicators */}
+                          {hasBlockedSlots && (
+                            <div
+                              className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-red-500 transform rotate-45"
+                              title={`${dayBlockedSlots.length} blocked time${dayBlockedSlots.length !== 1 ? 's' : ''}`}
+                            />
+                          )}
                         </div>
                       </div>
                     )}
@@ -280,8 +330,57 @@ export function AdminCalendar({ bookings }: AdminCalendarProps) {
                     </DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
-                    {bookingsByDate[dateStr] ? (
-                      bookingsByDate[dateStr].map((booking) => (
+                    {/* Show blocked slots first */}
+                    {blockedSlotsByDate[dateStr] && blockedSlotsByDate[dateStr].length > 0 && (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 text-red-600 font-medium">
+                          <div className="w-3 h-3 bg-red-500 transform rotate-45"></div>
+                          <h3 className="text-lg">Blocked Time Slots</h3>
+                        </div>
+                        {blockedSlotsByDate[dateStr].map((blockedSlot) => (
+                          <div key={`blocked-${blockedSlot.id}`} className="border rounded-lg p-4 bg-red-50 border-red-200">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <MapPin className="h-4 w-4 text-red-500" />
+                                  <span className="font-medium">Room ID: {blockedSlot.roomId}</span>
+                                  <Badge variant="destructive">Blocked</Badge>
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  <div>{blockedSlot.startTime} - {blockedSlot.endTime}</div>
+                                  {blockedSlot.reason && (
+                                    <div className="mt-1 text-red-700">Reason: {blockedSlot.reason}</div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                {blockedSlot.isRecurring && (
+                                  <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300">
+                                    Recurring
+                                    {blockedSlot.recurringUntil && ` until ${blockedSlot.recurringUntil}`}
+                                  </Badge>
+                                )}
+                                <div className="text-xs text-gray-500">
+                                  <div>Block ID: #{blockedSlot.id}</div>
+                                  <div>Created: {formatDateTime(blockedSlot.createdAt)}</div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Show bookings */}
+                    {bookingsByDate[dateStr] && bookingsByDate[dateStr].length > 0 && (
+                      <div className="space-y-4">
+                        {blockedSlotsByDate[dateStr] && blockedSlotsByDate[dateStr].length > 0 && (
+                          <div className="flex items-center gap-2 text-blue-600 font-medium mt-6">
+                            <Calendar className="h-4 w-4" />
+                            <h3 className="text-lg">Bookings</h3>
+                          </div>
+                        )}
+                        {bookingsByDate[dateStr].map((booking) => (
                         <div key={booking.id} className="border rounded-lg p-4 bg-gray-50">
                           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                             {/* Left Column - User & Booking Info */}
@@ -335,11 +434,16 @@ export function AdminCalendar({ bookings }: AdminCalendarProps) {
                             </div>
                           </div>
                         </div>
-                      ))
-                    ) : (
+                      ))}
+                      </div>
+                    )}
+
+                    {/* Show "no data" message if neither bookings nor blocked slots exist */}
+                    {(!bookingsByDate[dateStr] || bookingsByDate[dateStr].length === 0) && 
+                     (!blockedSlotsByDate[dateStr] || blockedSlotsByDate[dateStr].length === 0) && (
                       <div className="text-center py-8 text-gray-500">
                         <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                        <p>No bookings for this date</p>
+                        <p>No bookings or blocked times for this date</p>
                       </div>
                     )}
                   </div>
@@ -351,7 +455,7 @@ export function AdminCalendar({ bookings }: AdminCalendarProps) {
 
         {/* Legend */}
         <div className="mt-4 flex flex-wrap items-center gap-4 text-sm">
-          <span className="text-gray-600">Room indicators:</span>
+          <span className="text-gray-600">Indicators:</span>
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 rounded-full bg-blue-500"></div>
             <span>Pod 1</span>
@@ -363,6 +467,10 @@ export function AdminCalendar({ bookings }: AdminCalendarProps) {
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 rounded-full bg-purple-500"></div>
             <span>Live Room</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-red-500 transform rotate-45"></div>
+            <span>Blocked Times</span>
           </div>
         </div>
       </CardContent>

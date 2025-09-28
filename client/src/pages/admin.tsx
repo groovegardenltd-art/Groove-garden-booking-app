@@ -419,7 +419,7 @@ export default function Admin() {
                   <p>No bookings found</p>
                 </div>
               ) : bookingsViewMode === "calendar" ? (
-                <AdminCalendar bookings={adminBookings} />
+                <AdminCalendar bookings={adminBookings} blockedSlots={Array.isArray(blockedSlots) ? blockedSlots : []} />
               ) : (
                 <div className="space-y-4" data-testid="admin-bookings-list">
                   {adminBookings.slice(0, 10).map((booking: AdminBooking) => (
