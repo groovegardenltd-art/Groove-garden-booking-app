@@ -145,6 +145,23 @@ async function getSession(sessionId: string): Promise<{ userId: number } | null>
   }
 }
 
+async function refreshSession(sessionId: string): Promise<boolean> {
+  try {
+    const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // Extend by 7 days
+    
+    const result = await db
+      .update(sessions)
+      .set({ expiresAt: newExpiresAt })
+      .where(eq(sessions.sessionId, sessionId));
+    
+    console.log(`Refreshed session: ${sessionId.slice(0, 4)}...${sessionId.slice(-4)}, new expiry: ${newExpiresAt}`);
+    return true;
+  } catch (error) {
+    console.error('Failed to refresh session:', error);
+    return false;
+  }
+}
+
 async function deleteSession(sessionId: string): Promise<void> {
   try {
     await db.delete(sessions).where(eq(sessions.sessionId, sessionId));
