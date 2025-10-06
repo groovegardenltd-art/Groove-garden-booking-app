@@ -81,6 +81,29 @@ export const BookingModal = React.memo(function BookingModal({
   
   // Removed phone number logic - email confirmations only
 
+  // Session heartbeat - keep session alive while payment modal is open
+  useEffect(() => {
+    if (!showPayment) return;
+    
+    console.log('🔄 Starting session heartbeat during payment');
+    
+    // Refresh session every 5 minutes while payment modal is open
+    const heartbeatInterval = setInterval(async () => {
+      try {
+        await apiRequest("POST", "/api/auth/refresh-session");
+        console.log('💓 Session heartbeat: refreshed');
+      } catch (error) {
+        console.warn('Session heartbeat failed:', error);
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+    
+    // Cleanup on unmount or when payment modal closes
+    return () => {
+      console.log('🛑 Stopping session heartbeat');
+      clearInterval(heartbeatInterval);
+    };
+  }, [showPayment]);
+
   const bookingMutation = useMutation({
     mutationFn: async (bookingData: any) => {
       if (!authUser) throw new Error("Not authenticated");
