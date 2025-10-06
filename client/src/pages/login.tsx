@@ -453,9 +453,8 @@ export default function Login() {
                               />
                               <Button
                                 type="button"
-                                variant="destructive"
                                 size="sm"
-                                className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                                className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0 bg-green-600 hover:bg-green-700 text-white"
                                 onClick={removeIdPhoto}
                               >
                                 ×
