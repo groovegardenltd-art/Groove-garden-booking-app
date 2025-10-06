@@ -317,6 +317,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ message: "Logged out successfully" });
   });
 
+  // Session refresh endpoint - extends session expiration to prevent timeout during payment
+  app.post("/api/auth/refresh-session", requireAuth, async (req, res) => {
+    const sessionId = (req.headers.authorization?.replace('Bearer ', '') || req.headers['x-session-id']) as string;
+    if (!sessionId) {
+      return res.status(401).json({ message: "No session to refresh" });
+    }
+    
+    const refreshed = await refreshSession(sessionId);
+    if (refreshed) {
+      res.json({ message: "Session refreshed successfully" });
+    } else {
+      res.status(500).json({ message: "Failed to refresh session" });
+    }
+  });
+
   // Password reset validation schemas
   const forgotPasswordSchema = z.object({
     email: z.string().email("Please enter a valid email address"),

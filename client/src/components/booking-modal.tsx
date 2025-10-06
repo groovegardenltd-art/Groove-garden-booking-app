@@ -219,6 +219,15 @@ export const BookingModal = React.memo(function BookingModal({
     // Create payment intent and show payment form
     try {
       setIsSubmitting(true);
+      
+      // Refresh session before payment to prevent expiration during checkout
+      try {
+        await apiRequest("POST", "/api/auth/refresh-session");
+        console.log('✅ Session refreshed before payment');
+      } catch (error) {
+        console.warn('Failed to refresh session, continuing anyway:', error);
+      }
+      
       const paymentData = await createPaymentIntent();
       setClientSecret(paymentData.clientSecret);
       setPaymentIntentId(paymentData.paymentIntentId);
