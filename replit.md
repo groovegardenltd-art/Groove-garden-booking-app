@@ -11,6 +11,7 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - **Smart Lock**: TTLock API integration for automated access control
 
 ## Recent Changes
+- **Oct 06, 2025**: ✅ CRITICAL PAYMENT-TO-BOOKING BUG FIXED - Resolved silent failure when payment succeeded but booking failed due to session expiration. Fixed apiRequest to throw error before redirecting on 401, ensuring users see error messages and mutations can properly handle authentication failures.
 - **Sep 19, 2025**: ✅ ID VERIFICATION PHOTO DISPLAY FIXED - Resolved missing photo buttons in admin panel by implementing lazy loading architecture and adding "ID Check" navigation button for direct access to `/admin/id-verification`
 - **Sep 16, 2025**: ✅ PASSWORD RESET FUNCTIONALITY COMPLETED - Secure forgot password with email tokens, works in all environments
 - **Sep 16, 2025**: ✅ ADMIN ACCOUNT READY - Password reset and confirmed working on published site (username: grooveadmin)
