@@ -338,7 +338,8 @@ export default function Admin() {
   const formatBookingDate = (date: string) => {
     try {
       const [year, month, day] = date.split('-');
-      const bookingDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      // Use noon to avoid timezone issues
+      const bookingDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0);
       return bookingDate.toLocaleDateString('en-US', { 
         weekday: 'long', 
         month: 'long', 

@@ -65,13 +65,13 @@ export function AdminCalendar({ bookings, blockedSlots }: AdminCalendarProps) {
   const currentMonth = currentDate.getMonth();
   const currentYear = currentDate.getFullYear();
 
-  // Navigation functions
+  // Navigation functions - use noon to avoid timezone issues
   const goToPreviousMonth = () => {
-    setCurrentDate(new Date(currentYear, currentMonth - 1, 1));
+    setCurrentDate(new Date(currentYear, currentMonth - 1, 1, 12, 0, 0));
   };
 
   const goToNextMonth = () => {
-    setCurrentDate(new Date(currentYear, currentMonth + 1, 1));
+    setCurrentDate(new Date(currentYear, currentMonth + 1, 1, 12, 0, 0));
   };
 
   const goToToday = () => {
@@ -130,9 +130,9 @@ export function AdminCalendar({ bookings, blockedSlots }: AdminCalendarProps) {
 
   const monthYear = `${monthNames[currentMonth]} ${currentYear}`;
 
-  // Get days in current month
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+  // Get days in current month - use noon to avoid timezone issues
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0, 12, 0, 0).getDate();
+  const firstDayOfMonth = new Date(currentYear, currentMonth, 1, 12, 0, 0).getDay();
 
   // Generate calendar days
   const calendarDays = [];
@@ -158,7 +158,8 @@ export function AdminCalendar({ bookings, blockedSlots }: AdminCalendarProps) {
   // Format display functions
   const formatBookingDate = (dateStr: string) => {
     const [year, month, day] = dateStr.split('-');
-    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    // Use noon to avoid timezone issues
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0);
     return date.toLocaleDateString('en-US', { 
       weekday: 'long',
       year: 'numeric',
