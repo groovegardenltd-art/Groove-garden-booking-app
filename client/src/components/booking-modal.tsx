@@ -103,10 +103,18 @@ export const BookingModal = React.memo(function BookingModal({
     onError: (error: any) => {
       console.error('❌ Booking creation failed:', error);
       setIsSubmitting(false); // ✅ Fix: Reset loading state on error
+      
+      // Provide specific guidance based on error type
+      const isSessionError = error.message?.includes("Session expired") || error.message?.includes("Authentication");
+      const errorDescription = isSessionError 
+        ? "Your session expired after payment. Please contact support to confirm your booking was processed."
+        : error.message || "Failed to create booking after payment. Please contact support.";
+      
       toast({
         title: "Booking Failed",
-        description: error.message || "Failed to create booking after payment. Please contact support.",
+        description: errorDescription,
         variant: "destructive",
+        duration: 10000, // Show longer for important error messages
       });
     },
   });

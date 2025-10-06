@@ -37,10 +37,20 @@ export async function apiRequest(
     // Handle authentication errors by clearing invalid session
     // BUT NOT for login/register requests - they're expected to fail initially
     if (res.status === 401 && !url.includes('/login') && !url.includes('/register')) {
-      console.log("Clearing expired session and redirecting to login");
+      console.log("Session expired - clearing auth and redirecting to login");
       clearAuthState();
-      window.location.href = "/login";
-      return res;
+      
+      // CRITICAL FIX: Throw error FIRST so mutation.onError can handle it
+      // This ensures users see an error message if payment succeeded but booking failed
+      const errorText = await res.text();
+      const error = new Error(errorText || "Session expired. Please log in again.");
+      
+      // Delay redirect slightly to allow error toast to display
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 2000);
+      
+      throw error;
     }
   }
 
