@@ -241,10 +241,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPromoCodeByCode(code: string): Promise<PromoCode | undefined> {
+    const upperCode = code.toUpperCase();
+    console.log('[DEBUG] Looking for promo code:', upperCode);
     const [promoCode] = await db
       .select()
       .from(promoCodes)
-      .where(eq(promoCodes.code, code.toUpperCase()));
+      .where(eq(promoCodes.code, upperCode));
+    console.log('[DEBUG] Found promo code:', promoCode ? 'YES' : 'NO', promoCode);
     return promoCode || undefined;
   }
 
