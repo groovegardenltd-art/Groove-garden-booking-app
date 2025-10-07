@@ -280,7 +280,7 @@ export function AdminCalendar({ bookings, blockedSlots }: AdminCalendarProps) {
             const isSelected = selectedDate === dateStr;
 
             return (
-              <Dialog key={day}>
+              <Dialog key={`${currentYear}-${currentMonth}-${day}`}>
                 <DialogTrigger asChild>
                   <button
                     className={`p-1 sm:p-2 h-20 sm:h-24 border rounded-lg text-left transition-colors hover:bg-gray-50 ${
