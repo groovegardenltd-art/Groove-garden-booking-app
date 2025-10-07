@@ -1263,6 +1263,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin Promo Code Management routes
+  app.get("/api/admin/promo-codes", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const promoCodes = await storage.getAllPromoCodes();
+      res.json(promoCodes);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error fetching promo codes: " + error.message });
+    }
+  });
+
+  app.post("/api/admin/promo-codes", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { code, description, discountType, discountValue, minBookingAmount, maxDiscountAmount, usageLimit, validFrom, validTo, applicableRoomIds } = req.body;
+
+      if (!code || !discountType || !discountValue) {
+        return res.status(400).json({ message: "Code, discount type, and discount value are required" });
+      }
+
+      const newPromoCode = await storage.createPromoCode({
+        code: code.toUpperCase(),
+        description,
+        discountType,
+        discountValue: String(discountValue),
+        minBookingAmount: minBookingAmount ? String(minBookingAmount) : null,
+        maxDiscountAmount: maxDiscountAmount ? String(maxDiscountAmount) : null,
+        usageLimit: usageLimit || null,
+        validFrom: validFrom || null,
+        validTo: validTo || null,
+        applicableRoomIds: applicableRoomIds || null,
+        isActive: true,
+      });
+
+      res.json(newPromoCode);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error creating promo code: " + error.message });
+    }
+  });
+
+  app.put("/api/admin/promo-codes/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { code, description, discountType, discountValue, minBookingAmount, maxDiscountAmount, usageLimit, validFrom, validTo, applicableRoomIds, isActive } = req.body;
+
+      const updateData: Partial<any> = {};
+      if (code !== undefined) updateData.code = code.toUpperCase();
+      if (description !== undefined) updateData.description = description;
+      if (discountType !== undefined) updateData.discountType = discountType;
+      if (discountValue !== undefined) updateData.discountValue = String(discountValue);
+      if (minBookingAmount !== undefined) updateData.minBookingAmount = minBookingAmount ? String(minBookingAmount) : null;
+      if (maxDiscountAmount !== undefined) updateData.maxDiscountAmount = maxDiscountAmount ? String(maxDiscountAmount) : null;
+      if (usageLimit !== undefined) updateData.usageLimit = usageLimit;
+      if (validFrom !== undefined) updateData.validFrom = validFrom;
+      if (validTo !== undefined) updateData.validTo = validTo;
+      if (applicableRoomIds !== undefined) updateData.applicableRoomIds = applicableRoomIds;
+      if (isActive !== undefined) updateData.isActive = isActive;
+
+      const updatedPromoCode = await storage.updatePromoCode(id, updateData);
+      
+      if (!updatedPromoCode) {
+        return res.status(404).json({ message: "Promo code not found" });
+      }
+
+      res.json(updatedPromoCode);
+    } catch (error: any) {
+      res.status(500).json({ message: "Error updating promo code: " + error.message });
+    }
+  });
+
+  app.put("/api/admin/promo-codes/:id/toggle", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { isActive } = req.body;
+
+      if (typeof isActive !== 'boolean') {
+        return res.status(400).json({ message: "isActive must be a boolean" });
+      }
+
+      const success = await storage.togglePromoCodeStatus(id, isActive);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Promo code not found" });
+      }
+
+      res.json({ success: true, isActive });
+    } catch (error: any) {
+      res.status(500).json({ message: "Error toggling promo code status: " + error.message });
+    }
+  });
+
   // Admin routes for ID verification
   app.get("/api/admin/id-verifications", requireAuth, requireAdmin, async (req, res) => {
     try {

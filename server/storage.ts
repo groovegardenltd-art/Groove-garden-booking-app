@@ -31,7 +31,11 @@ export interface IStorage {
   cancelBooking(id: number): Promise<boolean>;
 
   // Promo code methods
+  getAllPromoCodes(): Promise<PromoCode[]>;
   getPromoCodeByCode(code: string): Promise<PromoCode | undefined>;
+  createPromoCode(promoCode: InsertPromoCode): Promise<PromoCode>;
+  updatePromoCode(id: number, data: Partial<PromoCode>): Promise<PromoCode | undefined>;
+  togglePromoCodeStatus(id: number, isActive: boolean): Promise<boolean>;
   validatePromoCode(code: string, bookingAmount: number, roomId?: number): Promise<{ valid: boolean; promoCode?: PromoCode; error?: string }>;
   incrementPromoCodeUsage(promoCodeId: number): Promise<void>;
 
@@ -241,13 +245,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPromoCodeByCode(code: string): Promise<PromoCode | undefined> {
-    const upperCode = code.toUpperCase();
-    console.log('[DEBUG] Looking for promo code:', upperCode);
     const [promoCode] = await db
       .select()
       .from(promoCodes)
-      .where(eq(promoCodes.code, upperCode));
-    console.log('[DEBUG] Found promo code:', promoCode ? 'YES' : 'NO', promoCode);
+      .where(eq(promoCodes.code, code.toUpperCase()));
     return promoCode || undefined;
   }
 
@@ -298,6 +299,36 @@ export class DatabaseStorage implements IStorage {
         .set({ currentUsage: currentCode.currentUsage + 1 })
         .where(eq(promoCodes.id, promoCodeId));
     }
+  }
+
+  async getAllPromoCodes(): Promise<PromoCode[]> {
+    return await db.select().from(promoCodes).orderBy(promoCodes.createdAt);
+  }
+
+  async createPromoCode(promoCode: InsertPromoCode): Promise<PromoCode> {
+    const [newPromoCode] = await db
+      .insert(promoCodes)
+      .values(promoCode)
+      .returning();
+    return newPromoCode;
+  }
+
+  async updatePromoCode(id: number, data: Partial<PromoCode>): Promise<PromoCode | undefined> {
+    const [updatedPromoCode] = await db
+      .update(promoCodes)
+      .set(data)
+      .where(eq(promoCodes.id, id))
+      .returning();
+    return updatedPromoCode || undefined;
+  }
+
+  async togglePromoCodeStatus(id: number, isActive: boolean): Promise<boolean> {
+    const result = await db
+      .update(promoCodes)
+      .set({ isActive })
+      .where(eq(promoCodes.id, id))
+      .returning();
+    return result.length > 0;
   }
 
   async setUserResetToken(userId: number, resetToken: string, expiryDate: Date): Promise<boolean> {
