@@ -1277,13 +1277,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { code, description, discountType, discountValue, minBookingAmount, maxDiscountAmount, usageLimit, validFrom, validTo, applicableRoomIds } = req.body;
 
+      console.log('[PROMO CODE] Creating promo code with data:', {
+        code,
+        description,
+        discountType,
+        discountValue: typeof discountValue,
+        minBookingAmount: typeof minBookingAmount,
+        maxDiscountAmount: typeof maxDiscountAmount,
+        usageLimit,
+        validFrom,
+        validTo,
+        applicableRoomIds
+      });
+
       if (!code || !discountType || !discountValue) {
         return res.status(400).json({ message: "Code, discount type, and discount value are required" });
       }
 
       const newPromoCode = await storage.createPromoCode({
         code: code.toUpperCase(),
-        description,
+        description: description || null,
         discountType,
         discountValue: String(discountValue),
         minBookingAmount: minBookingAmount ? String(minBookingAmount) : null,
@@ -1295,8 +1308,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive: true,
       });
 
+      console.log('[PROMO CODE] Successfully created:', newPromoCode);
       res.json(newPromoCode);
     } catch (error: any) {
+      console.error('[PROMO CODE] Error creating promo code:', error);
       res.status(500).json({ message: "Error creating promo code: " + error.message });
     }
   });
