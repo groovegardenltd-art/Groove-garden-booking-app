@@ -999,12 +999,18 @@ function PromoCodeManagement() {
     setEditingPromoCode(promoCode);
     
     // Convert timestamp to datetime-local format (YYYY-MM-DDTHH:mm)
-    const formatDateTimeLocal = (dateValue: string | null) => {
+    const formatDateTimeLocal = (dateValue: string | null | undefined) => {
       if (!dateValue) return '';
-      const date = new Date(dateValue);
-      if (isNaN(date.getTime())) return '';
-      // Format: YYYY-MM-DDTHH:mm (datetime-local format)
-      return date.toISOString().slice(0, 16);
+      try {
+        // Handle both string and Date object types
+        const date = typeof dateValue === 'string' ? new Date(dateValue) : new Date();
+        if (isNaN(date.getTime())) return '';
+        // Format: YYYY-MM-DDTHH:mm (datetime-local format)
+        return date.toISOString().slice(0, 16);
+      } catch (error) {
+        console.error('Error formatting date:', error, dateValue);
+        return '';
+      }
     };
     
     setFormData({
@@ -1306,9 +1312,23 @@ function PromoCodeManagement() {
                       </div>
                       {(promo.validFrom || promo.validTo) && (
                         <div className="text-xs text-gray-500 mt-1">
-                          {promo.validFrom && `From ${new Date(promo.validFrom).toLocaleDateString()}`}
+                          {promo.validFrom && (() => {
+                            try {
+                              const date = new Date(promo.validFrom);
+                              return `From ${date.toLocaleDateString()}`;
+                            } catch {
+                              return '';
+                            }
+                          })()}
                           {promo.validFrom && promo.validTo && ' - '}
-                          {promo.validTo && `To ${new Date(promo.validTo).toLocaleDateString()}`}
+                          {promo.validTo && (() => {
+                            try {
+                              const date = new Date(promo.validTo);
+                              return `To ${date.toLocaleDateString()}`;
+                            } catch {
+                              return '';
+                            }
+                          })()}
                         </div>
                       )}
                     </div>
