@@ -922,10 +922,8 @@ function PromoCodeManagement() {
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest('/api/admin/promo-codes', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+      const res = await apiRequest('POST', '/api/admin/promo-codes', data);
+      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/promo-codes'] });
@@ -944,10 +942,8 @@ function PromoCodeManagement() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      return await apiRequest(`/api/admin/promo-codes/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      });
+      const res = await apiRequest('PUT', `/api/admin/promo-codes/${id}`, data);
+      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/promo-codes'] });
@@ -966,10 +962,8 @@ function PromoCodeManagement() {
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
-      return await apiRequest(`/api/admin/promo-codes/${id}/toggle`, {
-        method: 'PUT',
-        body: JSON.stringify({ isActive }),
-      });
+      const res = await apiRequest('PUT', `/api/admin/promo-codes/${id}/toggle`, { isActive });
+      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/promo-codes'] });
