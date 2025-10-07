@@ -1277,22 +1277,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { code, description, discountType, discountValue, minBookingAmount, maxDiscountAmount, usageLimit, validFrom, validTo, applicableRoomIds } = req.body;
 
-      console.log('[PROMO CODE] Creating promo code with data:', {
-        code,
-        description,
-        discountType,
-        discountValue: typeof discountValue,
-        minBookingAmount: typeof minBookingAmount,
-        maxDiscountAmount: typeof maxDiscountAmount,
-        usageLimit,
-        validFrom,
-        validTo,
-        applicableRoomIds
-      });
-
       if (!code || !discountType || !discountValue) {
         return res.status(400).json({ message: "Code, discount type, and discount value are required" });
       }
+
+      // Convert datetime-local strings to proper Date objects for PostgreSQL
+      const parseDateTime = (dateTimeStr: string | null | undefined): Date | null => {
+        if (!dateTimeStr) return null;
+        try {
+          const date = new Date(dateTimeStr);
+          return isNaN(date.getTime()) ? null : date;
+        } catch {
+          return null;
+        }
+      };
 
       const newPromoCode = await storage.createPromoCode({
         code: code.toUpperCase(),
@@ -1302,13 +1300,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         minBookingAmount: minBookingAmount ? String(minBookingAmount) : null,
         maxDiscountAmount: maxDiscountAmount ? String(maxDiscountAmount) : null,
         usageLimit: usageLimit || null,
-        validFrom: validFrom || null,
-        validTo: validTo || null,
+        validFrom: parseDateTime(validFrom),
+        validTo: parseDateTime(validTo),
         applicableRoomIds: applicableRoomIds || null,
         isActive: true,
       });
 
-      console.log('[PROMO CODE] Successfully created:', newPromoCode);
       res.json(newPromoCode);
     } catch (error: any) {
       console.error('[PROMO CODE] Error creating promo code:', error);
@@ -1321,6 +1318,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const { code, description, discountType, discountValue, minBookingAmount, maxDiscountAmount, usageLimit, validFrom, validTo, applicableRoomIds, isActive } = req.body;
 
+      // Convert datetime-local strings to proper Date objects for PostgreSQL
+      const parseDateTime = (dateTimeStr: string | null | undefined): Date | null => {
+        if (!dateTimeStr) return null;
+        try {
+          const date = new Date(dateTimeStr);
+          return isNaN(date.getTime()) ? null : date;
+        } catch {
+          return null;
+        }
+      };
+
       const updateData: Partial<any> = {};
       if (code !== undefined) updateData.code = code.toUpperCase();
       if (description !== undefined) updateData.description = description;
@@ -1329,8 +1337,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (minBookingAmount !== undefined) updateData.minBookingAmount = minBookingAmount ? String(minBookingAmount) : null;
       if (maxDiscountAmount !== undefined) updateData.maxDiscountAmount = maxDiscountAmount ? String(maxDiscountAmount) : null;
       if (usageLimit !== undefined) updateData.usageLimit = usageLimit;
-      if (validFrom !== undefined) updateData.validFrom = validFrom;
-      if (validTo !== undefined) updateData.validTo = validTo;
+      if (validFrom !== undefined) updateData.validFrom = parseDateTime(validFrom);
+      if (validTo !== undefined) updateData.validTo = parseDateTime(validTo);
       if (applicableRoomIds !== undefined) updateData.applicableRoomIds = applicableRoomIds;
       if (isActive !== undefined) updateData.isActive = isActive;
 
@@ -1342,6 +1350,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(updatedPromoCode);
     } catch (error: any) {
+      console.error('[PROMO CODE] Error updating promo code:', error);
       res.status(500).json({ message: "Error updating promo code: " + error.message });
     }
   });
