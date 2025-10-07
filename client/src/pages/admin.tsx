@@ -997,6 +997,16 @@ function PromoCodeManagement() {
 
   const handleEdit = (promoCode: PromoCode) => {
     setEditingPromoCode(promoCode);
+    
+    // Convert timestamp to datetime-local format (YYYY-MM-DDTHH:mm)
+    const formatDateTimeLocal = (dateValue: string | null) => {
+      if (!dateValue) return '';
+      const date = new Date(dateValue);
+      if (isNaN(date.getTime())) return '';
+      // Format: YYYY-MM-DDTHH:mm (datetime-local format)
+      return date.toISOString().slice(0, 16);
+    };
+    
     setFormData({
       code: promoCode.code,
       description: promoCode.description || '',
@@ -1005,8 +1015,8 @@ function PromoCodeManagement() {
       minBookingAmount: promoCode.minBookingAmount || '',
       maxDiscountAmount: promoCode.maxDiscountAmount || '',
       usageLimit: promoCode.usageLimit?.toString() || '',
-      validFrom: promoCode.validFrom || '',
-      validTo: promoCode.validTo || '',
+      validFrom: formatDateTimeLocal(promoCode.validFrom),
+      validTo: formatDateTimeLocal(promoCode.validTo),
       applicableRoomIds: promoCode.applicableRoomIds || [],
       isActive: promoCode.isActive,
     });
