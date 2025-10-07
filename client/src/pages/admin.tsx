@@ -50,6 +50,23 @@ interface Room {
   description: string;
 }
 
+interface PromoCode {
+  id: number;
+  code: string;
+  description: string | null;
+  discountType: 'percentage' | 'fixed';
+  discountValue: string;
+  minBookingAmount: string | null;
+  maxDiscountAmount: string | null;
+  usageLimit: number | null;
+  currentUsage: number;
+  validFrom: string | null;
+  validTo: string | null;
+  applicableRoomIds: number[] | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
 interface AdminBooking {
   id: number;
   userId: number;
@@ -717,6 +734,9 @@ export default function Admin() {
           </Card>
         </div>
 
+        {/* Promo Code Management */}
+        <PromoCodeManagement />
+
         {/* ID Verification Reviews */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
@@ -869,6 +889,451 @@ export default function Admin() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function PromoCodeManagement() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingPromoCode, setEditingPromoCode] = useState<PromoCode | null>(null);
+  const [formData, setFormData] = useState({
+    code: '',
+    description: '',
+    discountType: 'percentage' as 'percentage' | 'fixed',
+    discountValue: '',
+    minBookingAmount: '',
+    maxDiscountAmount: '',
+    usageLimit: '',
+    validFrom: '',
+    validTo: '',
+    applicableRoomIds: [] as number[],
+    isActive: true,
+  });
+
+  const { data: promoCodes, isLoading } = useQuery<PromoCode[]>({
+    queryKey: ['/api/admin/promo-codes'],
+  });
+
+  const { data: rooms } = useQuery<Room[]>({
+    queryKey: ['/api/rooms'],
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return await apiRequest('/api/admin/promo-codes', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/promo-codes'] });
+      toast({ title: "Promo code created successfully" });
+      setIsDialogOpen(false);
+      resetForm();
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error creating promo code", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      return await apiRequest(`/api/admin/promo-codes/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/promo-codes'] });
+      toast({ title: "Promo code updated successfully" });
+      setIsDialogOpen(false);
+      resetForm();
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error updating promo code", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
+      return await apiRequest(`/api/admin/promo-codes/${id}/toggle`, {
+        method: 'PUT',
+        body: JSON.stringify({ isActive }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/promo-codes'] });
+      toast({ title: "Promo code status updated" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error updating status", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const resetForm = () => {
+    setFormData({
+      code: '',
+      description: '',
+      discountType: 'percentage',
+      discountValue: '',
+      minBookingAmount: '',
+      maxDiscountAmount: '',
+      usageLimit: '',
+      validFrom: '',
+      validTo: '',
+      applicableRoomIds: [],
+      isActive: true,
+    });
+    setEditingPromoCode(null);
+  };
+
+  const handleEdit = (promoCode: PromoCode) => {
+    setEditingPromoCode(promoCode);
+    setFormData({
+      code: promoCode.code,
+      description: promoCode.description || '',
+      discountType: promoCode.discountType,
+      discountValue: promoCode.discountValue,
+      minBookingAmount: promoCode.minBookingAmount || '',
+      maxDiscountAmount: promoCode.maxDiscountAmount || '',
+      usageLimit: promoCode.usageLimit?.toString() || '',
+      validFrom: promoCode.validFrom || '',
+      validTo: promoCode.validTo || '',
+      applicableRoomIds: promoCode.applicableRoomIds || [],
+      isActive: promoCode.isActive,
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const submitData = {
+      ...formData,
+      discountValue: parseFloat(formData.discountValue),
+      minBookingAmount: formData.minBookingAmount ? parseFloat(formData.minBookingAmount) : undefined,
+      maxDiscountAmount: formData.maxDiscountAmount ? parseFloat(formData.maxDiscountAmount) : undefined,
+      usageLimit: formData.usageLimit ? parseInt(formData.usageLimit) : undefined,
+      validFrom: formData.validFrom || undefined,
+      validTo: formData.validTo || undefined,
+      applicableRoomIds: formData.applicableRoomIds.length > 0 ? formData.applicableRoomIds : undefined,
+    };
+
+    if (editingPromoCode) {
+      updateMutation.mutate({ id: editingPromoCode.id, data: submitData });
+    } else {
+      createMutation.mutate(submitData);
+    }
+  };
+
+  const handleToggleRoom = (roomId: number) => {
+    setFormData(prev => ({
+      ...prev,
+      applicableRoomIds: prev.applicableRoomIds.includes(roomId)
+        ? prev.applicableRoomIds.filter(id => id !== roomId)
+        : [...prev.applicableRoomIds, roomId]
+    }));
+  };
+
+  return (
+    <div className="mb-8" data-testid="section-promo-codes">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-green-500" />
+              Promo Codes
+            </CardTitle>
+            <Dialog open={isDialogOpen} onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              if (!open) resetForm();
+            }}>
+              <DialogTrigger asChild>
+                <Button data-testid="button-create-promo-code">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Promo Code
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>{editingPromoCode ? 'Edit Promo Code' : 'Create New Promo Code'}</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="code">Code *</Label>
+                      <Input
+                        id="code"
+                        value={formData.code}
+                        onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                        placeholder="SAVE10"
+                        required
+                        data-testid="input-promo-code"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="discountType">Discount Type *</Label>
+                      <Select
+                        value={formData.discountType}
+                        onValueChange={(value: 'percentage' | 'fixed') => setFormData({ ...formData, discountType: value })}
+                      >
+                        <SelectTrigger data-testid="select-discount-type">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="percentage">Percentage (%)</SelectItem>
+                          <SelectItem value="fixed">Fixed Amount (£)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="discountValue">
+                        Discount Value * {formData.discountType === 'percentage' ? '(%)' : '(£)'}
+                      </Label>
+                      <Input
+                        id="discountValue"
+                        type="number"
+                        step="0.01"
+                        value={formData.discountValue}
+                        onChange={(e) => setFormData({ ...formData, discountValue: e.target.value })}
+                        placeholder={formData.discountType === 'percentage' ? '10' : '5.00'}
+                        required
+                        data-testid="input-discount-value"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="usageLimit">Usage Limit (optional)</Label>
+                      <Input
+                        id="usageLimit"
+                        type="number"
+                        value={formData.usageLimit}
+                        onChange={(e) => setFormData({ ...formData, usageLimit: e.target.value })}
+                        placeholder="Unlimited"
+                        data-testid="input-usage-limit"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description (optional)</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="October promotion - 10% off all bookings"
+                      data-testid="textarea-description"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="minBookingAmount">Min Booking Amount (£)</Label>
+                      <Input
+                        id="minBookingAmount"
+                        type="number"
+                        step="0.01"
+                        value={formData.minBookingAmount}
+                        onChange={(e) => setFormData({ ...formData, minBookingAmount: e.target.value })}
+                        placeholder="0.00"
+                        data-testid="input-min-amount"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="maxDiscountAmount">Max Discount (£)</Label>
+                      <Input
+                        id="maxDiscountAmount"
+                        type="number"
+                        step="0.01"
+                        value={formData.maxDiscountAmount}
+                        onChange={(e) => setFormData({ ...formData, maxDiscountAmount: e.target.value })}
+                        placeholder="No limit"
+                        data-testid="input-max-discount"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="validFrom">Valid From (optional)</Label>
+                      <Input
+                        id="validFrom"
+                        type="datetime-local"
+                        value={formData.validFrom}
+                        onChange={(e) => setFormData({ ...formData, validFrom: e.target.value })}
+                        data-testid="input-valid-from"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="validTo">Valid To (optional)</Label>
+                      <Input
+                        id="validTo"
+                        type="datetime-local"
+                        value={formData.validTo}
+                        onChange={(e) => setFormData({ ...formData, validTo: e.target.value })}
+                        data-testid="input-valid-to"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Applicable Rooms (leave blank for all)</Label>
+                    <div className="space-y-2">
+                      {rooms?.map(room => (
+                        <div key={room.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`room-${room.id}`}
+                            checked={formData.applicableRoomIds.includes(room.id)}
+                            onCheckedChange={() => handleToggleRoom(room.id)}
+                            data-testid={`checkbox-room-${room.id}`}
+                          />
+                          <label htmlFor={`room-${room.id}`} className="text-sm cursor-pointer">
+                            {room.name}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="isActive"
+                      checked={formData.isActive}
+                      onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked as boolean })}
+                      data-testid="checkbox-is-active"
+                    />
+                    <label htmlFor="isActive" className="text-sm cursor-pointer">
+                      Active (users can use this code)
+                    </label>
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setIsDialogOpen(false);
+                        resetForm();
+                      }}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={createMutation.isPending || updateMutation.isPending}
+                      className="flex-1"
+                      data-testid="button-submit-promo-code"
+                    >
+                      {createMutation.isPending || updateMutation.isPending 
+                        ? 'Saving...' 
+                        : editingPromoCode ? 'Update' : 'Create'}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-500"></div>
+              <span className="ml-3 text-gray-600">Loading promo codes...</span>
+            </div>
+          ) : !promoCodes || promoCodes.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <CreditCard className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>No promo codes yet. Create one to get started!</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {promoCodes.map((promo) => (
+                <div
+                  key={promo.id}
+                  className="border rounded-lg p-4 bg-gray-50"
+                  data-testid={`promo-code-${promo.id}`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="font-mono font-bold text-lg" data-testid={`text-code-${promo.id}`}>
+                          {promo.code}
+                        </span>
+                        <Badge variant={promo.isActive ? "default" : "secondary"} data-testid={`badge-status-${promo.id}`}>
+                          {promo.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                        {promo.usageLimit && (
+                          <Badge variant="outline" data-testid={`badge-usage-${promo.id}`}>
+                            {promo.currentUsage}/{promo.usageLimit} used
+                          </Badge>
+                        )}
+                      </div>
+                      {promo.description && (
+                        <p className="text-sm text-gray-600 mb-2">{promo.description}</p>
+                      )}
+                      <div className="text-sm text-gray-700">
+                        <span className="font-medium">
+                          {promo.discountType === 'percentage' 
+                            ? `${promo.discountValue}% off` 
+                            : `£${parseFloat(promo.discountValue).toFixed(2)} off`}
+                        </span>
+                        {promo.minBookingAmount && (
+                          <span className="ml-2 text-gray-500">
+                            (min £{parseFloat(promo.minBookingAmount).toFixed(2)})
+                          </span>
+                        )}
+                      </div>
+                      {(promo.validFrom || promo.validTo) && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          {promo.validFrom && `From ${new Date(promo.validFrom).toLocaleDateString()}`}
+                          {promo.validFrom && promo.validTo && ' - '}
+                          {promo.validTo && `To ${new Date(promo.validTo).toLocaleDateString()}`}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(promo)}
+                        data-testid={`button-edit-${promo.id}`}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant={promo.isActive ? "destructive" : "default"}
+                        size="sm"
+                        onClick={() => toggleMutation.mutate({ id: promo.id, isActive: !promo.isActive })}
+                        disabled={toggleMutation.isPending}
+                        data-testid={`button-toggle-${promo.id}`}
+                      >
+                        {promo.isActive ? 'Deactivate' : 'Activate'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
