@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Clock, User, FileText, Shield, CalendarX, Plus, Trash2, Repeat, Calendar, MapPin, CreditCard, Phone, Mail, List, Grid3X3 } from "lucide-react";
+import { CheckCircle, XCircle, Clock, User, FileText, Shield, CalendarX, Plus, Trash2, Repeat, Calendar, MapPin, CreditCard, Phone, Mail, List, Grid3X3, ChevronRight } from "lucide-react";
 import { AdminCalendar } from "@/components/admin-calendar";
 import { getAuthState } from "@/lib/auth";
 import { useLocation } from "wouter";
@@ -129,6 +129,7 @@ export default function Admin() {
   const [blockSlotDialogOpen, setBlockSlotDialogOpen] = useState(false);
   const [bookingsViewMode, setBookingsViewMode] = useState<"calendar" | "list">("calendar");
   const [showCleanupConfirm, setShowCleanupConfirm] = useState(false);
+  const [expandedRecurringBlocks, setExpandedRecurringBlocks] = useState<Set<number>>(new Set());
   const [blockSlotData, setBlockSlotData] = useState({
     roomId: "",
     date: "",
@@ -321,6 +322,18 @@ export default function Admin() {
     if (!rooms || !Array.isArray(rooms)) return `Room ${roomId}`;
     const room = rooms.find((r: Room) => r.id === roomId);
     return room?.name || `Room ${roomId}`;
+  };
+
+  const toggleRecurringBlock = (blockId: number) => {
+    setExpandedRecurringBlocks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(blockId)) {
+        newSet.delete(blockId);
+      } else {
+        newSet.add(blockId);
+      }
+      return newSet;
+    });
   };
 
   const getIdTypeLabel = (idType: string) => {
@@ -752,6 +765,17 @@ export default function Admin() {
                       const isParentBlock = slot.isRecurring && slot.parentBlockId === null;
                       const isChildBlock = slot.isRecurring && slot.parentBlockId !== null;
                       
+                      // If this is a child block and parent is not expanded, don't render it
+                      if (isChildBlock && !expandedRecurringBlocks.has(slot.parentBlockId!)) {
+                        return null;
+                      }
+                      
+                      // Count child blocks for this parent (only for collapsed state display)
+                      const childCount = isParentBlock 
+                        ? blockedSlots.filter((s: BlockedSlot) => s.parentBlockId === slot.id).length 
+                        : 0;
+                      const isExpanded = expandedRecurringBlocks.has(slot.id);
+                      
                       return (
                         <div 
                           key={slot.id} 
@@ -763,8 +787,19 @@ export default function Admin() {
                                 : 'border-red-200 bg-red-50'
                           }`}
                         >
-                          <div>
+                          <div className="flex-1">
                             <div className="flex items-center gap-4 text-sm">
+                              {isParentBlock && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => toggleRecurringBlock(slot.id)}
+                                  className="p-0 h-auto hover:bg-transparent"
+                                  data-testid={`toggle-recurring-${slot.id}`}
+                                >
+                                  <ChevronRight className={`h-4 w-4 text-purple-600 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                                </Button>
+                              )}
                               <Badge variant="secondary" className={
                                 isParentBlock 
                                   ? "bg-purple-100 text-purple-800" 
@@ -776,10 +811,17 @@ export default function Admin() {
                               <span>{slot.startTime} - {slot.endTime}</span>
                               
                               {isParentBlock && (
-                                <Badge variant="outline" className="bg-white text-purple-700 border-purple-300">
-                                  <Repeat className="h-3 w-3 mr-1" />
-                                  Weekly until {slot.recurringUntil}
-                                </Badge>
+                                <>
+                                  <Badge variant="outline" className="bg-white text-purple-700 border-purple-300">
+                                    <Repeat className="h-3 w-3 mr-1" />
+                                    Weekly until {slot.recurringUntil}
+                                  </Badge>
+                                  {!isExpanded && childCount > 0 && (
+                                    <Badge variant="outline" className="bg-white text-gray-600 border-gray-300">
+                                      {childCount} more
+                                    </Badge>
+                                  )}
+                                </>
                               )}
                               
                               {isChildBlock && (
