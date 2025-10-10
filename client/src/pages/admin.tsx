@@ -121,8 +121,14 @@ export default function Admin() {
     refetchInterval: 60000, // Refresh every minute
   });
 
+  const { data: oldBookingsData } = useQuery<{ count: number; daysOld: number }>({
+    queryKey: ["/api/admin/bookings/old-count"],
+    enabled: !!isAuthorized,
+  });
+
   const [blockSlotDialogOpen, setBlockSlotDialogOpen] = useState(false);
   const [bookingsViewMode, setBookingsViewMode] = useState<"calendar" | "list">("calendar");
+  const [showCleanupConfirm, setShowCleanupConfirm] = useState(false);
   const [blockSlotData, setBlockSlotData] = useState({
     roomId: "",
     date: "",
@@ -211,6 +217,29 @@ export default function Admin() {
       toast({
         title: "❌ Failed to Remove Block",
         description: "Failed to remove the time slot block. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deleteOldBookingsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("DELETE", "/api/admin/bookings/old");
+      return response as { deletedCount: number; daysOld: number };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/bookings/old-count"] });
+      setShowCleanupConfirm(false);
+      toast({
+        title: "✅ Cleanup Complete",
+        description: `Deleted ${data.deletedCount} bookings older than ${data.daysOld} days.`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "❌ Cleanup Failed",
+        description: "Failed to delete old bookings. Please try again.",
         variant: "destructive",
       });
     }
@@ -404,6 +433,52 @@ export default function Admin() {
                   {bookingsViewMode === "calendar" ? "Bookings Calendar" : "Recent Bookings"}
                 </CardTitle>
                 <div className="flex items-center gap-2">
+                  {oldBookingsData && oldBookingsData.count > 0 && (
+                    <Dialog open={showCleanupConfirm} onOpenChange={setShowCleanupConfirm}>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                          data-testid="button-cleanup-old-bookings"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Clean Up ({oldBookingsData.count})
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Delete Old Bookings</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <p className="text-gray-600">
+                            This will permanently delete <strong>{oldBookingsData.count} bookings</strong> that are older than {oldBookingsData.daysOld} days.
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            This action cannot be undone. The automatic cleanup runs daily to keep your database clean.
+                          </p>
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => deleteOldBookingsMutation.mutate()}
+                              disabled={deleteOldBookingsMutation.isPending}
+                              className="flex-1 bg-red-600 hover:bg-red-700"
+                              data-testid="button-confirm-cleanup"
+                            >
+                              {deleteOldBookingsMutation.isPending ? "Deleting..." : "Delete Old Bookings"}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => setShowCleanupConfirm(false)}
+                              className="flex-1"
+                              data-testid="button-cancel-cleanup"
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  )}
                   <Button
                     variant={bookingsViewMode === "calendar" ? "default" : "outline"}
                     size="sm"
