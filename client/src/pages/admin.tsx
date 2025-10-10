@@ -765,21 +765,19 @@ export default function Admin() {
                       const isParentBlock = slot.isRecurring && slot.parentBlockId === null;
                       const isChildBlock = slot.isRecurring && slot.parentBlockId !== null;
                       
-                      // If this is a child block and parent is not expanded, don't render it
-                      if (isChildBlock && !expandedRecurringBlocks.has(slot.parentBlockId!)) {
-                        return null;
-                      }
-                      
                       // Count child blocks for this parent (only for collapsed state display)
                       const childCount = isParentBlock 
-                        ? blockedSlots.filter((s: BlockedSlot) => s.parentBlockId === slot.id).length 
+                        ? blockedSlots.filter((s: BlockedSlot) => s.parentBlockId === slot.id && new Date(s.date) >= new Date(new Date().setHours(0, 0, 0, 0))).length 
                         : 0;
                       const isExpanded = expandedRecurringBlocks.has(slot.id);
+                      
+                      // Hide child blocks if parent is not expanded
+                      const shouldHide = isChildBlock && !expandedRecurringBlocks.has(slot.parentBlockId!);
                       
                       return (
                         <div 
                           key={slot.id} 
-                          className={`flex items-center justify-between p-3 border rounded-lg ${
+                          className={`flex items-center justify-between p-3 border rounded-lg ${shouldHide ? 'hidden' : ''} ${
                             isParentBlock 
                               ? 'border-purple-300 bg-purple-50' 
                               : isChildBlock 
