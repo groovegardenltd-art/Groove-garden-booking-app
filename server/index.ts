@@ -56,6 +56,27 @@ app.use((req, res, next) => {
       log("⚠️ Admin seeding failed:", errorMessage);
     }
 
+    // Automatic cleanup of old bookings - runs daily
+    const cleanupOldBookings = async () => {
+      try {
+        const { storage } = await import('./storage');
+        const daysOld = 30;
+        const deletedCount = await storage.deleteOldBookings(daysOld);
+        if (deletedCount > 0) {
+          log(`🗑️ Automatic cleanup: Deleted ${deletedCount} bookings older than ${daysOld} days`);
+        }
+      } catch (error) {
+        log("⚠️ Automatic booking cleanup failed:", String(error));
+      }
+    };
+
+    // Run cleanup immediately on startup
+    await cleanupOldBookings();
+
+    // Schedule cleanup to run daily (every 24 hours)
+    const DAILY_MS = 24 * 60 * 60 * 1000;
+    setInterval(cleanupOldBookings, DAILY_MS);
+
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";

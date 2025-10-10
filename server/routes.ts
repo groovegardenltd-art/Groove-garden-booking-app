@@ -1198,6 +1198,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin routes for booking cleanup
+  app.get("/api/admin/bookings/old-count", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const daysOld = parseInt(req.query.days as string) || 30;
+      const count = await storage.getOldBookingsCount(daysOld);
+      res.json({ count, daysOld });
+    } catch (error: any) {
+      console.error('[ADMIN] Error getting old bookings count:', error);
+      res.status(500).json({ message: "Error getting old bookings count: " + error.message });
+    }
+  });
+
+  app.delete("/api/admin/bookings/old", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const daysOld = parseInt(req.query.days as string) || 30;
+      const deletedCount = await storage.deleteOldBookings(daysOld);
+      console.log(`[ADMIN] Deleted ${deletedCount} bookings older than ${daysOld} days`);
+      res.json({ deletedCount, daysOld });
+    } catch (error: any) {
+      console.error('[ADMIN] Error deleting old bookings:', error);
+      res.status(500).json({ message: "Error deleting old bookings: " + error.message });
+    }
+  });
+
   // Admin routes for bookings overview
   app.get("/api/admin/bookings", requireAuth, requireAdmin, async (req, res) => {
     try {

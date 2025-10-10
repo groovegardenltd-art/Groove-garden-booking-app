@@ -1,6 +1,6 @@
 import { users, rooms, bookings, promoCodes, blockedSlots, type User, type InsertUser, type Room, type InsertRoom, type Booking, type InsertBooking, type BookingWithRoom, type PromoCode, type InsertPromoCode, type BlockedSlot, type InsertBlockedSlot } from "@shared/schema";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, lt, sql } from "drizzle-orm";
 import { hashPassword } from "./password-utils";
 
 export interface IStorage {
@@ -29,6 +29,8 @@ export interface IStorage {
   updateBookingStatus(id: number, status: string): Promise<Booking | undefined>;
   updateBookingLockAccess(id: number, lockAccessEnabled: boolean): Promise<boolean>;
   cancelBooking(id: number): Promise<boolean>;
+  getOldBookingsCount(daysOld: number): Promise<number>;
+  deleteOldBookings(daysOld: number): Promise<number>;
 
   // Promo code methods
   getAllPromoCodes(): Promise<PromoCode[]>;
@@ -242,6 +244,32 @@ export class DatabaseStorage implements IStorage {
       .where(eq(bookings.id, id))
       .returning();
     return result.length > 0;
+  }
+
+  async getOldBookingsCount(daysOld: number): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysOld);
+    const cutoffDateString = cutoffDate.toISOString().split('T')[0];
+
+    const result = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(bookings)
+      .where(lt(bookings.date, cutoffDateString));
+    
+    return result[0]?.count || 0;
+  }
+
+  async deleteOldBookings(daysOld: number): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysOld);
+    const cutoffDateString = cutoffDate.toISOString().split('T')[0];
+
+    const result = await db
+      .delete(bookings)
+      .where(lt(bookings.date, cutoffDateString))
+      .returning();
+    
+    return result.length;
   }
 
   async getPromoCodeByCode(code: string): Promise<PromoCode | undefined> {
