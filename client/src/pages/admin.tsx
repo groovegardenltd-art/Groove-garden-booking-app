@@ -733,6 +733,13 @@ export default function Admin() {
               ) : (
                 <div className="space-y-3">
                   {Array.isArray(blockedSlots) && blockedSlots
+                    .filter((slot: BlockedSlot) => {
+                      // Only show current and future blocked slots
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      const slotDate = new Date(slot.date);
+                      return slotDate >= today;
+                    })
                     .sort((a, b) => {
                       // Sort by date first, then by isRecurring (parent blocks first)
                       const dateCompare = a.date.localeCompare(b.date);
