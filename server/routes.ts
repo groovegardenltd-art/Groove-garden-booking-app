@@ -214,6 +214,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { idPhotoBase64, selfiePhotoBase64, ...userData } = req.body;
       const parsedUserData = insertUserSchema.parse(userData);
       
+      // Normalize email to lowercase for consistent storage
+      parsedUserData.email = parsedUserData.email.toLowerCase().trim();
+      
       // Check if user already exists
       const existingUser = await storage.getUserByUsername(parsedUserData.username);
       if (existingUser) {
@@ -277,11 +280,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { usernameOrEmail, password } = loginSchema.parse(req.body);
       
-      // Try to find user by username first, then by email
-      let user = await storage.getUserByUsername(usernameOrEmail);
+      // Normalize the input for case-insensitive matching
+      const normalizedInput = usernameOrEmail.toLowerCase().trim();
+      
+      // Try to find user by username first, then by email (both case-insensitive)
+      let user = await storage.getUserByUsername(usernameOrEmail); // Username stays as-is (case-sensitive)
       if (!user) {
-        // If not found by username, try by email
-        user = await storage.getUserByEmail(usernameOrEmail);
+        // If not found by username, try by email (case-insensitive)
+        user = await storage.getUserByEmail(normalizedInput);
       }
       
       if (!user) {
@@ -347,7 +353,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { email } = forgotPasswordSchema.parse(req.body);
       
-      const user = await storage.getUserByEmail(email);
+      // Normalize email for case-insensitive lookup
+      const normalizedEmail = email.toLowerCase().trim();
+      
+      const user = await storage.getUserByEmail(normalizedEmail);
       if (!user) {
         // Don't reveal if email exists or not for security
         return res.json({ message: "If an account with that email exists, a password reset link has been sent." });
