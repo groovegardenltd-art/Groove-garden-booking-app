@@ -70,12 +70,72 @@ app.use((req, res, next) => {
       }
     };
 
-    // Run cleanup immediately on startup
-    await cleanupOldBookings();
+    // Automatic cleanup of expired TTLock passcodes
+    const cleanupExpiredPasscodes = async () => {
+      try {
+        const { storage } = await import('./storage');
+        const { createTTLockService } = await import('./ttlock');
+        
+        const ttlockService = createTTLockService();
+        if (!ttlockService) {
+          return; // TTLock not configured
+        }
 
-    // Schedule cleanup to run daily (every 24 hours)
+        // Get all bookings that have ended (but are still recent)
+        const allBookings = await storage.getAllBookings();
+        const now = new Date();
+        let cleanedCount = 0;
+
+        for (const booking of allBookings) {
+          // Skip if no TTLock passcode
+          if (!booking.ttlockPasscodeId) continue;
+
+          // Check if booking has ended
+          const [endHours, endMinutes = '00'] = booking.endTime.split(':');
+          const bookingEndDateTime = new Date(booking.date);
+          bookingEndDateTime.setHours(parseInt(endHours), parseInt(endMinutes), 0, 0);
+
+          // If booking ended, delete the passcode
+          if (bookingEndDateTime < now) {
+            try {
+              const room = await storage.getRoom(booking.roomId);
+              
+              // Delete from front door lock
+              if (room?.lockId) {
+                await ttlockService.deletePasscode(room.lockId, parseInt(booking.ttlockPasscodeId));
+                cleanedCount++;
+              }
+
+              // Delete from interior lock if exists
+              if (room?.interiorLockId) {
+                await ttlockService.deletePasscode(room.interiorLockId, parseInt(booking.ttlockPasscodeId));
+              }
+
+              log(`🔒 Cleaned expired passcode for booking ${booking.id} (ended at ${booking.endTime})`);
+            } catch (error) {
+              log(`⚠️ Failed to clean passcode for booking ${booking.id}:`, String(error));
+            }
+          }
+        }
+
+        if (cleanedCount > 0) {
+          log(`🔐 Security cleanup: Removed ${cleanedCount} expired TTLock passcodes`);
+        }
+      } catch (error) {
+        log("⚠️ TTLock passcode cleanup failed:", String(error));
+      }
+    };
+
+    // Run cleanups immediately on startup
+    await cleanupOldBookings();
+    await cleanupExpiredPasscodes();
+
+    // Schedule cleanups to run every hour (for passcodes) and daily (for old bookings)
+    const HOURLY_MS = 60 * 60 * 1000;
     const DAILY_MS = 24 * 60 * 60 * 1000;
-    setInterval(cleanupOldBookings, DAILY_MS);
+    
+    setInterval(cleanupExpiredPasscodes, HOURLY_MS); // Run every hour for security
+    setInterval(cleanupOldBookings, DAILY_MS); // Run daily for old bookings
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
