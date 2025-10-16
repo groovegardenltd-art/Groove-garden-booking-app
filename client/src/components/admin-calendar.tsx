@@ -70,7 +70,7 @@ export function AdminCalendar({ bookings, blockedSlots }: AdminCalendarProps) {
   // Cancel booking mutation
   const cancelBookingMutation = useMutation({
     mutationFn: async (bookingId: number) => {
-      return await apiRequest(`/api/admin/bookings/${bookingId}/cancel`, "PATCH");
+      return await apiRequest("PATCH", `/api/admin/bookings/${bookingId}/cancel`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/bookings"] });
@@ -603,7 +603,7 @@ function EditBookingForm({ booking, onClose }: EditBookingFormProps) {
   // Update booking mutation
   const updateBookingMutation = useMutation({
     mutationFn: async (data: { date: string; startTime: string; endTime: string; duration: number }) => {
-      return await apiRequest(`/api/admin/bookings/${booking.id}`, "PATCH", data);
+      return await apiRequest("PATCH", `/api/admin/bookings/${booking.id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/bookings"] });
