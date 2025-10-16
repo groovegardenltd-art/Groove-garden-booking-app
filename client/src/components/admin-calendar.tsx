@@ -2,8 +2,12 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, Calendar, MapPin, CreditCard, Phone, Mail, User } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, MapPin, CreditCard, Phone, Mail, User, Pencil, Trash2 } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface AdminBooking {
   id: number;
@@ -60,6 +64,31 @@ interface BlockedSlotsByDate {
 export function AdminCalendar({ bookings, blockedSlots }: AdminCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [editingBooking, setEditingBooking] = useState<AdminBooking | null>(null);
+  const { toast } = useToast();
+
+  // Cancel booking mutation
+  const cancelBookingMutation = useMutation({
+    mutationFn: async (bookingId: number) => {
+      await apiRequest(`/api/admin/bookings/${bookingId}/cancel`, {
+        method: "PATCH"
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/bookings"] });
+      toast({
+        title: "Success",
+        description: "Booking cancelled successfully"
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to cancel booking",
+        variant: "destructive"
+      });
+    }
+  });
 
   // Get current month/year for display
   const currentMonth = currentDate.getMonth();
@@ -439,6 +468,52 @@ export function AdminCalendar({ bookings, blockedSlots }: AdminCalendarProps) {
                                 <div>Lock Access: {booking.lockAccessEnabled ? "✅ Enabled" : "❌ Disabled"}</div>
                                 <div>Booked: {formatDateTime(booking.createdAt)}</div>
                                 <div>ID: #{booking.id}</div>
+                              </div>
+                              
+                              {/* Admin Actions */}
+                              <div className="flex gap-2 mt-3">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setEditingBooking(booking)}
+                                  disabled={booking.status === "cancelled"}
+                                  data-testid={`button-edit-booking-${booking.id}`}
+                                >
+                                  <Pencil className="h-3 w-3 mr-1" />
+                                  Edit
+                                </Button>
+                                
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      disabled={booking.status === "cancelled" || cancelBookingMutation.isPending}
+                                      data-testid={`button-cancel-booking-${booking.id}`}
+                                    >
+                                      <Trash2 className="h-3 w-3 mr-1" />
+                                      Cancel
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Cancel Booking?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to cancel this booking for {booking.userName}?
+                                        This will delete the access code and cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>No, Keep Booking</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => cancelBookingMutation.mutate(booking.id)}
+                                        className="bg-red-600 hover:bg-red-700"
+                                      >
+                                        Yes, Cancel Booking
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                               </div>
                             </div>
                           </div>
