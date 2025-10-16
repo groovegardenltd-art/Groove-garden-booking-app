@@ -70,9 +70,7 @@ export function AdminCalendar({ bookings, blockedSlots }: AdminCalendarProps) {
   // Cancel booking mutation
   const cancelBookingMutation = useMutation({
     mutationFn: async (bookingId: number) => {
-      await apiRequest(`/api/admin/bookings/${bookingId}/cancel`, {
-        method: "PATCH"
-      });
+      return await apiRequest(`/api/admin/bookings/${bookingId}/cancel`, "PATCH");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/bookings"] });
@@ -234,7 +232,8 @@ export function AdminCalendar({ bookings, blockedSlots }: AdminCalendarProps) {
   };
 
   return (
-    <Card>
+    <>
+      <Card>
       <CardHeader className="pb-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <CardTitle className="flex items-center gap-2">
@@ -558,6 +557,170 @@ export function AdminCalendar({ bookings, blockedSlots }: AdminCalendarProps) {
           </div>
         </div>
       </CardContent>
-    </Card>
+      </Card>
+
+      {/* Edit Booking Dialog */}
+      {editingBooking && (
+        <Dialog open={true} onOpenChange={(open) => !open && setEditingBooking(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Edit Booking #{editingBooking.id}</DialogTitle>
+            </DialogHeader>
+            <EditBookingForm
+              booking={editingBooking}
+              onClose={() => setEditingBooking(null)}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
+  );
+}
+
+// Edit Booking Form Component
+interface EditBookingFormProps {
+  booking: AdminBooking;
+  onClose: () => void;
+}
+
+function EditBookingForm({ booking, onClose }: EditBookingFormProps) {
+  const [date, setDate] = useState(booking.date);
+  const [startTime, setStartTime] = useState(booking.startTime);
+  const [duration, setDuration] = useState(booking.duration);
+  const { toast } = useToast();
+
+  // Calculate end time based on start time and duration
+  const calculateEndTime = (start: string, hours: number): string => {
+    const [startHour, startMin] = start.split(':').map(Number);
+    const endMinutes = startHour * 60 + startMin + hours * 60;
+    const endHour = Math.floor(endMinutes / 60) % 24;
+    const endMin = endMinutes % 60;
+    return `${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}`;
+  };
+
+  const endTime = calculateEndTime(startTime, duration);
+
+  // Update booking mutation
+  const updateBookingMutation = useMutation({
+    mutationFn: async (data: { date: string; startTime: string; endTime: string; duration: number }) => {
+      return await apiRequest(`/api/admin/bookings/${booking.id}`, "PATCH", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/bookings"] });
+      toast({
+        title: "Success",
+        description: "Booking updated successfully"
+      });
+      onClose();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update booking",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateBookingMutation.mutate({
+      date,
+      startTime,
+      endTime,
+      duration
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">User</label>
+          <input
+            type="text"
+            value={booking.userName}
+            disabled
+            className="w-full px-3 py-2 border rounded-md bg-gray-50"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Room</label>
+          <input
+            type="text"
+            value={booking.roomName}
+            disabled
+            className="w-full px-3 py-2 border rounded-md bg-gray-50"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">Date</label>
+        <input
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          className="w-full px-3 py-2 border rounded-md"
+          required
+          data-testid="input-edit-booking-date"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Start Time</label>
+          <input
+            type="time"
+            value={startTime}
+            onChange={(e) => setStartTime(e.target.value)}
+            className="w-full px-3 py-2 border rounded-md"
+            required
+            data-testid="input-edit-booking-start-time"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Duration (hours)</label>
+          <input
+            type="number"
+            min="1"
+            max="12"
+            value={duration}
+            onChange={(e) => setDuration(parseInt(e.target.value))}
+            className="w-full px-3 py-2 border rounded-md"
+            required
+            data-testid="input-edit-booking-duration"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">End Time (calculated)</label>
+        <input
+          type="text"
+          value={endTime}
+          disabled
+          className="w-full px-3 py-2 border rounded-md bg-gray-50"
+        />
+      </div>
+
+      <div className="flex justify-end gap-2 pt-4">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onClose}
+          disabled={updateBookingMutation.isPending}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          disabled={updateBookingMutation.isPending}
+          data-testid="button-save-booking-changes"
+        >
+          {updateBookingMutation.isPending ? "Saving..." : "Save Changes"}
+        </Button>
+      </div>
+    </form>
   );
 }
