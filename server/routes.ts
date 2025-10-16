@@ -1174,6 +1174,169 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   };
 
+  // Admin booking management routes
+  app.patch("/api/admin/bookings/:id/cancel", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const booking = await storage.getBooking(id);
+      
+      if (!booking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+
+      if (booking.status === "cancelled") {
+        return res.status(400).json({ message: "Booking is already cancelled" });
+      }
+
+      // Delete TTLock passcode if it exists
+      if (ttlockService && booking.ttlockPasscodeId) {
+        try {
+          const room = await storage.getRoom(booking.roomId);
+          
+          // Delete from front door lock
+          if (room?.lockId) {
+            await ttlockService.deletePasscode(room.lockId, parseInt(booking.ttlockPasscodeId));
+            console.log(`[ADMIN] Deleted passcode from front door for booking ${id}`);
+          }
+
+          // Delete from interior lock if exists
+          if (room?.interiorLockId) {
+            await ttlockService.deletePasscode(room.interiorLockId, parseInt(booking.ttlockPasscodeId));
+            console.log(`[ADMIN] Deleted passcode from interior door for booking ${id}`);
+          }
+        } catch (error) {
+          console.warn('Failed to delete smart lock passcode:', error);
+        }
+      }
+
+      const success = await storage.cancelBooking(id);
+      if (success) {
+        console.log(`[ADMIN] Cancelled booking ${id} for user ${booking.userId}`);
+        res.json({ message: "Booking cancelled successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to cancel booking" });
+      }
+    } catch (error) {
+      console.error('[ADMIN] Error cancelling booking:', error);
+      res.status(500).json({ message: "Failed to cancel booking" });
+    }
+  });
+
+  app.patch("/api/admin/bookings/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { date, startTime, endTime, duration } = req.body;
+      
+      const booking = await storage.getBooking(id);
+      if (!booking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+
+      if (booking.status === "cancelled") {
+        return res.status(400).json({ message: "Cannot edit cancelled booking" });
+      }
+
+      // Check if the new time slot is available
+      const room = await storage.getRoom(booking.roomId);
+      if (!room) {
+        return res.status(404).json({ message: "Room not found" });
+      }
+
+      // Check availability for the new time slot (excluding current booking)
+      const existingBookings = await storage.getBookingsByRoomAndDate(booking.roomId, date);
+      const hasConflict = existingBookings.some((b: Booking) => {
+        if (b.id === id) return false; // Exclude current booking
+        return (startTime < b.endTime && endTime > b.startTime);
+      });
+
+      if (hasConflict) {
+        return res.status(400).json({ message: "Time slot not available" });
+      }
+
+      // Delete old TTLock passcode if it exists
+      if (ttlockService && booking.ttlockPasscodeId) {
+        try {
+          // Delete from both locks
+          if (room.lockId) {
+            await ttlockService.deletePasscode(room.lockId, parseInt(booking.ttlockPasscodeId));
+          }
+          if (room.interiorLockId) {
+            await ttlockService.deletePasscode(room.interiorLockId, parseInt(booking.ttlockPasscodeId));
+          }
+          console.log(`[ADMIN] Deleted old passcode for booking ${id}`);
+        } catch (error) {
+          console.warn('Failed to delete old passcode:', error);
+        }
+      }
+
+      // Create new TTLock passcode for the new time
+      let newPasscode: string | undefined;
+      let newPasscodeId: string | undefined;
+
+      if (ttlockService && room.lockId) {
+        try {
+          const lockIds: string[] = [];
+          if (room.lockId) lockIds.push(room.lockId);
+          if (room.interiorLockId) lockIds.push(room.interiorLockId);
+
+          // Parse the new date and time
+          const [year, month, day] = date.split('-');
+          const [startHours, startMinutes = '00'] = startTime.split(':');
+          const [endHours, endMinutes = '00'] = endTime.split(':');
+          
+          // Adjust for timezone difference
+          const adjustedStartHour = parseInt(startHours) - 1;
+          const adjustedEndHour = parseInt(endHours) - 1;
+          
+          const startDateTime = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), adjustedStartHour, parseInt(startMinutes)));
+          const endDateTime = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), adjustedEndHour, parseInt(endMinutes)));
+
+          const lockResult = await ttlockService.createMultiLockPasscode(
+            lockIds,
+            startDateTime,
+            endDateTime,
+            id
+          );
+
+          newPasscode = lockResult.passcode;
+          newPasscodeId = lockResult.passcodeIds[0]?.toString();
+          
+          console.log(`[ADMIN] Created new passcode for updated booking ${id}`);
+        } catch (error) {
+          console.warn('Failed to create new passcode:', error);
+        }
+      }
+
+      // Update the booking
+      const updates: any = {
+        date,
+        startTime,
+        endTime,
+        duration
+      };
+
+      if (newPasscode) {
+        updates.accessCode = newPasscode;
+        updates.ttlockPasscode = newPasscode;
+      }
+      if (newPasscodeId) {
+        updates.ttlockPasscodeId = newPasscodeId;
+      }
+
+      const success = await storage.updateBooking(id, updates);
+      
+      if (success) {
+        console.log(`[ADMIN] Updated booking ${id}: ${date} ${startTime}-${endTime}`);
+        res.json({ message: "Booking updated successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to update booking" });
+      }
+    } catch (error: any) {
+      console.error('[ADMIN] Error updating booking:', error);
+      res.status(500).json({ message: "Failed to update booking: " + error.message });
+    }
+  });
+
   // Debug endpoint for production troubleshooting
   app.get("/api/admin/debug", requireAuth, requireAdmin, async (req, res) => {
     try {

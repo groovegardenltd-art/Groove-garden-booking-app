@@ -28,6 +28,7 @@ export interface IStorage {
   createBooking(booking: InsertBooking & { userId: number; accessCode: string; ttlockPasscode?: string; ttlockPasscodeId?: string; lockAccessEnabled?: boolean; promoCodeId?: number; originalPrice?: string; discountAmount?: string }): Promise<Booking>;
   updateBookingStatus(id: number, status: string): Promise<Booking | undefined>;
   updateBookingLockAccess(id: number, lockAccessEnabled: boolean): Promise<boolean>;
+  updateBooking(id: number, updates: Partial<Booking>): Promise<boolean>;
   cancelBooking(id: number): Promise<boolean>;
   getOldBookingsCount(daysOld: number): Promise<number>;
   deleteOldBookings(daysOld: number): Promise<number>;
@@ -242,6 +243,15 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .update(bookings)
       .set({ status: "cancelled" })
+      .where(eq(bookings.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  async updateBooking(id: number, updates: Partial<Booking>): Promise<boolean> {
+    const result = await db
+      .update(bookings)
+      .set(updates)
       .where(eq(bookings.id, id))
       .returning();
     return result.length > 0;
