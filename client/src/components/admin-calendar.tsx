@@ -105,8 +105,9 @@ export function AdminCalendar({ bookings, blockedSlots }: AdminCalendarProps) {
     setCurrentDate(new Date());
   };
 
-  // Group bookings by date
-  const bookingsByDate: BookingsByDate = bookings.reduce((acc, booking) => {
+  // Filter out cancelled bookings and group by date
+  const activeBookings = bookings.filter(booking => booking.status !== "cancelled");
+  const bookingsByDate: BookingsByDate = activeBookings.reduce((acc, booking) => {
     const date = booking.date;
     if (!acc[date]) {
       acc[date] = [];
