@@ -6,6 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Music, Clock, Shield, CreditCard, Users, MapPin, Phone, Mail, Star, Leaf, Flower2, TreePine } from "lucide-react";
 import grooveGardenLogo from "@/assets/groove-garden-logo.jpeg";
 
+// Preload the home page for faster navigation
+const preloadHome = () => {
+  import("@/pages/home").catch(() => {});
+};
+
 export default function Website() {
   const [activeTab, setActiveTab] = useState("studios");
 
@@ -121,7 +126,10 @@ export default function Website() {
                 <Button variant="outline">Login</Button>
               </Link>
               <Link href="/">
-                <Button className="bg-green-600 hover:bg-green-700">
+                <Button 
+                  className="bg-green-600 hover:bg-green-700"
+                  onMouseEnter={preloadHome}
+                >
                   Book Now
                 </Button>
               </Link>
@@ -160,7 +168,11 @@ export default function Website() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/">
-              <Button size="lg" className="bg-green-600 hover:bg-green-700">
+              <Button 
+                size="lg" 
+                className="bg-green-600 hover:bg-green-700"
+                onMouseEnter={preloadHome}
+              >
                 <Music className="w-5 h-5 mr-2" />
                 Start Booking
               </Button>
