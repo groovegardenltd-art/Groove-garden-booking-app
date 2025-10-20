@@ -564,13 +564,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const bookingData = insertBookingSchema.parse(req.body);
       
-      // Check for booking conflicts
+      // Check for booking conflicts with both bookings and blocked slots
       const existingBookings = await storage.getBookingsByRoomAndDate(
         bookingData.roomId, 
         bookingData.date
       );
 
-      const hasConflict = existingBookings.some(booking => {
+      const blockedSlots = await storage.getBlockedSlotsByRoomAndDate(
+        bookingData.roomId,
+        bookingData.date
+      );
+
+      // Check conflicts with existing bookings
+      const hasBookingConflict = existingBookings.some(booking => {
         const existingStart = booking.startTime;
         const existingEnd = booking.endTime;
         const newStart = bookingData.startTime;
@@ -579,8 +585,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return (newStart < existingEnd && newEnd > existingStart);
       });
 
-      if (hasConflict) {
+      // Check conflicts with blocked slots
+      const hasBlockedSlotConflict = blockedSlots.some(slot => {
+        const blockedStart = slot.startTime;
+        const blockedEnd = slot.endTime;
+        const newStart = bookingData.startTime;
+        const newEnd = bookingData.endTime;
+
+        return (newStart < blockedEnd && newEnd > blockedStart);
+      });
+
+      if (hasBookingConflict) {
         return res.status(400).json({ message: "Time slot is already booked" });
+      }
+
+      if (hasBlockedSlotConflict) {
+        return res.status(400).json({ message: "Time slot is blocked and unavailable" });
       }
 
       // Get room details for pricing calculation
