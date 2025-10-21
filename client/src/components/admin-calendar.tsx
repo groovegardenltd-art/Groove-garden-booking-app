@@ -65,6 +65,7 @@ export function AdminCalendar({ bookings, blockedSlots }: AdminCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [editingBooking, setEditingBooking] = useState<AdminBooking | null>(null);
+  const [editingBlockedSlot, setEditingBlockedSlot] = useState<BlockedSlot | null>(null);
   const { toast } = useToast();
 
   // Cancel booking mutation
@@ -83,6 +84,53 @@ export function AdminCalendar({ bookings, blockedSlots }: AdminCalendarProps) {
       toast({
         title: "Error",
         description: error.message || "Failed to cancel booking",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Update blocked slot mutation
+  const updateBlockedSlotMutation = useMutation({
+    mutationFn: async (data: { id: number; startTime: string; endTime: string; reason: string }) => {
+      return await apiRequest("PATCH", `/api/admin/blocked-slots/${data.id}`, {
+        startTime: data.startTime,
+        endTime: data.endTime,
+        reason: data.reason,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/blocked-slots"] });
+      setEditingBlockedSlot(null);
+      toast({
+        title: "Success",
+        description: "Blocked slot updated successfully"
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update blocked slot",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Delete blocked slot mutation
+  const deleteBlockedSlotMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return await apiRequest("DELETE", `/api/admin/blocked-slots/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/blocked-slots"] });
+      toast({
+        title: "Success",
+        description: "Blocked slot deleted successfully"
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete blocked slot",
         variant: "destructive"
       });
     }
@@ -377,7 +425,7 @@ export function AdminCalendar({ bookings, blockedSlots }: AdminCalendarProps) {
                         </div>
                         {blockedSlotsByDate[dateStr].map((blockedSlot) => (
                           <div key={`blocked-${blockedSlot.id}`} className="border rounded-lg p-4 bg-red-50 border-red-200">
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                               <div className="space-y-2">
                                 <div className="flex items-center gap-2">
                                   <MapPin className="h-4 w-4 text-red-500" />
@@ -402,6 +450,48 @@ export function AdminCalendar({ bookings, blockedSlots }: AdminCalendarProps) {
                                   <div>Block ID: #{blockedSlot.id}</div>
                                   <div>Created: {formatDateTime(blockedSlot.createdAt)}</div>
                                 </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setEditingBlockedSlot(blockedSlot)}
+                                  className="flex-1"
+                                  data-testid={`edit-blocked-slot-${blockedSlot.id}`}
+                                >
+                                  <Pencil className="h-4 w-4 mr-1" />
+                                  Edit
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      className="flex-1"
+                                      data-testid={`delete-blocked-slot-${blockedSlot.id}`}
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-1" />
+                                      Delete
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Blocked Slot?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This will permanently delete this blocked time slot. This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => deleteBlockedSlotMutation.mutate(blockedSlot.id)}
+                                        className="bg-red-600 hover:bg-red-700"
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                               </div>
                             </div>
                           </div>
@@ -574,6 +664,22 @@ export function AdminCalendar({ bookings, blockedSlots }: AdminCalendarProps) {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Edit Blocked Slot Dialog */}
+      {editingBlockedSlot && (
+        <Dialog open={true} onOpenChange={(open) => !open && setEditingBlockedSlot(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Edit Blocked Slot #{editingBlockedSlot.id}</DialogTitle>
+            </DialogHeader>
+            <EditBlockedSlotForm
+              blockedSlot={editingBlockedSlot}
+              onClose={() => setEditingBlockedSlot(null)}
+              onSave={(data) => updateBlockedSlotMutation.mutate(data)}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }
@@ -720,6 +826,107 @@ function EditBookingForm({ booking, onClose }: EditBookingFormProps) {
           data-testid="button-save-booking-changes"
         >
           {updateBookingMutation.isPending ? "Saving..." : "Save Changes"}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+// Edit Blocked Slot Form Component
+interface EditBlockedSlotFormProps {
+  blockedSlot: BlockedSlot;
+  onClose: () => void;
+  onSave: (data: { id: number; startTime: string; endTime: string; reason: string }) => void;
+}
+
+function EditBlockedSlotForm({ blockedSlot, onClose, onSave }: EditBlockedSlotFormProps) {
+  const [startTime, setStartTime] = useState(blockedSlot.startTime);
+  const [endTime, setEndTime] = useState(blockedSlot.endTime);
+  const [reason, setReason] = useState(blockedSlot.reason || "");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave({
+      id: blockedSlot.id,
+      startTime,
+      endTime,
+      reason,
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium mb-1">Room ID</label>
+        <input
+          type="text"
+          value={`Room ${blockedSlot.roomId}`}
+          disabled
+          className="w-full px-3 py-2 border rounded-md bg-gray-50"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">Date</label>
+        <input
+          type="text"
+          value={blockedSlot.date}
+          disabled
+          className="w-full px-3 py-2 border rounded-md bg-gray-50"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Start Time</label>
+          <input
+            type="time"
+            value={startTime}
+            onChange={(e) => setStartTime(e.target.value)}
+            className="w-full px-3 py-2 border rounded-md"
+            required
+            data-testid="input-edit-blocked-slot-start-time"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">End Time</label>
+          <input
+            type="time"
+            value={endTime}
+            onChange={(e) => setEndTime(e.target.value)}
+            className="w-full px-3 py-2 border rounded-md"
+            required
+            data-testid="input-edit-blocked-slot-end-time"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">Reason (Optional)</label>
+        <textarea
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          className="w-full px-3 py-2 border rounded-md"
+          rows={3}
+          placeholder="Maintenance, event, etc."
+          data-testid="input-edit-blocked-slot-reason"
+        />
+      </div>
+
+      <div className="flex justify-end gap-2 pt-4">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onClose}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          data-testid="button-save-blocked-slot-changes"
+          className="bg-blue-600 hover:bg-blue-700"
+        >
+          Save Changes
         </Button>
       </div>
     </form>
