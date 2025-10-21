@@ -1821,6 +1821,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/admin/blocked-slots/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid blocked slot ID" });
+      }
+
+      const { startTime, endTime, reason } = req.body;
+      const updates: Partial<BlockedSlot> = {};
+
+      if (startTime) updates.startTime = startTime;
+      if (endTime) updates.endTime = endTime;
+      if (reason !== undefined) updates.reason = reason;
+
+      const success = await storage.updateBlockedSlot(id, updates);
+      if (!success) {
+        return res.status(404).json({ message: "Blocked slot not found" });
+      }
+
+      res.json({ message: "Blocked slot updated successfully" });
+    } catch (error) {
+      console.error('Failed to update blocked slot:', error);
+      res.status(500).json({ message: "Failed to update blocked slot" });
+    }
+  });
+
   app.delete("/api/admin/blocked-slots/:id", requireAuth, requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);

@@ -46,6 +46,7 @@ export interface IStorage {
   getAllBlockedSlots(): Promise<BlockedSlot[]>;
   getBlockedSlotsByRoomAndDate(roomId: number, date: string): Promise<BlockedSlot[]>;
   createBlockedSlot(blockedSlot: InsertBlockedSlot & { createdBy: number }): Promise<BlockedSlot[]>;
+  updateBlockedSlot(id: number, updates: Partial<BlockedSlot>): Promise<boolean>;
   deleteBlockedSlot(id: number): Promise<boolean>;
 }
 
@@ -492,6 +493,20 @@ export class DatabaseStorage implements IStorage {
     }
 
     return blocksToCreate;
+  }
+
+  async updateBlockedSlot(id: number, updates: Partial<BlockedSlot>): Promise<boolean> {
+    try {
+      const result = await db
+        .update(blockedSlots)
+        .set(updates)
+        .where(eq(blockedSlots.id, id))
+        .returning();
+      return result.length > 0;
+    } catch (error) {
+      console.error('Failed to update blocked slot:', error);
+      return false;
+    }
   }
 
   async deleteBlockedSlot(id: number): Promise<boolean> {
