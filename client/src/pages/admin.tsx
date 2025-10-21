@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Clock, User, FileText, Shield, CalendarX, Plus, Trash2, Repeat, Calendar, MapPin, CreditCard, Phone, Mail, List, Grid3X3, ChevronRight } from "lucide-react";
+import { CheckCircle, XCircle, Clock, User, FileText, Shield, CalendarX, Plus, Trash2, Repeat, Calendar, MapPin, CreditCard, Phone, Mail, List, Grid3X3, ChevronRight, Edit } from "lucide-react";
 import { AdminCalendar } from "@/components/admin-calendar";
 import { getAuthState } from "@/lib/auth";
 import { useLocation } from "wouter";
@@ -127,6 +127,8 @@ export default function Admin() {
   });
 
   const [blockSlotDialogOpen, setBlockSlotDialogOpen] = useState(false);
+  const [editBlockSlotDialogOpen, setEditBlockSlotDialogOpen] = useState(false);
+  const [editingBlockSlot, setEditingBlockSlot] = useState<BlockedSlot | null>(null);
   const [bookingsViewMode, setBookingsViewMode] = useState<"calendar" | "list">("calendar");
   const [showCleanupConfirm, setShowCleanupConfirm] = useState(false);
   const [expandedRecurringBlocks, setExpandedRecurringBlocks] = useState<Set<number>>(new Set());
@@ -200,6 +202,31 @@ export default function Admin() {
       toast({
         title: "❌ Failed to Block Slot",
         description: "Failed to block the time slot. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const updateBlockedSlotMutation = useMutation({
+    mutationFn: (data: { id: number; startTime: string; endTime: string; reason: string }) => 
+      apiRequest("PATCH", `/api/admin/blocked-slots/${data.id}`, {
+        startTime: data.startTime,
+        endTime: data.endTime,
+        reason: data.reason,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/blocked-slots"] });
+      setEditBlockSlotDialogOpen(false);
+      setEditingBlockSlot(null);
+      toast({
+        title: "✅ Block Updated",
+        description: "The time slot block has been updated.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "❌ Failed to Update Block",
+        description: "Failed to update the time slot block. Please try again.",
         variant: "destructive",
       });
     }
@@ -306,6 +333,31 @@ export default function Admin() {
     }
     
     createBlockedSlotMutation.mutate(blockSlotData);
+  };
+
+  const handleEditBlockedSlot = (slot: BlockedSlot) => {
+    setEditingBlockSlot(slot);
+    setEditBlockSlotDialogOpen(true);
+  };
+
+  const handleSaveEditBlockedSlot = () => {
+    if (!editingBlockSlot) return;
+    
+    if (!editingBlockSlot.startTime || !editingBlockSlot.endTime) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    updateBlockedSlotMutation.mutate({
+      id: editingBlockSlot.id,
+      startTime: editingBlockSlot.startTime,
+      endTime: editingBlockSlot.endTime,
+      reason: editingBlockSlot.reason || "",
+    });
   };
 
   const handleDeleteBlockedSlot = (id: number, isParentBlock: boolean = false) => {
@@ -832,21 +884,33 @@ export default function Admin() {
                               <p className="text-xs text-gray-600 mt-1">{slot.reason}</p>
                             )}
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteBlockedSlot(slot.id, isParentBlock)}
-                            disabled={deleteBlockedSlotMutation.isPending}
-                            className={`hover:bg-red-100 ${
-                              isParentBlock 
-                                ? 'text-purple-600 hover:text-purple-700' 
-                                : 'text-red-600 hover:text-red-700'
-                            }`}
-                            data-testid={`remove-block-${slot.id}`}
-                            title={isParentBlock ? "Delete entire recurring series" : "Delete this block"}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditBlockedSlot(slot)}
+                              className="hover:bg-blue-100 text-blue-600 hover:text-blue-700"
+                              data-testid={`edit-block-${slot.id}`}
+                              title="Edit this block"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteBlockedSlot(slot.id, isParentBlock)}
+                              disabled={deleteBlockedSlotMutation.isPending}
+                              className={`hover:bg-red-100 ${
+                                isParentBlock 
+                                  ? 'text-purple-600 hover:text-purple-700' 
+                                  : 'text-red-600 hover:text-red-700'
+                              }`}
+                              data-testid={`remove-block-${slot.id}`}
+                              title={isParentBlock ? "Delete entire recurring series" : "Delete this block"}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       );
                     })}
@@ -855,6 +919,79 @@ export default function Admin() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Edit Blocked Slot Dialog */}
+        <Dialog open={editBlockSlotDialogOpen} onOpenChange={setEditBlockSlotDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Blocked Time Slot</DialogTitle>
+            </DialogHeader>
+            {editingBlockSlot && (
+              <div className="space-y-4">
+                <div>
+                  <Label>Room</Label>
+                  <Input value={getRoomName(editingBlockSlot.roomId)} disabled className="bg-gray-100" />
+                </div>
+                <div>
+                  <Label>Date</Label>
+                  <Input value={editingBlockSlot.date} disabled className="bg-gray-100" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-start-time">Start Time</Label>
+                    <Input
+                      id="edit-start-time"
+                      type="time"
+                      value={editingBlockSlot.startTime}
+                      onChange={(e) => setEditingBlockSlot({ ...editingBlockSlot, startTime: e.target.value })}
+                      data-testid="input-edit-start-time"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-end-time">End Time</Label>
+                    <Input
+                      id="edit-end-time"
+                      type="time"
+                      value={editingBlockSlot.endTime}
+                      onChange={(e) => setEditingBlockSlot({ ...editingBlockSlot, endTime: e.target.value })}
+                      data-testid="input-edit-end-time"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="edit-reason">Reason (Optional)</Label>
+                  <Textarea
+                    id="edit-reason"
+                    value={editingBlockSlot.reason || ""}
+                    onChange={(e) => setEditingBlockSlot({ ...editingBlockSlot, reason: e.target.value })}
+                    placeholder="Maintenance, event, etc."
+                    data-testid="input-edit-reason"
+                  />
+                </div>
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    onClick={handleSaveEditBlockedSlot}
+                    disabled={updateBlockedSlotMutation.isPending}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                    data-testid="button-save-edit-block"
+                  >
+                    {updateBlockedSlotMutation.isPending ? "Saving..." : "Save Changes"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setEditBlockSlotDialogOpen(false);
+                      setEditingBlockSlot(null);
+                    }}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Promo Code Management */}
         <PromoCodeManagement />

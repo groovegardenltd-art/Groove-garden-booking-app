@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { rooms, sessions, users, type Booking } from "@shared/schema";
+import { rooms, sessions, users, type Booking, type BlockedSlot } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { insertUserSchema, loginSchema, insertBookingSchema } from "@shared/schema";
 import { createTTLockService } from "./ttlock";
