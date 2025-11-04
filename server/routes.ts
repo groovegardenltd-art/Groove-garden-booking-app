@@ -41,6 +41,92 @@ interface AuthenticatedRequest extends Request {
   userId: number;
 }
 
+// Refund helper function with 48-hour policy
+async function processRefundIfEligible(booking: Booking): Promise<{
+  refunded: boolean;
+  amount?: number;
+  reason?: string;
+  error?: string;
+}> {
+  // Check if booking has payment intent ID
+  if (!booking.stripePaymentIntentId) {
+    return { refunded: false, reason: "No payment intent ID found - payment may have been made in test mode or before refund system was implemented" };
+  }
+
+  // Calculate time difference between now and booking date+time
+  const now = new Date();
+  const [year, month, day] = booking.date.split('-').map(Number);
+  const [hours, minutes] = booking.startTime.split(':').map(Number);
+  const bookingDateTime = new Date(year, month - 1, day, hours, minutes);
+  const hoursUntilBooking = (bookingDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+  // Check 48-hour policy
+  if (hoursUntilBooking < 48) {
+    return { 
+      refunded: false, 
+      reason: `Cancellation is within 48 hours of booking (${Math.round(hoursUntilBooking)}h remaining). No refund available per cancellation policy.` 
+    };
+  }
+
+  // Test mode - simulate refund
+  if (TEST_MODE || booking.stripePaymentIntentId.includes('test')) {
+    console.log(`TEST MODE: Simulated refund of £${booking.totalPrice} for booking #${booking.id}`);
+    
+    // Update booking with refund info
+    await storage.updateBooking(booking.id, {
+      refundStatus: 'succeeded',
+      refundAmount: booking.totalPrice,
+      refundedAt: new Date(),
+    });
+
+    return { 
+      refunded: true, 
+      amount: parseFloat(booking.totalPrice),
+      reason: "Test mode - refund simulated"
+    };
+  }
+
+  // Production mode - process real Stripe refund
+  if (!stripe) {
+    return { refunded: false, error: "Stripe not configured" };
+  }
+
+  try {
+    const refund = await stripe.refunds.create({
+      payment_intent: booking.stripePaymentIntentId,
+      reason: 'requested_by_customer',
+    });
+
+    // Update booking with refund info
+    await storage.updateBooking(booking.id, {
+      refundStatus: refund.status,
+      refundAmount: booking.totalPrice,
+      refundedAt: new Date(),
+    });
+
+    const refundAmount = parseFloat(booking.totalPrice);
+    console.log(`✅ Refund processed: £${refundAmount} for booking #${booking.id} (Stripe refund ID: ${refund.id})`);
+
+    return {
+      refunded: true,
+      amount: refundAmount,
+      reason: `Full refund of £${refundAmount.toFixed(2)} processed to original payment method`
+    };
+  } catch (error: any) {
+    console.error('Stripe refund error:', error);
+    
+    // Update refund status as failed
+    await storage.updateBooking(booking.id, {
+      refundStatus: 'failed',
+    });
+
+    return {
+      refunded: false,
+      error: error.message || "Failed to process refund"
+    };
+  }
+}
+
 // Mock smart lock API
 function generateAccessCode(): string {
   return Math.floor(1000 + Math.random() * 9000).toString();
@@ -693,7 +779,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lockAccessEnabled,
         promoCodeId: bookingData.promoCodeId || undefined,
         originalPrice: bookingData.originalPrice || undefined,
-        discountAmount: bookingData.discountAmount || undefined
+        discountAmount: bookingData.discountAmount || undefined,
+        stripePaymentIntentId: (req.body as any).paymentIntentId || undefined
       });
 
       // Get user details for email confirmation
