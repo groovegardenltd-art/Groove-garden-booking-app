@@ -844,6 +844,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Booking is already cancelled" });
       }
 
+      // Process refund based on 48-hour policy
+      const refundResult = await processRefundIfEligible(booking);
+      
       // Delete TTLock passcode if it exists
       if (ttlockService && booking.ttlockPasscodeId && booking.lockAccessEnabled) {
         try {
@@ -858,13 +861,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Cancel the booking
       const success = await storage.cancelBooking(id);
       if (success) {
-        res.json({ message: "Booking cancelled successfully" });
+        // Build response message based on refund result
+        let message = "Booking cancelled successfully";
+        if (refundResult.refunded) {
+          message += `. ${refundResult.reason || `Refund of £${refundResult.amount?.toFixed(2)} will be processed to your original payment method within 3-5 business days.`}`;
+        } else if (refundResult.reason) {
+          message += `. ${refundResult.reason}`;
+        }
+
+        res.json({ 
+          message,
+          refunded: refundResult.refunded,
+          refundAmount: refundResult.amount
+        });
       } else {
         res.status(500).json({ message: "Failed to cancel booking" });
       }
     } catch (error) {
+      console.error('Booking cancellation error:', error);
       res.status(500).json({ message: "Failed to cancel booking" });
     }
   });
@@ -1285,6 +1302,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/admin/bookings/:id/cancel", requireAuth, requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      const { processRefund = true } = req.body; // Allow admin to skip refund if needed
       const booking = await storage.getBooking(id);
       
       if (!booking) {
@@ -1293,6 +1311,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (booking.status === "cancelled") {
         return res.status(400).json({ message: "Booking is already cancelled" });
+      }
+
+      // Process refund if requested (default: yes)
+      let refundResult = { refunded: false, reason: "Refund not processed by admin request" };
+      if (processRefund) {
+        refundResult = await processRefundIfEligible(booking);
+        if (refundResult.refunded) {
+          console.log(`[ADMIN] Refund processed for booking ${id}: £${refundResult.amount}`);
+        } else {
+          console.log(`[ADMIN] No refund for booking ${id}: ${refundResult.reason || refundResult.error}`);
+        }
       }
 
       // Delete TTLock passcode if it exists
@@ -1319,7 +1348,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const success = await storage.cancelBooking(id);
       if (success) {
         console.log(`[ADMIN] Cancelled booking ${id} for user ${booking.userId}`);
-        res.json({ message: "Booking cancelled successfully" });
+        
+        let message = "Booking cancelled successfully";
+        if (processRefund && refundResult.refunded) {
+          message += ` and refund of £${refundResult.amount?.toFixed(2)} processed`;
+        } else if (processRefund && refundResult.reason) {
+          message += `. ${refundResult.reason}`;
+        }
+
+        res.json({ 
+          message,
+          refunded: refundResult.refunded,
+          refundAmount: refundResult.amount
+        });
       } else {
         res.status(500).json({ message: "Failed to cancel booking" });
       }
