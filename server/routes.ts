@@ -1803,6 +1803,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid room ID" });
       }
 
+      // Check for conflicts with existing bookings
+      const datesToCheck: string[] = [date];
+      
+      // If recurring, generate all dates to check
+      if (isRecurring && recurringUntil) {
+        const startDate = new Date(date);
+        const endDate = new Date(recurringUntil);
+        let currentDate = new Date(startDate);
+        currentDate.setDate(currentDate.getDate() + 7); // Start from next week
+        
+        while (currentDate <= endDate) {
+          datesToCheck.push(currentDate.toISOString().split('T')[0]);
+          currentDate.setDate(currentDate.getDate() + 7);
+        }
+      }
+
+      // Check each date for booking conflicts
+      const conflictingDates: string[] = [];
+      for (const dateToCheck of datesToCheck) {
+        const existingBookings = await storage.getBookingsByRoomAndDate(roomId, dateToCheck);
+        
+        const hasConflict = existingBookings.some(booking => {
+          // Skip cancelled bookings
+          if (booking.status === 'cancelled') return false;
+          
+          const bookingStart = booking.startTime;
+          const bookingEnd = booking.endTime;
+          const blockStart = startTime;
+          const blockEnd = endTime;
+
+          return (blockStart < bookingEnd && blockEnd > bookingStart);
+        });
+
+        if (hasConflict) {
+          conflictingDates.push(dateToCheck);
+        }
+      }
+
+      if (conflictingDates.length > 0) {
+        const datesList = conflictingDates.slice(0, 5).join(', ');
+        const moreText = conflictingDates.length > 5 ? ` and ${conflictingDates.length - 5} more` : '';
+        return res.status(400).json({ 
+          message: `Cannot create blocked slot: existing bookings found on ${datesList}${moreText}. Please cancel those bookings first.` 
+        });
+      }
+
       const blockedSlots = await storage.createBlockedSlot({
         roomId,
         date,
@@ -1834,6 +1880,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (startTime) updates.startTime = startTime;
       if (endTime) updates.endTime = endTime;
       if (reason !== undefined) updates.reason = reason;
+
+      // If updating time, check for booking conflicts
+      if (startTime || endTime) {
+        const blockedSlot = await storage.getBlockedSlot(id);
+        if (!blockedSlot) {
+          return res.status(404).json({ message: "Blocked slot not found" });
+        }
+
+        const newStartTime = startTime || blockedSlot.startTime;
+        const newEndTime = endTime || blockedSlot.endTime;
+
+        // Check for conflicts with existing bookings on the same date and room
+        const existingBookings = await storage.getBookingsByRoomAndDate(
+          blockedSlot.roomId, 
+          blockedSlot.date
+        );
+        
+        const hasConflict = existingBookings.some(booking => {
+          // Skip cancelled bookings
+          if (booking.status === 'cancelled') return false;
+          
+          const bookingStart = booking.startTime;
+          const bookingEnd = booking.endTime;
+
+          return (newStartTime < bookingEnd && newEndTime > bookingStart);
+        });
+
+        if (hasConflict) {
+          return res.status(400).json({ 
+            message: "Cannot update blocked slot: conflicts with existing bookings. Please cancel those bookings first." 
+          });
+        }
+      }
 
       const success = await storage.updateBlockedSlot(id, updates);
       if (!success) {
