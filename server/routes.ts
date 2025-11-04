@@ -8,7 +8,7 @@ import { insertUserSchema, loginSchema, insertBookingSchema } from "@shared/sche
 import { createTTLockService } from "./ttlock";
 import { z } from "zod";
 import Stripe from "stripe";
-import { notifyPendingIdVerification, sendRejectionNotification, sendPasswordResetEmail, sendBookingConfirmationEmail } from "./email";
+import { notifyPendingIdVerification, sendRejectionNotification, sendPasswordResetEmail, sendBookingConfirmationEmail, sendRefundConfirmationEmail } from "./email";
 import { comparePassword, hashPassword } from "./password-utils";
 import crypto from "crypto";
 
@@ -79,6 +79,25 @@ async function processRefundIfEligible(booking: Booking): Promise<{
       refundedAt: new Date(),
     });
 
+    // Send refund confirmation email
+    try {
+      const user = await storage.getUser(booking.userId);
+      const room = await storage.getRoom(booking.roomId);
+      if (user && room) {
+        await sendRefundConfirmationEmail(user.email, user.username, {
+          roomName: room.name,
+          date: booking.date,
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+          refundAmount: booking.totalPrice
+        });
+        console.log(`Refund confirmation email sent to ${user.email}`);
+      }
+    } catch (error) {
+      console.error('Failed to send refund confirmation email:', error);
+      // Continue even if email fails
+    }
+
     return { 
       refunded: true, 
       amount: parseFloat(booking.totalPrice),
@@ -106,6 +125,25 @@ async function processRefundIfEligible(booking: Booking): Promise<{
 
     const refundAmount = parseFloat(booking.totalPrice);
     console.log(`✅ Refund processed: £${refundAmount} for booking #${booking.id} (Stripe refund ID: ${refund.id})`);
+
+    // Send refund confirmation email
+    try {
+      const user = await storage.getUser(booking.userId);
+      const room = await storage.getRoom(booking.roomId);
+      if (user && room) {
+        await sendRefundConfirmationEmail(user.email, user.username, {
+          roomName: room.name,
+          date: booking.date,
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+          refundAmount: booking.totalPrice
+        });
+        console.log(`Refund confirmation email sent to ${user.email}`);
+      }
+    } catch (error) {
+      console.error('Failed to send refund confirmation email:', error);
+      // Continue even if email fails
+    }
 
     return {
       refunded: true,

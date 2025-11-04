@@ -491,3 +491,189 @@ export async function sendRejectionNotification(email: string, username: string,
     html
   });
 }
+export async function sendRefundConfirmationEmail(
+  email: string,
+  username: string,
+  bookingDetails: {
+    roomName: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    refundAmount: string;
+  }
+): Promise<boolean> {
+  const from = 'groovegardenltd@gmail.com';
+  const subject = 'Booking Cancelled & Refund Processed - Groove Garden Studios';
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 600px;
+          margin: 0 auto;
+          background-color: #f4f4f4;
+        }
+        .container {
+          background: white;
+          padding: 30px;
+          border-radius: 10px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          margin: 20px;
+        }
+        .header {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 30px;
+          text-align: center;
+          border-radius: 10px 10px 0 0;
+          margin: -30px -30px 30px -30px;
+        }
+        .header h1 {
+          margin: 0;
+          font-size: 28px;
+        }
+        .refund-box {
+          background: #e8f5e9;
+          border-left: 4px solid #4caf50;
+          padding: 20px;
+          margin: 20px 0;
+          border-radius: 5px;
+        }
+        .refund-amount {
+          font-size: 32px;
+          color: #4caf50;
+          font-weight: bold;
+          text-align: center;
+          margin: 10px 0;
+        }
+        .booking-details {
+          background: #f9f9f9;
+          padding: 20px;
+          border-radius: 5px;
+          margin: 20px 0;
+        }
+        .detail-row {
+          display: flex;
+          justify-content: space-between;
+          padding: 10px 0;
+          border-bottom: 1px solid #e0e0e0;
+        }
+        .detail-label {
+          font-weight: 600;
+          color: #666;
+        }
+        .detail-value {
+          color: #333;
+        }
+        .footer {
+          text-align: center;
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid #e0e0e0;
+          color: #666;
+          font-size: 14px;
+        }
+        .contact-info {
+          margin-top: 20px;
+          padding: 15px;
+          background: #f0f0f0;
+          border-radius: 5px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>✓ Refund Processed</h1>
+          <p style="margin: 10px 0 0 0; font-size: 16px;">Your booking has been cancelled</p>
+        </div>
+
+        <p>Hi ${username},</p>
+
+        <p>Your booking at Groove Garden Studios has been successfully cancelled and a full refund has been processed.</p>
+
+        <div class="refund-box">
+          <p style="margin: 0 0 10px 0; text-align: center; color: #666; font-size: 14px;">REFUND AMOUNT</p>
+          <div class="refund-amount">£${bookingDetails.refundAmount}</div>
+          <p style="margin: 10px 0 0 0; text-align: center; color: #666; font-size: 14px;">Processing time: 3-5 business days</p>
+        </div>
+
+        <div class="booking-details">
+          <h3 style="margin-top: 0; color: #667eea;">Cancelled Booking Details</h3>
+          <div class="detail-row">
+            <span class="detail-label">Room:</span>
+            <span class="detail-value">${bookingDetails.roomName}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Date:</span>
+            <span class="detail-value">${bookingDetails.date}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Time:</span>
+            <span class="detail-value">${bookingDetails.startTime} - ${bookingDetails.endTime}</span>
+          </div>
+          <div class="detail-row" style="border-bottom: none;">
+            <span class="detail-label">Refund:</span>
+            <span class="detail-value" style="color: #4caf50; font-weight: 600;">£${bookingDetails.refundAmount}</span>
+          </div>
+        </div>
+
+        <p>The refund will be credited to your original payment method within 3-5 business days. You'll see it appear as a credit from Groove Garden Studios.</p>
+
+        <p>We hope to see you again soon! If you'd like to make a new booking, just visit our website.</p>
+
+        <div class="contact-info">
+          <p style="margin: 5px 0;"><strong>Need help?</strong></p>
+          <p style="margin: 5px 0;">📧 Email: groovegardenltd@gmail.com</p>
+          <p style="margin: 5px 0;">📞 Phone: +44 (0) 20 1234 5678</p>
+        </div>
+
+        <div class="footer">
+          <p>Groove Garden Studios<br>
+          Professional Rehearsal Spaces</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const textContent = `
+Hi ${username},
+
+Your booking at Groove Garden Studios has been successfully cancelled and a full refund has been processed.
+
+REFUND AMOUNT: £${bookingDetails.refundAmount}
+Processing time: 3-5 business days
+
+CANCELLED BOOKING DETAILS:
+- Room: ${bookingDetails.roomName}
+- Date: ${bookingDetails.date}
+- Time: ${bookingDetails.startTime} - ${bookingDetails.endTime}
+- Refund: £${bookingDetails.refundAmount}
+
+The refund will be credited to your original payment method within 3-5 business days.
+
+We hope to see you again soon! If you'd like to make a new booking, just visit our website.
+
+Need help?
+Email: groovegardenltd@gmail.com
+Phone: +44 (0) 20 1234 5678
+
+---
+Groove Garden Studios
+Professional Rehearsal Spaces
+  `;
+
+  return sendEmail({
+    to: email,
+    from,
+    subject,
+    text: textContent,
+    html: htmlContent
+  });
+}
