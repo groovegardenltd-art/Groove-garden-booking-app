@@ -21,8 +21,38 @@ const ResubmitVerification = lazy(() => import("@/pages/resubmit-verification"))
 
 function LoadingFallback() {
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
+      <div className="text-center space-y-6 px-4">
+        {/* Animated logo/icon */}
+        <div className="relative">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 animate-pulse mx-auto mb-4"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+            </svg>
+          </div>
+        </div>
+        
+        {/* Loading text */}
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold text-gray-800">
+            Groove Garden Studios
+          </h2>
+          <p className="text-gray-600 animate-pulse">
+            Loading your booking experience...
+          </p>
+        </div>
+        
+        {/* Spinner */}
+        <div className="flex justify-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-200 border-t-purple-600"></div>
+        </div>
+        
+        {/* Progress hint */}
+        <p className="text-sm text-gray-500 max-w-md">
+          Just a moment while we prepare your studio booking system
+        </p>
+      </div>
     </div>
   );
 }
