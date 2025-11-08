@@ -242,54 +242,54 @@ export default function Home() {
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-green-50">
-        <div className="container mx-auto px-4 py-16">
+        <div className="container mx-auto px-4 py-8 sm:py-16">
           <div className="max-w-2xl mx-auto">
             <Card className="border-2 border-purple-200 shadow-xl">
-              <CardContent className="p-12 text-center space-y-6">
+              <CardContent className="p-6 sm:p-12 text-center space-y-4 sm:space-y-6">
                 {/* Logo */}
-                <div className="flex justify-center mb-6">
+                <div className="flex justify-center mb-4 sm:mb-6">
                   <img 
                     src={grooveGardenLogo} 
                     alt="Groove Garden Studios" 
-                    className="w-24 h-24 rounded-xl shadow-lg object-cover"
+                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl shadow-lg object-cover"
                   />
                 </div>
 
                 {/* Heading */}
-                <div className="space-y-3">
-                  <h1 className="text-4xl font-bold text-gray-900">
+                <div className="space-y-2 sm:space-y-3">
+                  <h1 className="text-2xl sm:text-4xl font-bold text-gray-900">
                     Welcome to Groove Garden Studios
                   </h1>
-                  <p className="text-xl text-gray-600">
+                  <p className="text-lg sm:text-xl text-gray-600">
                     Professional Music Rehearsal Spaces
                   </p>
                 </div>
 
                 {/* Features */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-6">
-                  <div className="flex flex-col items-center space-y-2">
-                    <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                      <Clock className="w-6 h-6 text-green-600" />
+                <div className="grid grid-cols-3 gap-3 sm:gap-4 py-4 sm:py-6">
+                  <div className="flex flex-col items-center space-y-1 sm:space-y-2">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-green-100 flex items-center justify-center">
+                      <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
                     </div>
-                    <p className="text-sm font-medium text-gray-700">Flexible Booking</p>
+                    <p className="text-xs sm:text-sm font-medium text-gray-700 text-center">Flexible Booking</p>
                   </div>
-                  <div className="flex flex-col items-center space-y-2">
-                    <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
-                      <Shield className="w-6 h-6 text-purple-600" />
+                  <div className="flex flex-col items-center space-y-1 sm:space-y-2">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-purple-100 flex items-center justify-center">
+                      <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
                     </div>
-                    <p className="text-sm font-medium text-gray-700">Smart Lock Access</p>
+                    <p className="text-xs sm:text-sm font-medium text-gray-700 text-center">Smart Lock Access</p>
                   </div>
-                  <div className="flex flex-col items-center space-y-2">
-                    <div className="w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center">
-                      <CheckCircle className="w-6 h-6 text-pink-600" />
+                  <div className="flex flex-col items-center space-y-1 sm:space-y-2">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-pink-100 flex items-center justify-center">
+                      <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-pink-600" />
                     </div>
-                    <p className="text-sm font-medium text-gray-700">Secure Payment</p>
+                    <p className="text-xs sm:text-sm font-medium text-gray-700 text-center">Secure Payment</p>
                   </div>
                 </div>
 
                 {/* Call to Action */}
-                <div className="space-y-4 pt-4">
-                  <p className="text-gray-600 text-lg">
+                <div className="space-y-3 sm:space-y-4 pt-2 sm:pt-4">
+                  <p className="text-gray-600 text-base sm:text-lg px-2">
                     Please login or create an account to book your rehearsal space
                   </p>
                   
@@ -313,8 +313,8 @@ export default function Home() {
                 </div>
 
                 {/* Info */}
-                <div className="pt-6 border-t border-gray-200">
-                  <p className="text-sm text-gray-500">
+                <div className="pt-4 sm:pt-6 border-t border-gray-200">
+                  <p className="text-xs sm:text-sm text-gray-500 px-2">
                     🎵 3 Premium Studios • 📅 Book 1-12 Hours • 💰 10% Discount on 4+ Hours
                   </p>
                 </div>
