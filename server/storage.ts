@@ -31,6 +31,7 @@ export interface IStorage {
   updateBooking(id: number, updates: Partial<Booking>): Promise<boolean>;
   cancelBooking(id: number): Promise<boolean>;
   getOldBookingsCount(daysOld: number): Promise<number>;
+  getOldBookings(daysOld: number): Promise<Booking[]>;
   deleteOldBookings(daysOld: number): Promise<number>;
 
   // Promo code methods
@@ -270,6 +271,17 @@ export class DatabaseStorage implements IStorage {
       .where(lt(bookings.date, cutoffDateString));
     
     return result[0]?.count || 0;
+  }
+
+  async getOldBookings(daysOld: number): Promise<Booking[]> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysOld);
+    const cutoffDateString = cutoffDate.toISOString().split('T')[0];
+
+    return await db
+      .select()
+      .from(bookings)
+      .where(lt(bookings.date, cutoffDateString));
   }
 
   async deleteOldBookings(daysOld: number): Promise<number> {

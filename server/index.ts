@@ -59,8 +59,54 @@ app.use((req, res, next) => {
     // Automatic cleanup of old bookings - runs daily
     const cleanupOldBookings = async () => {
       try {
+        log('🔍 Starting old bookings cleanup check...');
         const { storage } = await import('./storage');
+        const { createTTLockService } = await import('./ttlock');
+        
         const daysOld = 30;
+        
+        // SECURITY FIX: Delete TTLock passcodes BEFORE deleting old bookings
+        const ttlockService = createTTLockService();
+        if (ttlockService) {
+          try {
+            const oldBookings = await storage.getOldBookings(daysOld);
+            let passcodesDeleted = 0;
+            
+            log(`🔒 Found ${oldBookings.length} old bookings, checking for TTLock passcodes...`);
+            
+            for (const booking of oldBookings) {
+              if (booking.ttlockPasscodeId) {
+                try {
+                  const room = await storage.getRoom(booking.roomId);
+                  
+                  // Delete from front door lock
+                  if (room?.lockId) {
+                    const deleted = await ttlockService.deletePasscode(room.lockId, parseInt(booking.ttlockPasscodeId));
+                    if (deleted) {
+                      log(`✅ Deleted TTLock passcode ${booking.ttlockPasscodeId} from front door before removing old booking ${booking.id}`);
+                      passcodesDeleted++;
+                    }
+                  }
+                  
+                  // Delete from interior lock if exists
+                  if (room?.interiorLockId) {
+                    await ttlockService.deletePasscode(room.interiorLockId, parseInt(booking.ttlockPasscodeId));
+                  }
+                } catch (error) {
+                  log(`⚠️ Failed to delete TTLock passcode for old booking ${booking.id}:`, String(error));
+                }
+              }
+            }
+            
+            if (passcodesDeleted > 0) {
+              log(`🔐 SECURITY: Deleted ${passcodesDeleted} TTLock passcodes before cleanup`);
+            }
+          } catch (error) {
+            log('⚠️ Failed to cleanup TTLock passcodes before booking deletion:', String(error));
+          }
+        }
+        
+        // Now safe to delete old bookings
         const deletedCount = await storage.deleteOldBookings(daysOld);
         if (deletedCount > 0) {
           log(`🗑️ Automatic cleanup: Deleted ${deletedCount} bookings older than ${daysOld} days`);
