@@ -11,6 +11,8 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - **Smart Lock**: TTLock API integration for automated access control
 
 ## Recent Changes
+- **Nov 13, 2025**: 🔒 CRITICAL SECURITY FIX - Fixed TTLock passcode orphaning vulnerability. Passcodes now properly deleted from locks before old bookings are removed from database. Enhanced deletePasscode to check TTLock API response properly. Added comprehensive logging for all cleanup operations.
+- **Nov 13, 2025**: ✨ IMPROVED UX - Fixed "Book Now" button experience for non-authenticated users. Now shows professional welcome screen instead of silent redirect.
 - **Oct 21, 2025**: ✅ BLOCKED SLOTS EDIT & ORPHANED BLOCKS - Added edit functionality for blocked slots, fixed display of orphaned recurring blocks (when parent deleted by cleanup)
 - **Oct 20, 2025**: ✅ BLOCKED SLOTS VALIDATION COMPLETE - Availability API correctly returns blocked slots, booking validation prevents conflicts, awaiting production deployment
 - **Oct 17, 2025**: ✅ PERFORMANCE OPTIMIZATION - Implemented lazy loading for all routes to reduce initial bundle size and improve mobile load times. Pages now load on-demand with code splitting.
