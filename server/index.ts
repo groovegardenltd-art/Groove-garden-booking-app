@@ -73,11 +73,13 @@ app.use((req, res, next) => {
     // Automatic cleanup of expired TTLock passcodes
     const cleanupExpiredPasscodes = async () => {
       try {
+        log('🔍 Starting TTLock passcode cleanup check...');
         const { storage } = await import('./storage');
         const { createTTLockService } = await import('./ttlock');
         
         const ttlockService = createTTLockService();
         if (!ttlockService) {
+          log('⚠️ TTLock not configured, skipping passcode cleanup');
           return; // TTLock not configured
         }
 
@@ -85,10 +87,17 @@ app.use((req, res, next) => {
         const allBookings = await storage.getAllBookings();
         const now = new Date();
         let cleanedCount = 0;
+        let failedCount = 0;
+        let skippedCount = 0;
+
+        log(`📋 Checking ${allBookings.length} total bookings for expired passcodes...`);
 
         for (const booking of allBookings) {
           // Skip if no TTLock passcode
-          if (!booking.ttlockPasscodeId) continue;
+          if (!booking.ttlockPasscodeId) {
+            skippedCount++;
+            continue;
+          }
 
           // Check if booking has ended
           const [endHours, endMinutes = '00'] = booking.endTime.split(':');
@@ -99,30 +108,48 @@ app.use((req, res, next) => {
           if (bookingEndDateTime < now) {
             try {
               const room = await storage.getRoom(booking.roomId);
+              const hoursExpired = Math.round((now.getTime() - bookingEndDateTime.getTime()) / (1000 * 60 * 60));
+              
+              log(`🔓 Attempting to delete passcode for booking ${booking.id} (ended ${hoursExpired}h ago on ${booking.date} at ${booking.endTime})`);
+              
+              let deletedFromFrontDoor = false;
+              let deletedFromInterior = false;
               
               // Delete from front door lock
               if (room?.lockId) {
-                await ttlockService.deletePasscode(room.lockId, parseInt(booking.ttlockPasscodeId));
-                cleanedCount++;
+                deletedFromFrontDoor = await ttlockService.deletePasscode(room.lockId, parseInt(booking.ttlockPasscodeId));
+                if (deletedFromFrontDoor) {
+                  log(`✅ Deleted passcode ${booking.ttlockPasscodeId} from front door lock ${room.lockId}`);
+                  cleanedCount++;
+                } else {
+                  log(`❌ Failed to delete passcode ${booking.ttlockPasscodeId} from front door lock ${room.lockId}`);
+                  failedCount++;
+                }
               }
 
               // Delete from interior lock if exists
               if (room?.interiorLockId) {
-                await ttlockService.deletePasscode(room.interiorLockId, parseInt(booking.ttlockPasscodeId));
+                deletedFromInterior = await ttlockService.deletePasscode(room.interiorLockId, parseInt(booking.ttlockPasscodeId));
+                if (deletedFromInterior) {
+                  log(`✅ Deleted passcode ${booking.ttlockPasscodeId} from interior lock ${room.interiorLockId}`);
+                } else {
+                  log(`⚠️ Failed to delete passcode ${booking.ttlockPasscodeId} from interior lock ${room.interiorLockId}`);
+                }
               }
 
-              log(`🔒 Cleaned expired passcode for booking ${booking.id} (ended at ${booking.endTime})`);
+              if (deletedFromFrontDoor || deletedFromInterior) {
+                log(`🔒 Successfully cleaned expired passcode for booking ${booking.id}`);
+              }
             } catch (error) {
-              log(`⚠️ Failed to clean passcode for booking ${booking.id}:`, String(error));
+              log(`❌ Exception while cleaning passcode for booking ${booking.id}:`, String(error));
+              failedCount++;
             }
           }
         }
 
-        if (cleanedCount > 0) {
-          log(`🔐 Security cleanup: Removed ${cleanedCount} expired TTLock passcodes`);
-        }
+        log(`🔐 Passcode cleanup complete: ${cleanedCount} deleted, ${failedCount} failed, ${skippedCount} skipped (no passcode)`);
       } catch (error) {
-        log("⚠️ TTLock passcode cleanup failed:", String(error));
+        log("❌ TTLock passcode cleanup failed:", String(error));
       }
     };
 

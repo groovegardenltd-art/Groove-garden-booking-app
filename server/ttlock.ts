@@ -191,6 +191,8 @@ export class TTLockService {
     try {
       const accessToken = await this.getAccessToken();
 
+      console.log(`🔓 Attempting to delete passcode ID ${passcodeId} from lock ${lockId}`);
+
       const response = await fetch(`${this.baseUrl}/v3/keyboardPwd/delete`, {
         method: 'POST',
         headers: {
@@ -205,9 +207,34 @@ export class TTLockService {
         }),
       });
 
-      return response.ok;
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ TTLock delete API error: ${response.status} - ${errorText}`);
+        return false;
+      }
+
+      const data = await response.json();
+      console.log('TTLock delete API response:', data);
+
+      // Check if deletion was successful
+      // TTLock returns errcode 0 or no errcode for success
+      if (data.errcode === undefined || data.errcode === 0) {
+        console.log(`✅ Successfully deleted passcode ID ${passcodeId} from lock ${lockId}`);
+        return true;
+      } else {
+        console.error(`❌ TTLock delete failed with error code ${data.errcode}: ${data.errmsg || 'Unknown error'}`);
+        
+        // Log specific error codes for debugging
+        if (data.errcode === -3001) {
+          console.error('⚠️ PASSCODE NOT FOUND: The passcode may have already been deleted or expired');
+        } else if (data.errcode === 20002) {
+          console.error('⚠️ PERMISSION ISSUE: Account is not lock admin for lock', lockId);
+        }
+        
+        return false;
+      }
     } catch (error) {
-      console.error('Failed to delete TTLock passcode:', error);
+      console.error(`❌ Failed to delete TTLock passcode ID ${passcodeId}:`, error);
       return false;
     }
   }
