@@ -2,20 +2,28 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     
-    <!-- Performance optimizations -->
-    <link rel="preconnect" href="https://js.stripe.com" />
+    <!-- Performance optimizations - Critical resource hints -->
+    <link rel="preconnect" href="https://js.stripe.com" crossorigin />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="dns-prefetch" href="//js.stripe.com" />
+    
+    <!-- Preload critical resources -->
+    <link rel="modulepreload" href="/src/main.tsx" />
+    <link rel="preload" href="/src/index.css" as="style" />
     
     <!-- App metadata -->
     <title>Groove Garden Studios - Book Your Rehearsal Space</title>
     <meta name="description" content="Book professional music rehearsal studios at Groove Garden Studios. Secure booking, smart lock access, and flexible hours." />
     
-    <!-- Preload critical CSS to prevent FOUC -->
-    <link rel="preload" href="/src/index.css" as="style" />
+    <!-- PWA enhancements for better mobile experience -->
+    <meta name="theme-color" content="#9333ea" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <style>
       /* Inline loading screen - shows instantly before JavaScript loads */
       #initial-loader {
@@ -105,9 +113,22 @@
       </div>
     </div>
     
+    <!-- Load main app script with high priority -->
     <script type="module" src="/src/main.tsx"></script>
+    
     <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
-    <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
+    <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js" defer></script>
+    
+    <!-- Service worker for offline support and faster subsequent loads -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js').catch(function() {
+            // Service worker registration failed, ignore silently
+          });
+        });
+      }
+    </script>
     
     <!-- Remove initial loader once React is mounted -->
     <script>
