@@ -92,30 +92,40 @@ export function BookingCalendar({
     return options;
   };
 
-  // Get the start of the current week (Monday)
+  // Get the start of the current week (Monday) - timezone-safe using UTC
   const getWeekStart = (date: Date) => {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    return new Date(d.setDate(diff));
+    // Create date at midnight UTC to avoid timezone issues
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const day = d.getUTCDay();
+    const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1);
+    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), diff));
   };
 
   const weekStart = getWeekStart(currentWeek);
   const weekDays = Array.from({ length: 7 }, (_, i) => {
-    const date = new Date(weekStart);
-    date.setDate(weekStart.getDate() + i);
-    return date;
+    // Use UTC to avoid timezone shift issues
+    return new Date(Date.UTC(
+      weekStart.getUTCFullYear(),
+      weekStart.getUTCMonth(),
+      weekStart.getUTCDate() + i
+    ));
   });
 
+  // Format date as YYYY-MM-DD using UTC to match server expectations
   const formatDate = (date: Date) => {
-    return date.toISOString().split('T')[0];
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   const formatDateDisplay = (date: Date) => {
-    return date.toLocaleDateString('en-US', { 
+    // Display using UTC to match stored dates
+    return new Date(date.getTime() + date.getTimezoneOffset() * 60000).toLocaleDateString('en-US', { 
       month: 'long', 
       day: 'numeric',
-      year: 'numeric' 
+      year: 'numeric',
+      timeZone: 'UTC'
     });
   };
 
@@ -161,14 +171,19 @@ export function BookingCalendar({
   };
 
   const isToday = (date: Date) => {
+    // Use UTC dates to avoid timezone comparison issues
     const today = new Date();
-    return date.toDateString() === today.toDateString();
+    const todayUTC = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+    const dateUTC = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+    return dateUTC === todayUTC;
   };
 
   const isPastDate = (date: Date) => {
+    // Use UTC dates to avoid timezone comparison issues
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return date < today;
+    const todayUTC = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+    const dateUTC = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+    return dateUTC < todayUTC;
   };
 
   const handleDateClick = (date: Date) => {
