@@ -16,11 +16,114 @@
     
     <!-- Preload critical CSS to prevent FOUC -->
     <link rel="preload" href="/src/index.css" as="style" />
+    <style>
+      /* Inline loading screen - shows instantly before JavaScript loads */
+      #initial-loader {
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(135deg, #faf5ff 0%, #fce7f3 50%, #d1fae5 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        animation: fadeIn 0.3s ease-out;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+      .loader-container {
+        text-align: center;
+        padding: 2rem;
+      }
+      .loader-logo {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #9333ea 0%, #ec4899 100%);
+        border-radius: 50%;
+        margin: 0 auto 1.5rem;
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .loader-icon {
+        width: 40px;
+        height: 40px;
+        color: white;
+      }
+      .loader-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      .loader-subtitle {
+        font-size: 1rem;
+        color: #6b7280;
+        margin-bottom: 1.5rem;
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      .loader-spinner {
+        width: 64px;
+        height: 64px;
+        border: 4px solid #e5e7eb;
+        border-top-color: #9333ea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+      }
+      /* Hide loader once React loads */
+      #root:not(:empty) + script ~ #initial-loader {
+        display: none;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    
+    <!-- Instant loading screen - shows before JavaScript loads -->
+    <div id="initial-loader">
+      <div class="loader-container">
+        <div class="loader-logo">
+          <svg class="loader-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+          </svg>
+        </div>
+        <h2 class="loader-title">Groove Garden Studios</h2>
+        <p class="loader-subtitle">Loading your booking experience...</p>
+        <div class="loader-spinner"></div>
+      </div>
+    </div>
+    
     <script type="module" src="/src/main.tsx"></script>
     <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
     <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
+    
+    <!-- Remove initial loader once React is mounted -->
+    <script>
+      window.addEventListener('DOMContentLoaded', function() {
+        // Wait a bit to ensure React has rendered
+        setTimeout(function() {
+          var loader = document.getElementById('initial-loader');
+          if (loader && document.getElementById('root').children.length > 0) {
+            loader.style.transition = 'opacity 0.3s ease-out';
+            loader.style.opacity = '0';
+            setTimeout(function() {
+              loader.remove();
+            }, 300);
+          }
+        }, 100);
+      });
+    </script>
   </body>
 </html>

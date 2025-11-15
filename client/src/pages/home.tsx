@@ -33,17 +33,18 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   
   useEffect(() => {
-    const checkAuth = () => {
+    // Small delay to ensure proper component mounting
+    const checkAuth = async () => {
+      // Give the component time to mount properly
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
       const { user: authUser } = getAuthState();
       setUser(authUser);
       setAuthChecked(true);
-      
-      // Don't auto-redirect - let user see the page and choose to login
-      // This prevents the "button doesn't work" feeling
     };
     
     checkAuth();
-  }, [setLocation]);
+  }, []);
 
   // Fetch rooms with better caching
   const { data: rooms = [], isLoading: roomsLoading } = useQuery<Room[]>({
@@ -59,8 +60,9 @@ export default function Home() {
     staleTime: 2 * 60 * 1000, // Bookings change more often, cache for 2 minutes
   });
 
-  // Show skeleton loading state while checking authentication and loading data
-  if (!authChecked || roomsLoading) {
+  // Show skeleton loading state while checking authentication
+  // Only show loading if auth hasn't been checked yet, OR if user is authenticated and rooms are loading
+  if (!authChecked || (user && roomsLoading)) {
     return (
       <div className="min-h-screen bg-gray-50">
         {/* Header Skeleton */}
