@@ -499,7 +499,7 @@ export const BookingModal = React.memo(function BookingModal({
             <h4 className="font-medium text-gray-900 mb-2 sm:mb-3 text-sm sm:text-base">Promo Code</h4>
             {!appliedPromoCode ? (
               <div className="flex flex-col sm:flex-row gap-2">
-                <div className="flex-1">
+                <div className="flex-1 w-full">
                   <Input
                     type="text"
                     placeholder="Enter promo code"
@@ -515,7 +515,7 @@ export const BookingModal = React.memo(function BookingModal({
                   type="button"
                   onClick={validatePromoCode}
                   disabled={isValidatingPromo || !promoCode.trim()}
-                  className="bg-music-purple hover:bg-music-purple/90"
+                  className="bg-music-purple hover:bg-music-purple/90 w-full sm:w-auto shrink-0"
                 >
                   {isValidatingPromo ? "Checking..." : "Apply"}
                 </Button>
