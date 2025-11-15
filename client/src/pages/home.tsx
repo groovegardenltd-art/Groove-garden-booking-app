@@ -46,11 +46,12 @@ export default function Home() {
     checkAuth();
   }, []);
 
-  // Fetch rooms with better caching
+  // Fetch rooms with optimized caching
   const { data: rooms = [], isLoading: roomsLoading } = useQuery<Room[]>({
     queryKey: ["/api/rooms"],
     enabled: !!user && authChecked, // Only fetch after auth is confirmed
-    staleTime: 0, // Force fresh data to show updated equipment
+    staleTime: 2 * 60 * 1000, // Cache for 2 minutes - equipment doesn't change that often
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
   });
 
   // Fetch user bookings with better caching
