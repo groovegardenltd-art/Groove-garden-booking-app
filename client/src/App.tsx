@@ -21,7 +21,7 @@ const ResubmitVerification = lazy(() => import("@/pages/resubmit-verification"))
 
 function LoadingFallback() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-white">
       <div className="text-center space-y-6 px-4">
         {/* Animated logo/icon */}
         <div className="relative">
@@ -45,7 +45,7 @@ function LoadingFallback() {
         
         {/* Spinner */}
         <div className="flex justify-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-200 border-t-purple-600"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 border-t-gray-600"></div>
         </div>
         
         {/* Progress hint */}
