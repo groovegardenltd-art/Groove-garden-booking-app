@@ -495,27 +495,25 @@ export const BookingModal = React.memo(function BookingModal({
           </div>
 
           {/* Promo Code Section */}
-          <div>
-            <h4 className="font-medium text-gray-900 mb-2 sm:mb-3 text-sm sm:text-base">Promo Code</h4>
+          <div className="border border-gray-200 rounded-lg p-3 sm:p-4">
+            <h4 className="font-medium text-gray-900 mb-3 text-sm sm:text-base">Promo Code</h4>
             {!appliedPromoCode ? (
-              <div className="flex flex-col sm:flex-row gap-2">
-                <div className="flex-1 w-full">
-                  <Input
-                    type="text"
-                    placeholder="Enter promo code"
-                    value={promoCode}
-                    onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                    className={promoCodeError ? "border-red-300" : ""}
-                  />
-                  {promoCodeError && (
-                    <p className="text-red-600 text-sm mt-1">{promoCodeError}</p>
-                  )}
-                </div>
+              <div className="space-y-2">
+                <Input
+                  type="text"
+                  placeholder="Enter promo code"
+                  value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                  className={promoCodeError ? "border-red-300" : ""}
+                />
+                {promoCodeError && (
+                  <p className="text-red-600 text-sm">{promoCodeError}</p>
+                )}
                 <Button
                   type="button"
                   onClick={validatePromoCode}
                   disabled={isValidatingPromo || !promoCode.trim()}
-                  className="bg-music-purple hover:bg-music-purple/90 w-full sm:w-auto shrink-0"
+                  className="bg-music-purple hover:bg-music-purple/90 w-full"
                 >
                   {isValidatingPromo ? "Checking..." : "Apply"}
                 </Button>
