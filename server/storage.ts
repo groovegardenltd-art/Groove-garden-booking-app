@@ -213,15 +213,71 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createBooking(booking: InsertBooking & { userId: number; accessCode: string; ttlockPasscode?: string; ttlockPasscodeId?: string; lockAccessEnabled?: boolean; promoCodeId?: number; originalPrice?: string; discountAmount?: string; stripePaymentIntentId?: string }): Promise<Booking> {
-    const [newBooking] = await db
-      .insert(bookings)
-      .values({
-        ...booking,
-        ttlockPasscodeId: booking.ttlockPasscodeId || null,
-        status: "confirmed"
-      })
-      .returning();
-    return newBooking;
+    // Use a transaction to prevent race conditions when checking availability and creating booking
+    return await db.transaction(async (tx) => {
+      // Re-check availability within the transaction to prevent race conditions
+      // This ensures no other booking can be created between check and insert
+      const existingBookings = await tx
+        .select()
+        .from(bookings)
+        .where(
+          and(
+            eq(bookings.roomId, booking.roomId),
+            eq(bookings.date, booking.date),
+            eq(bookings.status, "confirmed")
+          )
+        );
+
+      // Check conflicts with existing bookings
+      const hasBookingConflict = existingBookings.some(existingBooking => {
+        const existingStart = existingBooking.startTime;
+        const existingEnd = existingBooking.endTime;
+        const newStart = booking.startTime;
+        const newEnd = booking.endTime;
+
+        return (newStart < existingEnd && newEnd > existingStart);
+      });
+
+      if (hasBookingConflict) {
+        throw new Error("Time slot is already booked");
+      }
+
+      // Check for blocked slots within the transaction
+      const blockedSlotsData = await tx
+        .select()
+        .from(blockedSlots)
+        .where(
+          and(
+            eq(blockedSlots.roomId, booking.roomId),
+            eq(blockedSlots.date, booking.date)
+          )
+        );
+
+      const hasBlockedSlotConflict = blockedSlotsData.some(slot => {
+        const blockedStart = slot.startTime;
+        const blockedEnd = slot.endTime;
+        const newStart = booking.startTime;
+        const newEnd = booking.endTime;
+
+        return (newStart < blockedEnd && newEnd > blockedStart);
+      });
+
+      if (hasBlockedSlotConflict) {
+        throw new Error("Time slot is blocked and unavailable");
+      }
+
+      // If no conflicts, create the booking
+      const [newBooking] = await tx
+        .insert(bookings)
+        .values({
+          ...booking,
+          ttlockPasscodeId: booking.ttlockPasscodeId || null,
+          status: "confirmed"
+        })
+        .returning();
+
+      return newBooking;
+    });
   }
 
   async updateBookingStatus(id: number, status: string): Promise<Booking | undefined> {
