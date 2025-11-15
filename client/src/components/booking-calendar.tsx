@@ -135,10 +135,12 @@ export function BookingCalendar({
     return `${start.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}, ${start.getFullYear()}`;
   };
 
-  // Fetch availability for selected room and date
-  const { data: availability } = useQuery({
-    queryKey: [`/api/rooms/${selectedRoom?.id}/availability?date=${selectedDate}`, selectedDate],
+  // Fetch availability for selected room and date with caching
+  const { data: availability, isLoading: availabilityLoading } = useQuery({
+    queryKey: [`/api/rooms/${selectedRoom?.id}/availability`, selectedDate],
     enabled: !!selectedRoom && !!selectedDate,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes - availability doesn't change that often
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
   });
 
   const isTimeSlotAvailable = (time: string, duration: number) => {
@@ -312,8 +314,15 @@ export function BookingCalendar({
             <h4 className="text-sm font-semibold text-blue-800 mb-3">
               Available Times for {formatDate(new Date(selectedDate))}
             </h4>
-            <div className="grid grid-cols-2 gap-3">
-              {BUSINESS_HOURS.map((hour) => {
+            {availabilityLoading ? (
+              <div className="grid grid-cols-2 gap-3">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="h-12 bg-gray-200 rounded animate-pulse"></div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {BUSINESS_HOURS.map((hour) => {
                 const isAvailable = isTimeSlotAvailable(hour.time, selectedDuration);
                 const isSelected = selectedTime === hour.time;
                 const isInBookingRange = isTimeInBookingRange(hour.time);
@@ -340,7 +349,8 @@ export function BookingCalendar({
                   </button>
                 );
               })}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )}
