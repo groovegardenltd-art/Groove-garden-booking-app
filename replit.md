@@ -11,6 +11,7 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - **Smart Lock**: TTLock API integration for automated access control
 
 ## Recent Changes
+- **Nov 15, 2025**: ⚡ MOBILE LOAD PERFORMANCE OPTIMIZED - Added modulepreload for critical resources, service worker for asset caching, PWA meta tags, and optimized resource hints. Subsequent loads will be much faster on mobile devices.
 - **Nov 15, 2025**: 🔧 FIXED BOOKING CONFLICTS & TIMEZONE ISSUES - Implemented database transaction-based booking creation with atomic conflict checking to prevent simultaneous double-bookings. Fixed timezone handling in calendar component using UTC-based date methods throughout to prevent date discrepancies across timezones.
 - **Nov 15, 2025**: 🎨 FIXED BLANK SCREEN ON EXTERNAL LINKS - Added instant loading screen to index.html that displays immediately when users click from Wix website, eliminating white screen during JavaScript load
 - **Nov 13, 2025**: 🔒 CRITICAL SECURITY FIX - Fixed TTLock passcode orphaning vulnerability. Passcodes now properly deleted from locks before old bookings are removed from database. Enhanced deletePasscode to check TTLock API response properly. Added comprehensive logging for all cleanup operations.
