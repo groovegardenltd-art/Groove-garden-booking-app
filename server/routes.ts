@@ -730,45 +730,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Check for booking conflicts with both bookings and blocked slots
-      const existingBookings = await storage.getBookingsByRoomAndDate(
-        bookingData.roomId, 
-        bookingData.date
-      );
-
-      const blockedSlots = await storage.getBlockedSlotsByRoomAndDate(
-        bookingData.roomId,
-        bookingData.date
-      );
-
-      // Check conflicts with existing bookings
-      const hasBookingConflict = existingBookings.some(booking => {
-        const existingStart = booking.startTime;
-        const existingEnd = booking.endTime;
-        const newStart = bookingData.startTime;
-        const newEnd = bookingData.endTime;
-
-        return (newStart < existingEnd && newEnd > existingStart);
-      });
-
-      // Check conflicts with blocked slots
-      const hasBlockedSlotConflict = blockedSlots.some(slot => {
-        const blockedStart = slot.startTime;
-        const blockedEnd = slot.endTime;
-        const newStart = bookingData.startTime;
-        const newEnd = bookingData.endTime;
-
-        return (newStart < blockedEnd && newEnd > blockedStart);
-      });
-
-      if (hasBookingConflict) {
-        return res.status(400).json({ message: "Time slot is already booked" });
-      }
-
-      if (hasBlockedSlotConflict) {
-        return res.status(400).json({ message: "Time slot is blocked and unavailable" });
-      }
-
+      // ⚠️ Conflict checking happens inside the transaction in storage.createBooking()
+      // to prevent race conditions. Don't check here - let the transaction handle it.
+      
       // Get room details for pricing calculation
       const room = await storage.getRoom(bookingData.roomId);
       if (!room) {
@@ -900,7 +864,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
+      
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      // Return 409 Conflict for booking conflicts (from transaction)
+      if (errorMessage.includes('already booked') || errorMessage.includes('blocked and unavailable')) {
+        return res.status(409).json({ message: errorMessage });
+      }
+      
+      // Return 500 for other errors
       const errorStack = error instanceof Error ? error.stack : undefined;
       res.status(500).json({ message: "Failed to create booking", error: errorMessage, stack: errorStack });
     }

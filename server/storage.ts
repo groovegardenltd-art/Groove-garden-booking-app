@@ -215,6 +215,8 @@ export class DatabaseStorage implements IStorage {
   async createBooking(booking: InsertBooking & { userId: number; accessCode: string; ttlockPasscode?: string; ttlockPasscodeId?: string; lockAccessEnabled?: boolean; promoCodeId?: number; originalPrice?: string; discountAmount?: string; stripePaymentIntentId?: string }): Promise<Booking> {
     // Use a transaction to prevent race conditions when checking availability and creating booking
     return await db.transaction(async (tx) => {
+      console.log(`🔒 Transaction started for booking: Room ${booking.roomId}, ${booking.date} ${booking.startTime}-${booking.endTime}`);
+      
       // Re-check availability within the transaction to prevent race conditions
       // This ensures no other booking can be created between check and insert
       const existingBookings = await tx
@@ -228,6 +230,8 @@ export class DatabaseStorage implements IStorage {
           )
         );
 
+      console.log(`🔍 Found ${existingBookings.length} existing bookings for this room/date within transaction`);
+
       // Check conflicts with existing bookings
       const hasBookingConflict = existingBookings.some(existingBooking => {
         const existingStart = existingBooking.startTime;
@@ -235,10 +239,15 @@ export class DatabaseStorage implements IStorage {
         const newStart = booking.startTime;
         const newEnd = booking.endTime;
 
-        return (newStart < existingEnd && newEnd > existingStart);
+        const conflicts = (newStart < existingEnd && newEnd > existingStart);
+        if (conflicts) {
+          console.log(`❌ CONFLICT DETECTED: Existing booking ${existingBooking.id} (${existingStart}-${existingEnd}) overlaps with requested ${newStart}-${newEnd}`);
+        }
+        return conflicts;
       });
 
       if (hasBookingConflict) {
+        console.error(`🚫 Transaction blocked: Time slot is already booked`);
         throw new Error("Time slot is already booked");
       }
 
@@ -253,20 +262,28 @@ export class DatabaseStorage implements IStorage {
           )
         );
 
+      console.log(`🔍 Found ${blockedSlotsData.length} blocked slots for this room/date within transaction`);
+
       const hasBlockedSlotConflict = blockedSlotsData.some(slot => {
         const blockedStart = slot.startTime;
         const blockedEnd = slot.endTime;
         const newStart = booking.startTime;
         const newEnd = booking.endTime;
 
-        return (newStart < blockedEnd && newEnd > blockedStart);
+        const conflicts = (newStart < blockedEnd && newEnd > blockedStart);
+        if (conflicts) {
+          console.log(`❌ BLOCKED SLOT CONFLICT: Blocked slot ${slot.id} (${blockedStart}-${blockedEnd}) overlaps with requested ${newStart}-${newEnd}`);
+        }
+        return conflicts;
       });
 
       if (hasBlockedSlotConflict) {
+        console.error(`🚫 Transaction blocked: Time slot is blocked and unavailable`);
         throw new Error("Time slot is blocked and unavailable");
       }
 
       // If no conflicts, create the booking
+      console.log(`✅ No conflicts detected, creating booking...`);
       const [newBooking] = await tx
         .insert(bookings)
         .values({
@@ -276,6 +293,7 @@ export class DatabaseStorage implements IStorage {
         })
         .returning();
 
+      console.log(`✅ Transaction successful: Created booking #${newBooking.id}`);
       return newBooking;
     });
   }
