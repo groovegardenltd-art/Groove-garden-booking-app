@@ -136,8 +136,9 @@ export function BookingCalendar({
   };
 
   // Fetch availability for selected room and date with caching
+  // CRITICAL FIX: Include date as query parameter in the URL, not just in queryKey
   const { data: availability, isLoading: availabilityLoading } = useQuery({
-    queryKey: [`/api/rooms/${selectedRoom?.id}/availability`, selectedDate],
+    queryKey: [`/api/rooms/${selectedRoom?.id}/availability?date=${selectedDate}`, selectedDate],
     enabled: !!selectedRoom && !!selectedDate,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes - availability doesn't change that often
     gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
