@@ -207,6 +207,18 @@ export function BookingCalendar({
     }
   };
 
+  // CRITICAL FIX: Re-validate selected time when duration changes
+  // If the selected time is no longer available with the new duration, clear it
+  useEffect(() => {
+    if (selectedTime && selectedDate && selectedRoom) {
+      const stillAvailable = isTimeSlotAvailable(selectedTime, selectedDuration);
+      if (!stillAvailable) {
+        // Clear the selection if the time slot is no longer available with new duration
+        onTimeSelect(null as any);
+      }
+    }
+  }, [selectedDuration, selectedTime, selectedDate, selectedRoom]);
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       {/* Duration Selection */}
