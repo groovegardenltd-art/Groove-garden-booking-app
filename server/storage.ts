@@ -200,7 +200,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getBookingsByRoomAndDate(roomId: number, date: string): Promise<Booking[]> {
-    return await db
+    console.log(`🔍 DB Query: getBookingsByRoomAndDate(roomId=${roomId}, date='${date}')`);
+    const results = await db
       .select()
       .from(bookings)
       .where(
@@ -210,6 +211,8 @@ export class DatabaseStorage implements IStorage {
           eq(bookings.status, "confirmed")
         )
       );
+    console.log(`📦 Query returned ${results.length} bookings`);
+    return results;
   }
 
   async createBooking(booking: InsertBooking & { userId: number; accessCode: string; ttlockPasscode?: string; ttlockPasscodeId?: string; lockAccessEnabled?: boolean; promoCodeId?: number; originalPrice?: string; discountAmount?: string; stripePaymentIntentId?: string }): Promise<Booking> {

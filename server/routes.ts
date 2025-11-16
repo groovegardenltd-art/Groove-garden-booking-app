@@ -619,9 +619,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Date parameter is required" });
       }
 
+      console.log(`📅 Availability check: Room ${roomId}, Date ${date}`);
+
       // Get both regular bookings and blocked slots
       const bookings = await storage.getBookingsByRoomAndDate(roomId, date);
       const blockedSlots = await storage.getBlockedSlotsByRoomAndDate(roomId, date);
+      
+      console.log(`📊 Found ${bookings.length} bookings and ${blockedSlots.length} blocked slots for ${date}`);
+      if (bookings.length > 0) {
+        console.log(`📋 Bookings:`, bookings.map(b => ({ id: b.id, time: `${b.startTime}-${b.endTime}`, status: b.status })));
+      }
       
       const bookedSlots = [
         // Regular bookings
@@ -636,8 +643,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }))
       ];
       
+      console.log(`✅ Returning ${bookedSlots.length} total booked slots`);
       res.json({ date, bookedSlots });
     } catch (error) {
+      console.error('❌ Availability check error:', error);
       res.status(500).json({ message: "Failed to check availability" });
     }
   });
