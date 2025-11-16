@@ -688,6 +688,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const bookingData = insertBookingSchema.parse(req.body);
       
+      // 🔒 CRITICAL: Verify payment succeeded before creating booking
+      const paymentIntentId = (req.body as any).paymentIntentId;
+      if (!paymentIntentId) {
+        return res.status(400).json({ message: "Payment intent ID is required" });
+      }
+
+      // Skip verification in test mode
+      if (!TEST_MODE && !paymentIntentId.includes('test')) {
+        if (!stripe) {
+          return res.status(503).json({ message: "Payment service not configured" });
+        }
+
+        try {
+          // Retrieve payment intent from Stripe to verify it succeeded
+          const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+          
+          // Verify payment succeeded
+          if (paymentIntent.status !== 'succeeded') {
+            console.error(`❌ Payment verification failed for ${paymentIntentId}: status is ${paymentIntent.status}`);
+            return res.status(400).json({ 
+              message: `Payment not completed. Status: ${paymentIntent.status}. Please try again or contact support.` 
+            });
+          }
+
+          // Verify amount matches (convert pounds to pence for comparison)
+          const expectedAmountInPence = Math.round(parseFloat(bookingData.totalPrice) * 100);
+          if (paymentIntent.amount !== expectedAmountInPence) {
+            console.error(`❌ Payment amount mismatch for ${paymentIntentId}: expected ${expectedAmountInPence} pence, got ${paymentIntent.amount} pence`);
+            return res.status(400).json({ 
+              message: "Payment amount does not match booking cost. Please contact support." 
+            });
+          }
+
+          console.log(`✅ Payment verified: ${paymentIntentId} - £${bookingData.totalPrice} (${paymentIntent.status})`);
+        } catch (error) {
+          console.error('❌ Payment verification error:', error);
+          return res.status(400).json({ 
+            message: "Unable to verify payment. Please contact support with your payment confirmation." 
+          });
+        }
+      }
+      
       // Check for booking conflicts with both bookings and blocked slots
       const existingBookings = await storage.getBookingsByRoomAndDate(
         bookingData.roomId, 
