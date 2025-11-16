@@ -609,6 +609,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // DIAGNOSTIC ENDPOINT - Check database connection and bookings
+  app.get("/api/diagnostic/bookings", async (req, res) => {
+    try {
+      const { date } = req.query;
+      
+      // Get all bookings for diagnostic
+      const allBookings = await storage.getAllBookings();
+      
+      // Filter by date if provided
+      const filteredBookings = date 
+        ? allBookings.filter(b => b.date === date)
+        : allBookings;
+      
+      res.json({
+        environment: process.env.NODE_ENV || 'unknown',
+        totalBookings: allBookings.length,
+        filteredBookings: filteredBookings.length,
+        requestedDate: date || 'all',
+        sampleBookings: allBookings.slice(0, 5).map(b => ({
+          id: b.id,
+          date: b.date,
+          roomId: b.roomId,
+          time: `${b.startTime}-${b.endTime}`,
+          status: b.status
+        })),
+        dateFormatExample: allBookings.length > 0 ? allBookings[0].date : 'no bookings found'
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        error: 'Database query failed',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Check room availability
   app.get("/api/rooms/:id/availability", async (req, res) => {
     try {
