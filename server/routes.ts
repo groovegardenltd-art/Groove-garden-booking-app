@@ -2087,13 +2087,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (conflictingDates.length > 0) {
         console.log(`❌ Cannot create blocked slot - conflicts found:`, conflictDetails);
-      }
-
-      if (conflictingDates.length > 0) {
+        
+        // Enhanced error message showing specific booking details
+        const detailsText = conflictDetails.slice(0, 3).map(d => 
+          `Booking #${d.bookingId} (${d.bookingTime}, status: ${d.bookingStatus})`
+        ).join('; ');
+        
         const datesList = conflictingDates.slice(0, 5).join(', ');
         const moreText = conflictingDates.length > 5 ? ` and ${conflictingDates.length - 5} more` : '';
+        
         return res.status(400).json({ 
-          message: `Cannot create blocked slot: existing bookings found on ${datesList}${moreText}. Please cancel those bookings first.` 
+          message: `Cannot create blocked slot: ${conflictDetails.length} existing booking(s) found on ${datesList}${moreText}. Details: ${detailsText}. Please cancel those bookings first from the admin panel.` 
         });
       }
 
