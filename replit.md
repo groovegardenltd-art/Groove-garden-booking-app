@@ -11,6 +11,8 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - **Smart Lock**: TTLock API integration for automated access control
 
 ## Recent Changes
+- **Nov 17, 2025**: 🔧 CRITICAL AVAILABILITY FIX - Fixed booking calendar not showing existing bookings as unavailable. Date parameter wasn't being sent to availability API. Also added automatic validation when duration changes to prevent conflicting bookings.
+- **Nov 17, 2025**: 📋 ENHANCED BLOCKED SLOT DIAGNOSTICS - Added detailed error messages showing exactly which bookings conflict when creating blocked slots, including booking IDs, times, and status. System already filters out cancelled bookings from conflict detection.
 - **Nov 16, 2025**: 🚨 CRITICAL FIX - PAYMENT VERIFICATION - Fixed critical bug where bookings were created without verifying payment success. Backend now validates with Stripe that payment actually succeeded and amount matches before creating booking. This prevents "payment charged but booking failed" scenarios.
 - **Nov 16, 2025**: 🎨 MOBILE UI FIX - Changed iOS theme-color from purple to white for clean native appearance on iPhones. Removed purple gradient backgrounds from loading screens.
 - **Nov 15, 2025**: ⚡ CALENDAR LOAD OPTIMIZED - Added smart caching (5min stale time) for availability queries, loading skeletons for better UX, and optimized room data caching. Calendar now responds instantly on repeat interactions.
