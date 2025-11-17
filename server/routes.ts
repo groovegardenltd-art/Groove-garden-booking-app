@@ -2045,8 +2045,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check each date for booking conflicts
       const conflictingDates: string[] = [];
+      const conflictDetails: any[] = [];
+      
+      console.log(`🔍 Checking blocked slot conflicts for room ${roomId}, dates:`, datesToCheck);
+      console.log(`🔍 Block time range: ${startTime} - ${endTime}`);
+      
       for (const dateToCheck of datesToCheck) {
         const existingBookings = await storage.getBookingsByRoomAndDate(roomId, dateToCheck);
+        
+        console.log(`📋 Found ${existingBookings.length} bookings on ${dateToCheck}:`, 
+          existingBookings.map(b => ({ id: b.id, time: `${b.startTime}-${b.endTime}`, status: b.status })));
         
         const hasConflict = existingBookings.some(booking => {
           // Skip cancelled bookings
@@ -2057,12 +2065,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const blockStart = startTime;
           const blockEnd = endTime;
 
-          return (blockStart < bookingEnd && blockEnd > bookingStart);
+          const conflicts = (blockStart < bookingEnd && blockEnd > bookingStart);
+          
+          if (conflicts) {
+            console.log(`⚠️  CONFLICT DETECTED with booking ${booking.id}: ${bookingStart}-${bookingEnd} vs block ${blockStart}-${blockEnd}`);
+            conflictDetails.push({
+              date: dateToCheck,
+              bookingId: booking.id,
+              bookingTime: `${bookingStart}-${bookingEnd}`,
+              bookingStatus: booking.status
+            });
+          }
+          
+          return conflicts;
         });
 
         if (hasConflict) {
           conflictingDates.push(dateToCheck);
         }
+      }
+
+      if (conflictingDates.length > 0) {
+        console.log(`❌ Cannot create blocked slot - conflicts found:`, conflictDetails);
       }
 
       if (conflictingDates.length > 0) {
