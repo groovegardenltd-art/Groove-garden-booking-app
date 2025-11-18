@@ -1695,19 +1695,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
 
-      // Sort by booking date (future dates first, then by creation date for same dates)
+      // Sort by booking date (newest dates first, then by creation date for same dates)
       bookingsWithDetails.sort((a, b) => {
         const dateComparison = b.date.localeCompare(a.date);
         if (dateComparison !== 0) return dateComparison;
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
       
-      // Show all future bookings plus recent past bookings (up to 100 total)
-      const today = new Date().toISOString().split('T')[0];
-      const futureBookings = bookingsWithDetails.filter(b => b.date >= today);
-      const pastBookings = bookingsWithDetails.filter(b => b.date < today).slice(0, 50);
-      
-      res.json([...futureBookings, ...pastBookings]);
+      // Return ALL bookings - no limit so nothing is ever hidden
+      res.json(bookingsWithDetails);
     } catch (error) {
       console.error('Failed to fetch admin bookings:', error);
       res.status(500).json({ message: "Failed to fetch bookings" });

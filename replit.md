@@ -11,7 +11,7 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - **Smart Lock**: TTLock API integration for automated access control
 
 ## Recent Changes
-- **Nov 18, 2025**: 🐛 CRITICAL ADMIN PANEL FIX - Fixed admin panel only showing 50 most recent bookings by creation date, hiding future bookings created earlier. Now shows ALL future bookings sorted by date, plus 50 recent past bookings.
+- **Nov 18, 2025**: 🐛 CRITICAL ADMIN PANEL FIX - Fixed admin panel only showing 50 most recent bookings by creation date, hiding future bookings created earlier. Now shows ALL bookings sorted by date with no limits - you'll never miss a booking again.
 - **Nov 18, 2025**: 🐛 CRITICAL BUG FIX - CANCELLED BOOKINGS - Fixed availability API incorrectly marking cancelled bookings as unavailable. Cancelled bookings now properly excluded from calendar availability and blocked slot conflict detection.
 - **Nov 17, 2025**: 🔧 CRITICAL AVAILABILITY FIX - Fixed booking calendar not showing existing bookings as unavailable. Date parameter wasn't being sent to availability API. Also added automatic validation when duration changes to prevent conflicting bookings.
 - **Nov 17, 2025**: 📋 ENHANCED BLOCKED SLOT DIAGNOSTICS - Added detailed error messages showing exactly which bookings conflict when creating blocked slots, including booking IDs, times, and status.
