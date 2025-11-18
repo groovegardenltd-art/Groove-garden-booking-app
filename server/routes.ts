@@ -665,9 +665,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`📋 Bookings:`, bookings.map(b => ({ id: b.id, time: `${b.startTime}-${b.endTime}`, status: b.status })));
       }
       
+      // CRITICAL FIX: Filter out cancelled bookings from availability
+      const activeBookings = bookings.filter(booking => booking.status !== 'cancelled');
+      console.log(`✅ After filtering: ${activeBookings.length} active bookings (${bookings.length - activeBookings.length} cancelled excluded)`);
+      
       const bookedSlots = [
-        // Regular bookings
-        ...bookings.map(booking => ({
+        // Regular bookings (excluding cancelled)
+        ...activeBookings.map(booking => ({
           startTime: booking.startTime,
           endTime: booking.endTime
         })),
