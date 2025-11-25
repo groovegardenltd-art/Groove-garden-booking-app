@@ -1,47 +1,51 @@
 // Service Worker for Groove Garden Studios
-// Caches static assets for faster subsequent loads
+// Uses "network first" strategy for fresh content with cache fallback
 
-const CACHE_NAME = 'groove-garden-v1';
-const urlsToCache = [
-  '/',
-  '/src/main.tsx',
-  '/src/index.css'
-];
+const CACHE_NAME = 'groove-garden-v2';
 
-// Install event - cache critical resources
+// Install event - skip waiting to activate immediately
 self.addEventListener('install', function(event) {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(function(cache) {
-        return cache.addAll(urlsToCache).catch(function() {
-          // Silently fail if caching doesn't work
-        });
-      })
-  );
   self.skipWaiting();
 });
 
-// Fetch event - serve from cache when available
+// Fetch event - NETWORK FIRST strategy (always get fresh content)
 self.addEventListener('fetch', function(event) {
+  // Only cache GET requests
+  if (event.request.method !== 'GET') return;
+  
+  // Skip API requests - always fetch fresh
+  if (event.request.url.includes('/api/')) {
+    return;
+  }
+  
   event.respondWith(
-    caches.match(event.request)
-      .then(function(response) {
-        // Cache hit - return response
-        if (response) {
-          return response;
+    fetch(event.request)
+      .then(function(networkResponse) {
+        // Got network response - cache it and return
+        if (networkResponse.ok) {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then(function(cache) {
+            cache.put(event.request, responseToCache);
+          });
         }
-        return fetch(event.request);
+        return networkResponse;
+      })
+      .catch(function() {
+        // Network failed - try cache as fallback
+        return caches.match(event.request);
       })
   );
 });
 
-// Activate event - clean up old caches
+// Activate event - clean up ALL old caches immediately
 self.addEventListener('activate', function(event) {
   event.waitUntil(
     caches.keys().then(function(cacheNames) {
       return Promise.all(
         cacheNames.map(function(cacheName) {
+          // Delete all old cache versions
           if (cacheName !== CACHE_NAME) {
+            console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
