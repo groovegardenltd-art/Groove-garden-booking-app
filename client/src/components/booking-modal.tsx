@@ -11,7 +11,7 @@ import { Room, User } from "@shared/schema";
 import { CreditCard, Coins, Upload, X, CheckCircle, Clock, XCircle } from "lucide-react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { getAuthState } from "@/lib/auth";
+import { getAuthState, getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import React from "react";
 import { Elements } from "@stripe/react-stripe-js";
@@ -108,8 +108,80 @@ export const BookingModal = React.memo(function BookingModal({
     mutationFn: async (bookingData: any) => {
       if (!authUser) throw new Error("Not authenticated");
 
-      const response = await apiRequest("POST", "/api/bookings", bookingData);
-      return response.json();
+      // Retry logic for cold start resilience
+      const maxRetries = 3;
+      let lastError: Error | null = null;
+      
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          console.log(`📤 Booking attempt ${attempt}/${maxRetries}...`);
+          
+          // Create AbortController for timeout
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+          
+          const response = await fetch("/api/bookings", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...getAuthHeaders(),
+            },
+            body: JSON.stringify(bookingData),
+            credentials: "include",
+            signal: controller.signal,
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            
+            // If session expired, don't retry - throw immediately
+            if (response.status === 401) {
+              throw new Error("Session expired. Please log in and try again.");
+            }
+            
+            // If server error (5xx), retry
+            if (response.status >= 500 && attempt < maxRetries) {
+              console.warn(`⚠️ Server error ${response.status}, retrying in ${attempt * 2}s...`);
+              await new Promise(r => setTimeout(r, attempt * 2000));
+              continue;
+            }
+            
+            throw new Error(errorText || `Request failed: ${response.status}`);
+          }
+          
+          return response.json();
+        } catch (error: any) {
+          lastError = error;
+          
+          // If aborted due to timeout, retry
+          if (error.name === 'AbortError' && attempt < maxRetries) {
+            console.warn(`⏱️ Request timeout, retrying (attempt ${attempt + 1})...`);
+            await new Promise(r => setTimeout(r, attempt * 2000));
+            continue;
+          }
+          
+          // Network errors - retry
+          if (error.message?.includes('Failed to fetch') && attempt < maxRetries) {
+            console.warn(`🌐 Network error, retrying in ${attempt * 2}s...`);
+            await new Promise(r => setTimeout(r, attempt * 2000));
+            continue;
+          }
+          
+          // Don't retry auth errors
+          if (error.message?.includes('Session expired') || error.message?.includes('401')) {
+            throw error;
+          }
+          
+          // Last attempt - throw the error
+          if (attempt === maxRetries) {
+            throw error;
+          }
+        }
+      }
+      
+      throw lastError || new Error("Booking failed after multiple attempts");
     },
     onSuccess: (booking) => {
       console.log('✅ Booking created successfully:', booking);
@@ -117,27 +189,40 @@ export const BookingModal = React.memo(function BookingModal({
       onBookingSuccess(booking);
       resetForm();
       onOpenChange(false);
-      setIsSubmitting(false); // Reset loading state
+      setIsSubmitting(false);
       toast({
         title: "Booking Confirmed!",
         description: "Your rehearsal room has been successfully booked.",
       });
     },
     onError: (error: any) => {
-      console.error('❌ Booking creation failed:', error);
-      setIsSubmitting(false); // ✅ Fix: Reset loading state on error
+      console.error('❌ Booking creation failed after all retries:', error);
+      setIsSubmitting(false);
       
-      // Provide specific guidance based on error type
-      const isSessionError = error.message?.includes("Session expired") || error.message?.includes("Authentication");
+      // Store payment intent for recovery
+      const failedPaymentId = paymentIntentId;
+      if (failedPaymentId) {
+        console.error(`💳 PAYMENT RECOVERY NEEDED: ${failedPaymentId}`);
+        localStorage.setItem('failedBookingPayment', JSON.stringify({
+          paymentIntentId: failedPaymentId,
+          timestamp: new Date().toISOString(),
+          roomId: selectedRoom?.id,
+          date: selectedDate,
+          time: selectedTime,
+          duration: selectedDuration,
+        }));
+      }
+      
+      const isSessionError = error.message?.includes("Session expired") || error.message?.includes("401");
       const errorDescription = isSessionError 
-        ? "Your session expired after payment. Please contact support to confirm your booking was processed."
-        : error.message || "Failed to create booking after payment. Please contact support.";
+        ? "Your session expired after payment. Please contact support with your payment confirmation."
+        : `Booking could not be created. Your payment ID is: ${failedPaymentId || 'N/A'}. Please contact support immediately.`;
       
       toast({
-        title: "Booking Failed",
+        title: "⚠️ Booking Failed - Payment Received",
         description: errorDescription,
         variant: "destructive",
-        duration: 10000, // Show longer for important error messages
+        duration: 30000, // Show for 30 seconds - very important message
       });
     },
   });
