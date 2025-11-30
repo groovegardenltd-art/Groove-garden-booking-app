@@ -2,8 +2,8 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { rooms, sessions, users, type Booking, type BlockedSlot } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { rooms, sessions, users, bookings, type Booking, type BlockedSlot } from "@shared/schema";
+import { eq, and, gte, asc, isNotNull } from "drizzle-orm";
 import { insertUserSchema, loginSchema, insertBookingSchema } from "@shared/schema";
 import { createTTLockService } from "./ttlock";
 import { z } from "zod";
@@ -1130,6 +1130,189 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Lock removal error:', error);
       res.status(500).json({ message: "Failed to remove lock configuration" });
+    }
+  });
+
+  // Bulk update all room lock IDs (for replacing hardware)
+  app.patch("/api/admin/update-all-locks", requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const { newLockId, newLockName } = req.body;
+      
+      if (!newLockId) {
+        return res.status(400).json({ message: "New lock ID is required" });
+      }
+
+      // Update all rooms to use the new lock ID
+      const result = await db
+        .update(rooms)
+        .set({ 
+          lockId: newLockId, 
+          lockName: newLockName || "Front Door" 
+        })
+        .returning();
+
+      console.log(`🔒 Updated ${result.length} rooms to use new lock ID: ${newLockId}`);
+      
+      res.json({ 
+        message: `Updated ${result.length} rooms to use new lock`, 
+        updatedRooms: result.length,
+        newLockId 
+      });
+    } catch (error) {
+      console.error('Bulk lock update error:', error);
+      res.status(500).json({ message: "Failed to update lock configuration" });
+    }
+  });
+
+  // Get all future bookings with passcodes (for sync preview)
+  app.get("/api/admin/bookings-with-passcodes", requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Get all future confirmed bookings with passcodes
+      const bookingsWithCodes = await db
+        .select({
+          id: bookings.id,
+          date: bookings.date,
+          startTime: bookings.startTime,
+          endTime: bookings.endTime,
+          roomId: bookings.roomId,
+          ttlockPasscode: bookings.ttlockPasscode,
+          ttlockPasscodeId: bookings.ttlockPasscodeId,
+          status: bookings.status,
+        })
+        .from(bookings)
+        .where(
+          and(
+            gte(bookings.date, today),
+            eq(bookings.status, 'confirmed'),
+            isNotNull(bookings.ttlockPasscode)
+          )
+        )
+        .orderBy(asc(bookings.date), asc(bookings.startTime));
+
+      res.json({
+        count: bookingsWithCodes.length,
+        bookings: bookingsWithCodes
+      });
+    } catch (error) {
+      console.error('Error fetching bookings with passcodes:', error);
+      res.status(500).json({ message: "Failed to fetch bookings" });
+    }
+  });
+
+  // Bulk sync passcodes to new lock
+  app.post("/api/admin/sync-passcodes", requireAuth, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      if (!ttlockService) {
+        return res.status(503).json({ message: "TTLock service not configured" });
+      }
+
+      const { targetLockId } = req.body;
+      
+      if (!targetLockId) {
+        return res.status(400).json({ message: "Target lock ID is required" });
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Get all future confirmed bookings with passcodes
+      const bookingsToSync = await db
+        .select()
+        .from(bookings)
+        .where(
+          and(
+            gte(bookings.date, today),
+            eq(bookings.status, 'confirmed'),
+            isNotNull(bookings.ttlockPasscode)
+          )
+        )
+        .orderBy(asc(bookings.date), asc(bookings.startTime));
+
+      console.log(`🔄 Starting passcode sync for ${bookingsToSync.length} bookings to lock ${targetLockId}`);
+
+      const results = {
+        total: bookingsToSync.length,
+        success: 0,
+        failed: 0,
+        errors: [] as { bookingId: number; error: string }[]
+      };
+
+      for (const booking of bookingsToSync) {
+        try {
+          // Parse booking time
+          const [year, month, day] = booking.date.split('-').map(Number);
+          const [startHour] = booking.startTime.split(':').map(Number);
+          const [endHour] = booking.endTime.split(':').map(Number);
+          
+          const startTime = new Date(year, month - 1, day, startHour, 0, 0);
+          const endTime = new Date(year, month - 1, day, endHour, 0, 0);
+          
+          // Handle overnight bookings (end time past midnight)
+          if (endHour <= startHour) {
+            endTime.setDate(endTime.getDate() + 1);
+          }
+
+          console.log(`📤 Syncing booking #${booking.id}: ${booking.date} ${booking.startTime}-${booking.endTime}`);
+          
+          // Create passcode on the new lock
+          const result = await ttlockService.createTimeLimitedPasscode(
+            targetLockId,
+            startTime,
+            endTime,
+            booking.id
+          );
+
+          // Update the booking with new passcode ID
+          await db
+            .update(bookings)
+            .set({ 
+              ttlockPasscode: result.passcode,
+              ttlockPasscodeId: result.passcodeId.toString()
+            })
+            .where(eq(bookings.id, booking.id));
+
+          results.success++;
+          console.log(`✅ Booking #${booking.id} synced successfully`);
+          
+        } catch (error) {
+          results.failed++;
+          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+          results.errors.push({ bookingId: booking.id, error: errorMsg });
+          console.error(`❌ Failed to sync booking #${booking.id}:`, errorMsg);
+        }
+        
+        // Small delay between API calls to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      console.log(`🏁 Passcode sync complete: ${results.success}/${results.total} successful`);
+      
+      res.json({
+        message: `Synced ${results.success} of ${results.total} bookings`,
+        ...results
+      });
+    } catch (error) {
+      console.error('Passcode sync error:', error);
+      res.status(500).json({ 
+        message: "Failed to sync passcodes",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
