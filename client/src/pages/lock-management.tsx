@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Plus, Lock, CheckCircle, XCircle } from "lucide-react";
+import { Trash2, Plus, Lock, CheckCircle, XCircle, RefreshCw, AlertCircle } from "lucide-react";
 import { Header } from "@/components/header";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -19,10 +19,32 @@ export default function LockManagement() {
     lockId: "",
     lockName: "",
   });
+  const [syncLockId, setSyncLockId] = useState("");
+  const [syncResults, setSyncResults] = useState<{
+    total: number;
+    success: number;
+    failed: number;
+    errors: { bookingId: number; error: string }[];
+  } | null>(null);
 
   // Fetch rooms
   const { data: rooms = [], isLoading: roomsLoading } = useQuery({
     queryKey: ["/api/rooms"],
+  });
+
+  // Fetch bookings that need passcode sync
+  const { data: passcodeBookings, refetch: refetchPasscodes } = useQuery<{
+    count: number;
+    bookings: Array<{
+      id: number;
+      date: string;
+      startTime: string;
+      endTime: string;
+      roomId: number;
+      ttlockPasscode: string;
+    }>;
+  }>({
+    queryKey: ["/api/admin/bookings-with-passcodes"],
   });
 
   // Test lock connection
@@ -41,6 +63,53 @@ export default function LockManagement() {
       toast({
         title: "Connection Test Failed",
         description: error.message || "Failed to connect to TTLock service",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Sync passcodes to new lock
+  const syncPasscodesMutation = useMutation({
+    mutationFn: async (targetLockId: string) => {
+      const response = await apiRequest("POST", "/api/admin/sync-passcodes", {
+        targetLockId,
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setSyncResults(data);
+      toast({
+        title: "Passcode Sync Complete",
+        description: `${data.success} of ${data.total} passcodes synced successfully.`,
+      });
+      refetchPasscodes();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Sync Failed",
+        description: error.message || "Failed to sync passcodes",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update all locks at once (for replacing hardware)
+  const updateAllLocksMutation = useMutation({
+    mutationFn: async (data: { newLockId: string; newLockName: string }) => {
+      const response = await apiRequest("PATCH", "/api/admin/update-all-locks", data);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "All Locks Updated",
+        description: `${data.updatedRooms} rooms now use the new lock ID.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update lock configuration",
         variant: "destructive",
       });
     },
@@ -154,10 +223,137 @@ export default function LockManagement() {
               <Button
                 onClick={() => testConnectionMutation.mutate()}
                 disabled={testConnectionMutation.isPending}
+                data-testid="button-test-connection"
               >
                 {testConnectionMutation.isPending ? "Testing..." : "Test Connection"}
               </Button>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Passcode Sync for New Lock */}
+        <Card className="mb-8 border-orange-200 bg-orange-50">
+          <CardHeader>
+            <CardTitle className="flex items-center text-orange-800">
+              <RefreshCw className="mr-2 h-5 w-5" />
+              Sync Passcodes to New Lock
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-white p-4 rounded-lg mb-4">
+              <div className="flex items-start gap-3 mb-4">
+                <AlertCircle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold text-orange-800">Replacing your lock?</h4>
+                  <p className="text-sm text-gray-600">
+                    When you install a new lock, you need to transfer all existing booking passcodes to it.
+                    This will re-upload all future booking passcodes to your new lock.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-4 mb-4">
+                <Badge variant="outline" className="text-lg py-2 px-4">
+                  {passcodeBookings?.count ?? 0} future bookings with passcodes
+                </Badge>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="syncLockId">New Lock ID</Label>
+                <Input
+                  id="syncLockId"
+                  value={syncLockId}
+                  onChange={(e) => setSyncLockId(e.target.value)}
+                  placeholder="Enter your new lock's ID from TTLock app"
+                  data-testid="input-sync-lock-id"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Find this in TTLock app → Lock Settings → Device Information → Lock ID
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => {
+                    if (!syncLockId) {
+                      toast({
+                        title: "Lock ID Required",
+                        description: "Please enter the new lock ID first",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    syncPasscodesMutation.mutate(syncLockId);
+                  }}
+                  disabled={syncPasscodesMutation.isPending || !syncLockId}
+                  className="flex-1"
+                  data-testid="button-sync-passcodes"
+                >
+                  {syncPasscodesMutation.isPending ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      Syncing Passcodes...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Sync {passcodeBookings?.count ?? 0} Passcodes to New Lock
+                    </>
+                  )}
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (!syncLockId) {
+                      toast({
+                        title: "Lock ID Required",
+                        description: "Please enter the new lock ID first",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    updateAllLocksMutation.mutate({
+                      newLockId: syncLockId,
+                      newLockName: "Front Door",
+                    });
+                  }}
+                  disabled={updateAllLocksMutation.isPending || !syncLockId}
+                  data-testid="button-update-all-locks"
+                >
+                  {updateAllLocksMutation.isPending ? "Updating..." : "Update All Rooms"}
+                </Button>
+              </div>
+            </div>
+
+            {/* Sync Results */}
+            {syncResults && (
+              <div className="mt-4 p-4 bg-white rounded-lg border">
+                <h4 className="font-semibold mb-2">Sync Results</h4>
+                <div className="flex gap-4 mb-2">
+                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                    ✓ {syncResults.success} successful
+                  </Badge>
+                  {syncResults.failed > 0 && (
+                    <Badge variant="secondary" className="bg-red-100 text-red-800">
+                      ✗ {syncResults.failed} failed
+                    </Badge>
+                  )}
+                </div>
+                {syncResults.errors.length > 0 && (
+                  <div className="text-sm text-red-600 mt-2">
+                    <p className="font-medium">Errors:</p>
+                    <ul className="list-disc list-inside">
+                      {syncResults.errors.map((err, idx) => (
+                        <li key={idx}>Booking #{err.bookingId}: {err.error}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
