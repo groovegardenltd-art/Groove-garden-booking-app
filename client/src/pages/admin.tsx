@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Clock, User, FileText, Shield, CalendarX, Plus, Trash2, Repeat, Calendar, MapPin, CreditCard, Phone, Mail, List, Grid3X3, ChevronRight, Edit } from "lucide-react";
+import { CheckCircle, XCircle, Clock, User, FileText, Shield, CalendarX, Plus, Trash2, Repeat, Calendar, MapPin, CreditCard, Phone, Mail, List, Grid3X3, ChevronRight, Edit, Key } from "lucide-react";
+import { Link } from "wouter";
 import { AdminCalendar } from "@/components/admin-calendar";
 import { getAuthState } from "@/lib/auth";
 import { useLocation } from "wouter";
@@ -479,12 +480,20 @@ export default function Admin() {
       <Header />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <div className="flex items-center gap-3">
-            <Shield className="h-8 w-8 text-music-purple" />
-            <div>
-              <h1 data-testid="admin-title" className="text-2xl font-bold text-gray-900">Admin Panel</h1>
-              <p className="text-gray-600 mt-1">Manage bookings, review ID verifications, and block time slots</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Shield className="h-8 w-8 text-music-purple" />
+              <div>
+                <h1 data-testid="admin-title" className="text-2xl font-bold text-gray-900">Admin Panel</h1>
+                <p className="text-gray-600 mt-1">Manage bookings, review ID verifications, and block time slots</p>
+              </div>
             </div>
+            <Link href="/lock-management">
+              <Button variant="outline" className="gap-2" data-testid="button-lock-management">
+                <Key className="h-4 w-4" />
+                Lock Management
+              </Button>
+            </Link>
           </div>
         </div>
 
