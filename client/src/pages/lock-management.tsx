@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Plus, Lock, CheckCircle, XCircle, RefreshCw, AlertCircle } from "lucide-react";
+import { Trash2, Plus, Lock, CheckCircle, XCircle, RefreshCw, AlertCircle, DoorOpen } from "lucide-react";
 import { Header } from "@/components/header";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -206,6 +206,43 @@ export default function LockManagement() {
             Configure TTLock smart locks for each rehearsal room to enable automatic access control.
           </p>
         </div>
+
+        {/* Current Front Door Lock */}
+        <Card className="mb-8 border-green-200 bg-green-50">
+          <CardHeader>
+            <CardTitle className="flex items-center text-green-800">
+              <DoorOpen className="mr-2 h-5 w-5" />
+              Front Door Lock (Automated Passcodes)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-white p-4 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 mb-2">
+                    This is the lock that receives automated passcodes for all bookings.
+                    Customers use this code to enter the building.
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <Badge variant="secondary" className="text-lg py-2 px-4 bg-green-100 text-green-800">
+                      <Lock className="w-4 h-4 mr-2 inline" />
+                      Lock ID: {rooms[0]?.lockId || "Not configured"}
+                    </Badge>
+                    {rooms[0]?.lockName && (
+                      <span className="text-sm text-gray-500">
+                        ({rooms[0].lockName})
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <CheckCircle className="h-8 w-8 text-green-600" />
+              </div>
+              <p className="text-xs text-gray-500 mt-3">
+                All {rooms.length} rooms share this front door lock. Individual room locks are changed manually.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Connection Test */}
         <Card className="mb-8">
