@@ -28,7 +28,7 @@ export default function LockManagement() {
   } | null>(null);
 
   // Fetch rooms
-  const { data: rooms = [], isLoading: roomsLoading } = useQuery({
+  const { data: rooms = [], isLoading: roomsLoading } = useQuery<Room[]>({
     queryKey: ["/api/rooms"],
   });
 
