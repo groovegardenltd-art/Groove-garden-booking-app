@@ -1136,8 +1136,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Bulk update all room lock IDs (for replacing hardware)
   app.patch("/api/admin/update-all-locks", requireAuth, async (req, res) => {
     try {
-      const user = (req as any).user;
-      if (!user?.isAdmin) {
+      const authReq = req as AuthenticatedRequest;
+      const user = await storage.getUser(authReq.userId);
+      const adminEmails = ["groovegardenltd@gmail.com", "tomearl1508@gmail.com"];
+      if (!user || !adminEmails.includes(user.email)) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -1172,8 +1174,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all future bookings with passcodes (for sync preview)
   app.get("/api/admin/bookings-with-passcodes", requireAuth, async (req, res) => {
     try {
-      const user = (req as any).user;
-      if (!user?.isAdmin) {
+      const authReq = req as AuthenticatedRequest;
+      const user = await storage.getUser(authReq.userId);
+      const adminEmails = ["groovegardenltd@gmail.com", "tomearl1508@gmail.com"];
+      if (!user || !adminEmails.includes(user.email)) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
@@ -1214,8 +1218,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Bulk sync passcodes to new lock
   app.post("/api/admin/sync-passcodes", requireAuth, async (req, res) => {
     try {
-      const user = (req as any).user;
-      if (!user?.isAdmin) {
+      const authReq = req as AuthenticatedRequest;
+      const user = await storage.getUser(authReq.userId);
+      const adminEmails = ["groovegardenltd@gmail.com", "tomearl1508@gmail.com"];
+      if (!user || !adminEmails.includes(user.email)) {
         return res.status(403).json({ message: "Admin access required" });
       }
 
