@@ -586,6 +586,167 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GDPR: Export user data (Right to Data Portability)
+  app.get("/api/user/export-data", requireAuth, async (req, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const user = await storage.getUser(authReq.userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Get all user's bookings
+      const userBookings = await storage.getBookingsByUser(authReq.userId);
+
+      // Prepare exported data (excluding sensitive internal fields)
+      const exportData = {
+        exportDate: new Date().toISOString(),
+        exportedBy: "Groove Garden Studios",
+        dataController: {
+          name: "Groove Garden Studios",
+          email: "groovegardenltd@gmail.com",
+          address: "London, UK"
+        },
+        personalData: {
+          account: {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            name: user.name,
+            phone: user.phone || null,
+            accountCreated: "Date not tracked", // Note: createdAt not in schema
+          },
+          idVerification: {
+            status: user.idVerificationStatus,
+            idType: user.idType || null,
+            idNumber: user.idNumber ? `***${user.idNumber.slice(-4)}` : null, // Partially masked
+            verifiedAt: user.idVerifiedAt || null,
+            note: "ID document photos are stored but not included in this export for security. Contact us to request copies."
+          }
+        },
+        bookingHistory: userBookings.map(booking => ({
+          id: booking.id,
+          date: booking.date,
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+          duration: booking.duration,
+          roomId: booking.roomId,
+          status: booking.status,
+          totalPrice: booking.totalPrice,
+          originalPrice: booking.originalPrice,
+          discountAmount: booking.discountAmount,
+          contactPhone: booking.contactPhone,
+          specialRequests: booking.specialRequests,
+          createdAt: booking.createdAt,
+          refundStatus: booking.refundStatus,
+          refundAmount: booking.refundAmount,
+          refundedAt: booking.refundedAt
+        })),
+        dataRetention: {
+          accountData: "Until account deletion",
+          bookingRecords: "30 days after booking date",
+          paymentRecords: "7 years for legal compliance",
+          idVerification: "Until account deletion or verification no longer needed"
+        },
+        yourRights: {
+          access: "This export fulfils your right of access",
+          rectification: "Contact groovegardenltd@gmail.com to correct any data",
+          erasure: "Use the Delete Account feature or contact us",
+          portability: "This JSON file is your portable data copy",
+          objection: "Contact groovegardenltd@gmail.com to object to processing"
+        }
+      };
+
+      console.log(`📦 Data export requested by user ${user.username} (ID: ${user.id})`);
+      res.json(exportData);
+    } catch (error) {
+      console.error('Data export error:', error);
+      res.status(500).json({ message: "Failed to export data" });
+    }
+  });
+
+  // GDPR: Delete user account (Right to Erasure)
+  app.delete("/api/user/delete-account", requireAuth, async (req, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const user = await storage.getUser(authReq.userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      console.log(`🗑️ Account deletion requested by user ${user.username} (ID: ${user.id})`);
+
+      // Get user's future bookings for potential refunds
+      const userBookings = await storage.getBookingsByUser(authReq.userId);
+      const now = new Date();
+      const futureBookings = userBookings.filter(b => {
+        const bookingDate = new Date(b.date);
+        return bookingDate >= now && b.status === 'confirmed';
+      });
+
+      // Cancel future bookings and process refunds where applicable
+      for (const booking of futureBookings) {
+        try {
+          // Check if booking is more than 48 hours away for refund eligibility
+          const bookingDateTime = new Date(`${booking.date}T${booking.startTime}`);
+          const hoursUntilBooking = (bookingDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+          
+          if (hoursUntilBooking >= 48 && booking.stripePaymentIntentId && stripe) {
+            // Process automatic refund
+            try {
+              const refund = await stripe.refunds.create({
+                payment_intent: booking.stripePaymentIntentId,
+              });
+              console.log(`💰 Refund processed for booking ${booking.id}: ${refund.id}`);
+            } catch (refundError) {
+              console.error(`Failed to refund booking ${booking.id}:`, refundError);
+            }
+          }
+
+          // Delete TTLock passcode if exists
+          if (booking.ttlockPasscodeId && ttlockService) {
+            try {
+              // Get room to find lock ID
+              const room = await storage.getRoom(booking.roomId);
+              if (room?.lockId) {
+                await ttlockService.deletePasscode(room.lockId, parseInt(booking.ttlockPasscodeId));
+                console.log(`🔐 Passcode deleted for booking ${booking.id}`);
+              }
+            } catch (lockError) {
+              console.error(`Failed to delete passcode for booking ${booking.id}:`, lockError);
+            }
+          }
+
+          // Update booking status to cancelled
+          await storage.updateBooking(booking.id, { status: 'cancelled' });
+        } catch (bookingError) {
+          console.error(`Error processing booking ${booking.id} during account deletion:`, bookingError);
+        }
+      }
+
+      // Delete all user's bookings from database
+      await db.delete(bookings).where(eq(bookings.userId, authReq.userId));
+      
+      // Delete all user's sessions
+      await db.delete(sessions).where(eq(sessions.userId, authReq.userId));
+      
+      // Delete the user account
+      await db.delete(users).where(eq(users.id, authReq.userId));
+
+      console.log(`✅ Account deleted for user ${user.username} (ID: ${user.id}). ${futureBookings.length} future bookings cancelled.`);
+
+      res.json({ 
+        message: "Account deleted successfully",
+        bookingsCancelled: futureBookings.length
+      });
+    } catch (error) {
+      console.error('Account deletion error:', error);
+      res.status(500).json({ message: "Failed to delete account. Please contact support." });
+    }
+  });
+
   // Room routes
   app.get("/api/rooms", async (req, res) => {
     try {

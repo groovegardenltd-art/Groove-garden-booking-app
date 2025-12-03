@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import grooveGardenLogo from "@assets/groove-garden-logo.jpeg";
 import { useMutation } from "@tanstack/react-query";
@@ -42,6 +43,11 @@ export default function Login() {
   const [selfiePhoto, setSelfiePhoto] = useState<File | null>(null);
   const [selfiePhotoPreview, setSelfiePhotoPreview] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
+  
+  // Consent checkboxes state
+  const [termsConsent, setTermsConsent] = useState(false);
+  const [privacyConsent, setPrivacyConsent] = useState(false);
+  const [idVerificationConsent, setIdVerificationConsent] = useState(false);
 
   const loginMutation = useMutation({
     mutationFn: async (data: { usernameOrEmail: string; password: string }) => {
@@ -139,6 +145,16 @@ export default function Login() {
       toast({
         title: "ID Verification Required",
         description: "Please complete ID verification (type, number, ID photo, and selfie required).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate consent checkboxes (GDPR compliance)
+    if (!termsConsent || !privacyConsent || !idVerificationConsent) {
+      toast({
+        title: "Consent Required",
+        description: "Please accept all required agreements to create an account.",
         variant: "destructive",
       });
       return;
@@ -524,10 +540,64 @@ export default function Login() {
                       required
                     />
                   </div>
+
+                  {/* GDPR Consent Checkboxes */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Required Agreements</p>
+                    
+                    <div className="flex items-start space-x-3">
+                      <Checkbox 
+                        id="terms-consent"
+                        checked={termsConsent}
+                        onCheckedChange={(checked) => setTermsConsent(checked === true)}
+                        data-testid="checkbox-terms-consent"
+                      />
+                      <label htmlFor="terms-consent" className="text-sm text-gray-600 leading-tight cursor-pointer">
+                        I agree to the{" "}
+                        <Link href="/terms" className="text-green-600 hover:underline" target="_blank">
+                          Terms and Conditions
+                        </Link>
+                        {" "}including the cancellation and refund policy *
+                      </label>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <Checkbox 
+                        id="privacy-consent"
+                        checked={privacyConsent}
+                        onCheckedChange={(checked) => setPrivacyConsent(checked === true)}
+                        data-testid="checkbox-privacy-consent"
+                      />
+                      <label htmlFor="privacy-consent" className="text-sm text-gray-600 leading-tight cursor-pointer">
+                        I have read and agree to the{" "}
+                        <Link href="/privacy-policy" className="text-green-600 hover:underline" target="_blank">
+                          Privacy Policy
+                        </Link>
+                        {" "}and consent to the processing of my personal data *
+                      </label>
+                    </div>
+
+                    <div className="flex items-start space-x-3">
+                      <Checkbox 
+                        id="id-verification-consent"
+                        checked={idVerificationConsent}
+                        onCheckedChange={(checked) => setIdVerificationConsent(checked === true)}
+                        data-testid="checkbox-id-consent"
+                      />
+                      <label htmlFor="id-verification-consent" className="text-sm text-gray-600 leading-tight cursor-pointer">
+                        I consent to the collection and processing of my ID document and selfie photo for identity verification purposes *
+                      </label>
+                    </div>
+
+                    <p className="text-xs text-gray-500 mt-2">
+                      * Required fields. You can withdraw consent at any time through your account settings.
+                    </p>
+                  </div>
+
                   <Button
                     type="submit"
                     className="w-full bg-music-purple hover:bg-music-purple/90"
-                    disabled={registerMutation.isPending}
+                    disabled={registerMutation.isPending || !termsConsent || !privacyConsent || !idVerificationConsent}
                   >
                     {registerMutation.isPending ? "Creating Account..." : "Create Account"}
                   </Button>
