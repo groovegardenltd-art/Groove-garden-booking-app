@@ -64,12 +64,17 @@ export default function Terms() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">6. Data Privacy</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">6. Data Privacy & Third Parties</h2>
               <div className="space-y-2">
                 <p>• Personal information is stored securely and used only for booking purposes.</p>
-                <p>• Payment information is processed through Stripe and not stored on our servers.</p>
+                <p>• Payment processing is handled by <strong>Stripe</strong> - your card details are never stored on our servers.</p>
+                <p>• Email notifications are sent via <strong>SendGrid</strong> (Twilio).</p>
+                <p>• Smart lock access codes are managed by <strong>TTLock</strong> for secure studio entry.</p>
+                <p>• Database hosting is provided by <strong>Neon</strong> with encrypted storage.</p>
                 <p>• ID verification data is used solely for studio access security.</p>
-                <p>• We do not share personal information with third parties.</p>
+                <p>• For full details on data handling, please read our{" "}
+                  <a href="/privacy-policy" className="text-green-600 hover:underline">Privacy Policy</a>.
+                </p>
               </div>
             </section>
 
