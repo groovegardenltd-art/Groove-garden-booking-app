@@ -15,6 +15,8 @@ const NotFound = lazy(() => import("@/pages/not-found"));
 const Website = lazy(() => import("@/pages/website"));
 const Terms = lazy(() => import("@/pages/terms"));
 const CancellationPolicy = lazy(() => import("@/pages/cancellation-policy"));
+const PrivacyPolicy = lazy(() => import("@/pages/privacy-policy"));
+const AccountSettings = lazy(() => import("@/pages/account-settings"));
 const IdVerificationAdmin = lazy(() => import("@/pages/id-verification-admin"));
 const Admin = lazy(() => import("@/pages/admin"));
 const ResubmitVerification = lazy(() => import("@/pages/resubmit-verification"));
@@ -68,6 +70,8 @@ function Router() {
         <Route path="/lock-management" component={LockManagement} />
         <Route path="/terms" component={Terms} />
         <Route path="/cancellation-policy" component={CancellationPolicy} />
+        <Route path="/privacy-policy" component={PrivacyPolicy} />
+        <Route path="/account-settings" component={AccountSettings} />
         <Route path="/admin/id-verification" component={IdVerificationAdmin} />
         <Route path="/admin" component={Admin} />
         <Route path="/resubmit-verification" component={ResubmitVerification} />
