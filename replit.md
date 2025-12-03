@@ -11,8 +11,16 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - **Smart Lock**: TTLock API integration for automated access control
 
 ## Recent Changes
-- **Nov 26, 2025**: 🛡️ CRITICAL BOOKING RESILIENCE - Added automatic retry logic (3 attempts) with exponential backoff for booking creation after payment. Handles cold start timeouts, network errors, and server errors. Failed bookings now save payment intent ID to localStorage for recovery, and show 30-second error toast with payment ID for customer support.
+- **Dec 03, 2025**: 🛡️ GDPR COMPLIANCE - Full UK GDPR compliance implemented:
+  - **Privacy Policy page** (/privacy-policy) - Comprehensive data handling disclosure
+  - **Account Settings page** (/account-settings) - Users can exercise their data rights
+  - **Data Export** - Users can download all their personal data as JSON (Right to Portability)
+  - **Account Deletion** - Users can permanently delete their accounts (Right to Erasure) with automatic refund processing for eligible bookings
+  - **Consent Checkboxes** - Registration now requires explicit consent for Terms, Privacy Policy, and ID verification
+  - **Cookie Consent Banner** - GDPR-compliant cookie notice with accept/decline options
+  - **Third-Party Disclosures** - Terms page updated with all third-party service providers (Stripe, SendGrid, TTLock, Neon)
 - **Nov 30, 2025**: 🔐 LOCK REPLACEMENT FEATURE - Added bulk passcode sync for replacing broken locks. Go to Lock Management page, enter new lock ID, click "Sync Passcodes" to transfer all future booking codes to the new lock.
+- **Nov 26, 2025**: 🛡️ CRITICAL BOOKING RESILIENCE - Added automatic retry logic (3 attempts) with exponential backoff for booking creation after payment. Handles cold start timeouts, network errors, and server errors. Failed bookings now save payment intent ID to localStorage for recovery, and show 30-second error toast with payment ID for customer support.
 - **Nov 26, 2025**: 🔄 SERVICE WORKER FIX - Changed from "cache first" to "network first" strategy to prevent stale content causing app to appear "stuck" when navigating from external sites.
 - **Nov 18, 2025**: 🐛 CRITICAL ADMIN PANEL FIX - Fixed admin panel only showing 50 most recent bookings by creation date, hiding future bookings created earlier. Now shows ALL bookings sorted by date with no limits - you'll never miss a booking again.
 - **Nov 18, 2025**: 🐛 CRITICAL BUG FIX - CANCELLED BOOKINGS - Fixed availability API incorrectly marking cancelled bookings as unavailable. Cancelled bookings now properly excluded from calendar availability and blocked slot conflict detection.

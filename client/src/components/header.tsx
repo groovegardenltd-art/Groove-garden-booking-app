@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Bell, Menu, X } from "lucide-react";
+import { Bell, Menu, X, Settings } from "lucide-react";
 import { getAuthState, clearAuthState } from "@/lib/auth";
 import { useState, useEffect } from "react";
 import { User } from "@shared/schema";
@@ -122,9 +122,11 @@ export function Header({ onLogout }: HeaderProps) {
             )}
             {user ? (
               <>
-                <Button variant="ghost" size="sm" className="hidden md:flex text-gray-600 hover:text-music-purple">
-                  <Bell className="h-5 w-5" />
-                </Button>
+                <Link href="/account-settings" className="hidden md:flex">
+                  <Button variant="ghost" size="sm" className="text-gray-600 hover:text-music-purple" data-testid="nav-account-settings">
+                    <Settings className="h-5 w-5" />
+                  </Button>
+                </Link>
                 <div className="flex items-center space-x-3">
                   <span className="text-sm text-gray-700">{user.name}</span>
                   <div className="w-8 h-8 bg-music-indigo rounded-full flex items-center justify-center">
@@ -179,6 +181,18 @@ export function Header({ onLogout }: HeaderProps) {
                 data-testid="mobile-nav-bookings"
               >
                 My Bookings
+              </Link>
+              <Link
+                href="/account-settings"
+                onClick={closeMobileMenu}
+                className={`block py-2 px-3 rounded-md transition-colors ${
+                  isActive("/account-settings")
+                    ? "bg-music-purple text-white"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+                data-testid="mobile-nav-account-settings"
+              >
+                Account Settings
               </Link>
               {isAdmin && (
                 <>
