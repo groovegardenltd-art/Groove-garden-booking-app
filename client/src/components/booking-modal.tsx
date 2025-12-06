@@ -704,7 +704,7 @@ export const BookingModal = React.memo(function BookingModal({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 pt-2">
+          <div className="flex flex-col-reverse sm:flex-row space-y-2 space-y-reverse sm:space-y-0 sm:space-x-3 pt-2 pb-4">
             <Button
               type="button"
               variant="outline"
@@ -718,6 +718,7 @@ export const BookingModal = React.memo(function BookingModal({
               type="submit"
               className="w-full sm:flex-1 bg-music-purple hover:bg-music-purple/90 text-sm sm:text-base"
               disabled={isSubmitting || !acceptedTerms}
+              data-testid="button-proceed-payment"
             >
               {isSubmitting ? "Processing..." : TEST_MODE ? "Confirm Booking" : "Proceed to Payment"}
             </Button>
