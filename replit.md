@@ -11,6 +11,7 @@ A comprehensive music rehearsal studio booking system with enhanced security fea
 - **Smart Lock**: TTLock API integration for automated access control
 
 ## Recent Changes
+- **Dec 11, 2025**: 🗄️ ID PHOTO STORAGE MIGRATED TO OBJECT STORAGE - ID verification photos now stored in Replit Object Storage instead of base64 in database. Improves scalability, security, and performance. Photos stored at `/objects/id-photos/` with private ACL policy (admin-only access). Backwards compatible with existing base64 photos.
 - **Dec 03, 2025**: 🛡️ GDPR COMPLIANCE - Full UK GDPR compliance implemented:
   - **Privacy Policy page** (/privacy-policy) - Comprehensive data handling disclosure
   - **Account Settings page** (/account-settings) - Users can exercise their data rights
