@@ -11,6 +11,8 @@ import Stripe from "stripe";
 import { notifyPendingIdVerification, sendRejectionNotification, sendPasswordResetEmail, sendBookingConfirmationEmail, sendRefundConfirmationEmail } from "./email";
 import { comparePassword, hashPassword } from "./password-utils";
 import crypto from "crypto";
+import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { ObjectPermission } from "./objectAcl";
 
 // Security utility: Mask passcode for logging (show first 2 and last 2 digits)
 function maskPasscode(passcode: string): string {
@@ -357,12 +359,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Handle ID verification if provided
       if (userData.idType && userData.idNumber && idPhotoBase64 && selfiePhotoBase64) {
-        // Update user with ID verification information (store base64 data directly)
+        // Upload photos to object storage instead of storing base64 in database
+        const objectStorage = new ObjectStorageService();
+        let idPhotoPath: string;
+        let selfiePhotoPath: string;
+        
+        try {
+          idPhotoPath = await objectStorage.uploadBase64ToStorage(idPhotoBase64, `id_${user.id}.jpg`);
+          selfiePhotoPath = await objectStorage.uploadBase64ToStorage(selfiePhotoBase64, `selfie_${user.id}.jpg`);
+          
+          // Set ACL policy for photos - only admin access
+          await objectStorage.trySetObjectEntityAclPolicy(idPhotoPath, {
+            owner: String(user.id),
+            visibility: "private"
+          });
+          await objectStorage.trySetObjectEntityAclPolicy(selfiePhotoPath, {
+            owner: String(user.id),
+            visibility: "private"
+          });
+        } catch (storageError) {
+          console.error('Failed to upload ID photos to object storage:', storageError);
+          // Fall back to storing base64 in database if object storage fails
+          idPhotoPath = idPhotoBase64;
+          selfiePhotoPath = selfiePhotoBase64;
+        }
+        
+        // Update user with ID verification information
         await storage.updateUser(user.id, {
           idType: userData.idType,
           idNumber: userData.idNumber,
-          idPhotoUrl: idPhotoBase64,
-          selfiePhotoUrl: selfiePhotoBase64,
+          idPhotoUrl: idPhotoPath,
+          selfiePhotoUrl: selfiePhotoPath,
           idVerificationStatus: "pending"
         });
 
@@ -1634,12 +1661,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Only users with rejected verification can resubmit" });
       }
 
+      // Delete old photos from object storage if they exist
+      const objectStorage = new ObjectStorageService();
+      if (user.idPhotoUrl && user.idPhotoUrl.startsWith('/objects/')) {
+        try {
+          await objectStorage.deleteObject(user.idPhotoUrl);
+        } catch (e) { /* Ignore deletion errors */ }
+      }
+      if (user.selfiePhotoUrl && user.selfiePhotoUrl.startsWith('/objects/')) {
+        try {
+          await objectStorage.deleteObject(user.selfiePhotoUrl);
+        } catch (e) { /* Ignore deletion errors */ }
+      }
+
+      // Upload new photos to object storage
+      let idPhotoPath: string;
+      let selfiePhotoPath: string;
+      
+      try {
+        idPhotoPath = await objectStorage.uploadBase64ToStorage(idPhotoBase64, `id_${authReq.userId}.jpg`);
+        selfiePhotoPath = await objectStorage.uploadBase64ToStorage(selfiePhotoBase64, `selfie_${authReq.userId}.jpg`);
+        
+        // Set ACL policy for photos - private access only
+        await objectStorage.trySetObjectEntityAclPolicy(idPhotoPath, {
+          owner: String(authReq.userId),
+          visibility: "private"
+        });
+        await objectStorage.trySetObjectEntityAclPolicy(selfiePhotoPath, {
+          owner: String(authReq.userId),
+          visibility: "private"
+        });
+      } catch (storageError) {
+        console.error('Failed to upload ID photos to object storage:', storageError);
+        // Fall back to storing base64 in database if object storage fails
+        idPhotoPath = idPhotoBase64;
+        selfiePhotoPath = selfiePhotoBase64;
+      }
+
       // Update user with new ID verification information and reset status to pending
       await storage.updateUser(authReq.userId, {
         idType,
         idNumber,
-        idPhotoUrl: idPhotoBase64,
-        selfiePhotoUrl: selfiePhotoBase64,
+        idPhotoUrl: idPhotoPath,
+        selfiePhotoUrl: selfiePhotoPath,
         idVerificationStatus: "pending"
       });
 
@@ -1677,19 +1741,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ID type, number, and photo are required" });
       }
 
-      // Store the photo (in production, you'd upload to cloud storage)
-      const photoUrl = `id_photos/${authReq.userId}_${Date.now()}.jpg`;
-      
       // Update user's ID information and set status to pending
       const user = await storage.getUser(authReq.userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
 
+      // Upload photo to object storage
+      const objectStorage = new ObjectStorageService();
+      let idPhotoPath: string;
+      
+      try {
+        idPhotoPath = await objectStorage.uploadBase64ToStorage(idPhotoBase64, `id_${authReq.userId}.jpg`);
+        
+        // Set ACL policy for photo - private access only
+        await objectStorage.trySetObjectEntityAclPolicy(idPhotoPath, {
+          owner: String(authReq.userId),
+          visibility: "private"
+        });
+      } catch (storageError) {
+        console.error('Failed to upload ID photo to object storage:', storageError);
+        // Fall back to storing base64 in database if object storage fails
+        idPhotoPath = idPhotoBase64;
+      }
+
       await storage.updateUser(authReq.userId, {
         idType,
         idNumber,
-        idPhotoUrl: photoUrl,
+        idPhotoUrl: idPhotoPath,
         idVerificationStatus: "pending"
       });
 
@@ -2236,11 +2315,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'Expires': '0'
       });
 
-      // Return the photo data
+      // If it's an object storage path, return the path for the frontend to fetch from /objects/ endpoint
+      // If it's base64 data (legacy), return it directly
       res.json({ photoUrl });
     } catch (error) {
       console.error('Failed to fetch photo:', error);
       res.status(500).json({ message: "Failed to fetch photo" });
+    }
+  });
+
+  // Serve private objects from object storage (admin only for ID photos)
+  app.get("/objects/*", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const objectStorage = new ObjectStorageService();
+      const objectFile = await objectStorage.getObjectEntityFile(req.path);
+      
+      // Add security headers
+      res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
+      
+      await objectStorage.downloadObject(objectFile, res, 0);
+    } catch (error) {
+      console.error("Error serving object:", error);
+      if (error instanceof ObjectNotFoundError) {
+        return res.status(404).json({ message: "Object not found" });
+      }
+      return res.status(500).json({ message: "Error serving object" });
     }
   });
 
