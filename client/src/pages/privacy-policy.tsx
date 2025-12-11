@@ -64,6 +64,15 @@ export default function PrivacyPolicy() {
                   <p className="mt-2 text-sm text-purple-700">
                     This data is collected for security verification to ensure safe access to our self-service studios.
                   </p>
+                  <div className="mt-3 bg-purple-100 p-3 rounded border border-purple-200">
+                    <h4 className="font-semibold text-purple-900 text-sm mb-1">Where Your ID Photos Are Stored</h4>
+                    <p className="text-xs text-purple-800">
+                      Your ID verification photos are stored securely in our private cloud storage (Replit Object Storage, 
+                      powered by Google Cloud Storage). Photos are protected with a private access policy - only authorised 
+                      Groove Garden Studios administrators can view them for verification purposes. Photos are transmitted 
+                      using encrypted HTTPS connections and are permanently deleted when you delete your account.
+                    </p>
+                  </div>
                 </div>
 
                 <div className="bg-green-50 p-4 rounded-lg">
@@ -148,6 +157,14 @@ export default function PrivacyPolicy() {
                 <div className="border-l-4 border-orange-500 pl-4">
                   <h3 className="font-semibold">Neon (Database Hosting)</h3>
                   <p className="text-sm text-gray-600">Securely stores your account and booking data in encrypted database storage.</p>
+                </div>
+
+                <div className="border-l-4 border-red-500 pl-4">
+                  <h3 className="font-semibold">Google Cloud Storage (ID Photo Storage)</h3>
+                  <p className="text-sm text-gray-600">Securely stores your ID verification photos in private cloud storage with encrypted transmission. Only accessible by authorised administrators.</p>
+                  <a href="https://cloud.google.com/terms/cloud-privacy-notice" target="_blank" rel="noopener noreferrer" className="text-sm text-green-600 hover:underline">
+                    View Google Cloud Privacy Notice
+                  </a>
                 </div>
               </div>
             </section>
