@@ -70,7 +70,12 @@ export default function PrivacyPolicy() {
                       Your ID verification photos are stored securely in our private cloud storage (Replit Object Storage, 
                       powered by Google Cloud Storage). Photos are protected with a private access policy - only authorised 
                       Groove Garden Studios administrators can view them for verification purposes. Photos are transmitted 
-                      using encrypted HTTPS connections and are permanently deleted when you delete your account.
+                      using encrypted HTTPS connections.
+                    </p>
+                    <p className="text-xs text-purple-800 mt-2">
+                      <strong>Retention:</strong> ID photos are automatically deleted 3 years after your identity is verified. 
+                      Your verified status remains active, but the photos are permanently removed. If you delete your account, 
+                      all photos are deleted immediately.
                     </p>
                   </div>
                 </div>
@@ -175,7 +180,8 @@ export default function PrivacyPolicy() {
               <ul className="list-disc list-inside space-y-2">
                 <li><strong>Account data:</strong> Until you request account deletion</li>
                 <li><strong>Booking records:</strong> 30 days after the booking date (then automatically deleted)</li>
-                <li><strong>ID verification data:</strong> Until you request account deletion or verification is no longer needed</li>
+                <li><strong>ID verification photos:</strong> Automatically deleted 3 years after verification (your verified status remains active)</li>
+                <li><strong>ID verification data:</strong> Until you request account deletion</li>
                 <li><strong>Payment records:</strong> 7 years for accounting and legal compliance purposes</li>
                 <li><strong>Access codes:</strong> Automatically deleted after booking ends</li>
               </ul>

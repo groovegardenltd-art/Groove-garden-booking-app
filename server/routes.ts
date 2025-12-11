@@ -2071,6 +2071,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ID Photo cleanup - delete photos older than 3 years (GDPR compliance)
+  async function cleanupOldIdPhotos() {
+    try {
+      const threeYearsAgo = new Date();
+      threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
+      
+      // Get all verified users with ID photos older than 3 years
+      const allUsers = await db.select().from(users);
+      const objectStorage = new ObjectStorageService();
+      let deletedCount = 0;
+      
+      for (const user of allUsers) {
+        // Only clean up verified users with photos and verification date older than 3 years
+        if (user.idVerificationStatus === 'verified' && 
+            user.idVerifiedAt && 
+            new Date(user.idVerifiedAt) < threeYearsAgo) {
+          
+          // Delete photos from object storage if they exist
+          if (user.idPhotoUrl && user.idPhotoUrl.startsWith('/objects/')) {
+            try {
+              await objectStorage.deleteObject(user.idPhotoUrl);
+              console.log(`[CLEANUP] Deleted old ID photo for user ${user.id}`);
+            } catch (e) { /* Ignore deletion errors */ }
+          }
+          if (user.selfiePhotoUrl && user.selfiePhotoUrl.startsWith('/objects/')) {
+            try {
+              await objectStorage.deleteObject(user.selfiePhotoUrl);
+              console.log(`[CLEANUP] Deleted old selfie photo for user ${user.id}`);
+            } catch (e) { /* Ignore deletion errors */ }
+          }
+          
+          // Clear photo URLs from database but keep verification status
+          await storage.updateUser(user.id, {
+            idPhotoUrl: null,
+            selfiePhotoUrl: null
+          });
+          deletedCount++;
+        }
+      }
+      
+      if (deletedCount > 0) {
+        console.log(`[CLEANUP] Cleaned up ID photos for ${deletedCount} users (verified more than 3 years ago)`);
+      }
+      return deletedCount;
+    } catch (error) {
+      console.error('[CLEANUP] Error cleaning up old ID photos:', error);
+      return 0;
+    }
+  }
+
+  // Run ID photo cleanup on startup (after a short delay to ensure DB is ready)
+  setTimeout(() => {
+    cleanupOldIdPhotos().then(count => {
+      if (count > 0) {
+        console.log(`[STARTUP] ID photo cleanup complete: ${count} users processed`);
+      }
+    });
+  }, 10000); // Wait 10 seconds after startup
+
+  // Admin endpoint to manually trigger ID photo cleanup
+  app.post("/api/admin/cleanup-old-id-photos", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const deletedCount = await cleanupOldIdPhotos();
+      res.json({ 
+        success: true, 
+        deletedCount,
+        message: `Cleaned up ID photos for ${deletedCount} users verified more than 3 years ago`
+      });
+    } catch (error: any) {
+      console.error('[ADMIN] Error cleaning up old ID photos:', error);
+      res.status(500).json({ message: "Error cleaning up old ID photos: " + error.message });
+    }
+  });
+
   // Admin routes for bookings overview
   app.get("/api/admin/bookings", requireAuth, requireAdmin, async (req, res) => {
     try {
