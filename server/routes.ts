@@ -714,22 +714,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Cancel future bookings and process refunds where applicable
+      let refundsProcessed = 0;
+      let refundsSkipped = 0;
+      let totalRefundAmount = 0;
+      const refundDetails: string[] = [];
+
       for (const booking of futureBookings) {
         try {
           // Check if booking is more than 48 hours away for refund eligibility
           const bookingDateTime = new Date(`${booking.date}T${booking.startTime}`);
           const hoursUntilBooking = (bookingDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
           
-          if (hoursUntilBooking >= 48 && booking.stripePaymentIntentId && stripe) {
-            // Process automatic refund
-            try {
-              const refund = await stripe.refunds.create({
-                payment_intent: booking.stripePaymentIntentId,
-              });
-              console.log(`💰 Refund processed for booking ${booking.id}: ${refund.id}`);
-            } catch (refundError) {
-              console.error(`Failed to refund booking ${booking.id}:`, refundError);
+          console.log(`📋 Booking #${booking.id}: ${booking.date} ${booking.startTime}, ${Math.round(hoursUntilBooking)}h away, paymentId: ${booking.stripePaymentIntentId || 'none'}`);
+          
+          if (hoursUntilBooking >= 48) {
+            if (booking.stripePaymentIntentId && stripe) {
+              // Process automatic refund
+              try {
+                const refund = await stripe.refunds.create({
+                  payment_intent: booking.stripePaymentIntentId,
+                });
+                console.log(`💰 Refund processed for booking ${booking.id}: ${refund.id}`);
+                refundsProcessed++;
+                totalRefundAmount += parseFloat(booking.totalPrice);
+                refundDetails.push(`Booking #${booking.id}: £${booking.totalPrice} refunded`);
+              } catch (refundError: any) {
+                console.error(`Failed to refund booking ${booking.id}:`, refundError);
+                refundDetails.push(`Booking #${booking.id}: Refund failed - ${refundError.message}`);
+              }
+            } else if (!booking.stripePaymentIntentId) {
+              console.log(`⚠️ Booking #${booking.id} has no payment intent ID - cannot refund`);
+              refundsSkipped++;
+              refundDetails.push(`Booking #${booking.id}: No payment record found`);
+            } else if (!stripe) {
+              console.log(`⚠️ Stripe not configured - cannot refund booking #${booking.id}`);
+              refundsSkipped++;
+              refundDetails.push(`Booking #${booking.id}: Payment system unavailable`);
             }
+          } else {
+            console.log(`⏰ Booking #${booking.id} is within 48 hours (${Math.round(hoursUntilBooking)}h) - no refund per policy`);
+            refundsSkipped++;
+            refundDetails.push(`Booking #${booking.id}: Within 48 hours - no refund per cancellation policy`);
           }
 
           // Delete TTLock passcode if exists
@@ -753,6 +778,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      console.log(`💳 Refund summary: ${refundsProcessed} processed (£${totalRefundAmount}), ${refundsSkipped} skipped`);
+
       // Delete all user's bookings from database
       await db.delete(bookings).where(eq(bookings.userId, authReq.userId));
       
@@ -766,7 +793,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ 
         message: "Account deleted successfully",
-        bookingsCancelled: futureBookings.length
+        bookingsCancelled: futureBookings.length,
+        refundsProcessed,
+        refundsSkipped,
+        totalRefundAmount,
+        refundDetails
       });
     } catch (error) {
       console.error('Account deletion error:', error);

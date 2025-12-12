@@ -67,12 +67,22 @@ export default function AccountSettings() {
       const response = await apiRequest("DELETE", "/api/user/delete-account");
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       clearAuthState();
       queryClient.clear();
+      
+      // Build description with refund information
+      let description = "Your account and all associated data has been permanently deleted.";
+      if (data.refundsProcessed > 0) {
+        description += ` £${data.totalRefundAmount.toFixed(2)} has been refunded to your original payment method.`;
+      } else if (data.bookingsCancelled > 0 && data.refundsSkipped > 0) {
+        description += ` ${data.bookingsCancelled} booking(s) were cancelled. No refunds were processed (cancellations were within 48 hours of booking time).`;
+      }
+      
       toast({
         title: "Account Deleted",
-        description: "Your account and all associated data has been permanently deleted.",
+        description,
+        duration: 10000, // Show longer for important info
       });
       setLocation("/login");
     },
