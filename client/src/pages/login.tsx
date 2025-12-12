@@ -47,7 +47,6 @@ export default function Login() {
   // Consent checkboxes state
   const [termsConsent, setTermsConsent] = useState(false);
   const [privacyConsent, setPrivacyConsent] = useState(false);
-  const [idVerificationConsent, setIdVerificationConsent] = useState(false);
 
   const loginMutation = useMutation({
     mutationFn: async (data: { usernameOrEmail: string; password: string }) => {
@@ -151,7 +150,7 @@ export default function Login() {
     }
 
     // Validate consent checkboxes (GDPR compliance)
-    if (!termsConsent || !privacyConsent || !idVerificationConsent) {
+    if (!termsConsent || !privacyConsent) {
       toast({
         title: "Consent Required",
         description: "Please accept all required agreements to create an account.",
@@ -577,18 +576,6 @@ export default function Login() {
                       </label>
                     </div>
 
-                    <div className="flex items-start space-x-3">
-                      <Checkbox 
-                        id="id-verification-consent"
-                        checked={idVerificationConsent}
-                        onCheckedChange={(checked) => setIdVerificationConsent(checked === true)}
-                        data-testid="checkbox-id-consent"
-                      />
-                      <label htmlFor="id-verification-consent" className="text-sm text-gray-600 leading-tight cursor-pointer">
-                        I consent to the collection and processing of my ID document and selfie photo for identity verification purposes *
-                      </label>
-                    </div>
-
                     <p className="text-xs text-gray-500 mt-2">
                       * Required fields. You can withdraw consent at any time through your account settings.
                     </p>
@@ -597,7 +584,7 @@ export default function Login() {
                   <Button
                     type="submit"
                     className="w-full bg-music-purple hover:bg-music-purple/90"
-                    disabled={registerMutation.isPending || !termsConsent || !privacyConsent || !idVerificationConsent}
+                    disabled={registerMutation.isPending || !termsConsent || !privacyConsent}
                   >
                     {registerMutation.isPending ? "Creating Account..." : "Create Account"}
                   </Button>
