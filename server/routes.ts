@@ -1514,9 +1514,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/create-payment-intent", requireAuth, async (req, res) => {
     try {
       const { amount, currency = "gbp" } = req.body;
+      const authReq = req as AuthenticatedRequest;
       
       if (!amount || amount <= 0) {
         return res.status(400).json({ message: "Invalid amount" });
+      }
+
+      // Get user details for Stripe metadata
+      const user = await storage.getUser(authReq.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
       }
 
       // In test mode, return a mock payment intent
@@ -1542,8 +1549,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           enabled: true,
           allow_redirects: "never", // Keep users on your site
         },
+        receipt_email: user.email, // Stripe will send receipt to this email
         metadata: {
-          userId: (req as AuthenticatedRequest).userId.toString(),
+          userId: authReq.userId.toString(),
+          userEmail: user.email,
+          userName: user.name,
+          userPhone: user.phone || "not provided",
         },
       });
 
