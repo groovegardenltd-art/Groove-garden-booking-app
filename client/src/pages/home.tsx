@@ -176,7 +176,12 @@ export default function Home() {
     // Find the room details to include in the success modal
     const room = rooms.find((r: Room) => r.id === booking.roomId);
     setSuccessBooking({ ...booking, room });
-    setShowSuccessModal(true);
+    
+    // Small delay to let booking modal fully close before showing success modal
+    // This prevents UI freeze from two modals transitioning simultaneously
+    setTimeout(() => {
+      setShowSuccessModal(true);
+    }, 300);
     
     // Reset selections
     setSelectedRoom(null);
