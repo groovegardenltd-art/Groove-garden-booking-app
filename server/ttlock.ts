@@ -105,7 +105,8 @@ export class TTLockService {
     lockId: string,
     startTime: Date,
     endTime: Date,
-    bookingId: number
+    bookingId: number,
+    customerName?: string
   ): Promise<{ passcode: string; passcodeId: number }> {
     try {
       // Real TTLock API implementation
@@ -114,6 +115,11 @@ export class TTLockService {
       // Use exact booking start time (no adjustment needed)
       const startTimeMs = startTime.getTime();
       const endTimeMs = endTime.getTime();
+
+      // Create descriptive passcode name with customer name if available
+      const passcodeName = customerName 
+        ? `${customerName} #${bookingId}`
+        : `Booking-${bookingId}`;
 
       console.log(`Sending passcode ${maskPasscode(passcode)} to TTLock lock ${lockId} for booking ${bookingId}`);
       console.log(`Valid from ${startTime.toISOString()} to ${endTime.toISOString()}`);
@@ -129,7 +135,7 @@ export class TTLockService {
           accessToken: accessToken,
           lockId: lockId,
           keyboardPwd: passcode,
-          keyboardPwdName: `Booking-${bookingId}`,
+          keyboardPwdName: passcodeName,
           startDate: startTimeMs.toString(),
           endDate: endTimeMs.toString(),
           date: Date.now().toString(),
@@ -244,7 +250,8 @@ export class TTLockService {
     lockIds: string[],
     startTime: Date,
     endTime: Date,
-    bookingId: number
+    bookingId: number,
+    customerName?: string
   ): Promise<{ passcode: string; passcodeIds: number[] }> {
     const results: number[] = [];
     let passcode = '';
@@ -253,7 +260,7 @@ export class TTLockService {
 
     for (const lockId of lockIds) {
       try {
-        const result = await this.createTimeLimitedPasscode(lockId, startTime, endTime, bookingId);
+        const result = await this.createTimeLimitedPasscode(lockId, startTime, endTime, bookingId, customerName);
         passcode = result.passcode; // Same passcode for all locks
         results.push(result.passcodeId);
         console.log(`✅ Passcode ${maskPasscode(passcode)} created for lock ${lockId} (ID: ${result.passcodeId})`);

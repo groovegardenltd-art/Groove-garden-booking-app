@@ -1053,7 +1053,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               lockIds,
               startDateTime,
               endDateTime,
-              Date.now() // temporary booking ID
+              Date.now(), // temporary booking ID
+              user.name // Customer name for TTLock display
             );
             
             ttlockPasscode = lockResult.passcode;
@@ -1495,12 +1496,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           console.log(`📤 Syncing booking #${booking.id}: ${booking.date} ${booking.startTime}-${booking.endTime}`);
           
+          // Get customer name for passcode label
+          const bookingUser = await storage.getUser(booking.userId);
+          const customerName = bookingUser?.name;
+          
           // Create passcode on the new lock
           const result = await ttlockService.createTimeLimitedPasscode(
             targetLockId,
             startTime,
             endTime,
-            booking.id
+            booking.id,
+            customerName
           );
 
           // Update the booking with new passcode ID
@@ -2010,11 +2016,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const startDateTime = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), adjustedStartHour, parseInt(startMinutes)));
           const endDateTime = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), adjustedEndHour, parseInt(endMinutes)));
 
+          // Get customer name for passcode label
+          const bookingUser = await storage.getUser(booking.userId);
+          const customerName = bookingUser?.name;
+
           const lockResult = await ttlockService.createMultiLockPasscode(
             lockIds,
             startDateTime,
             endDateTime,
-            id
+            id,
+            customerName
           );
 
           newPasscode = lockResult.passcode;
