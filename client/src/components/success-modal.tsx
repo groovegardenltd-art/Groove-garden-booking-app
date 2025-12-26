@@ -167,17 +167,17 @@ export function SuccessModal({
               </div>
               <div className="flex items-center justify-center space-x-2 mb-2">
                 <code className="bg-green-600 text-white px-4 py-2 rounded-lg text-2xl font-mono tracking-wider">
-                  {booking.room?.name === 'Live Room' ? '4537' : 
-                   booking.room?.name === 'Pod 1' ? '5786' : 
-                   booking.room?.name === 'Pod 2' ? '9857' : 'N/A'}#
+                  {booking.room?.name === 'Live Room' ? '5234' : 
+                   booking.room?.name === 'Pod 1' ? '2369' : 
+                   booking.room?.name === 'Pod 2' ? '3542' : 'N/A'}#
                 </code>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    const interiorCode = booking.room?.name === 'Live Room' ? '4537' : 
-                                       booking.room?.name === 'Pod 1' ? '5786' : 
-                                       booking.room?.name === 'Pod 2' ? '9857' : 'N/A';
+                    const interiorCode = booking.room?.name === 'Live Room' ? '5234' : 
+                                       booking.room?.name === 'Pod 1' ? '2369' : 
+                                       booking.room?.name === 'Pod 2' ? '3542' : 'N/A';
                     navigator.clipboard.writeText(interiorCode);
                     toast({
                       title: "Interior Code Copied!",

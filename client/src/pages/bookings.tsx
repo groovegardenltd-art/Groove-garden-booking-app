@@ -225,17 +225,17 @@ export default function Bookings() {
                             <div className="text-sm font-medium text-gray-900 mb-2">{booking.room.name} Interior Code</div>
                             <div className="flex items-center justify-between">
                               <code className="bg-green-600 text-white px-3 py-1 rounded text-lg font-mono">
-                                {booking.room.name === 'Live Room' ? '4537' : 
-                                 booking.room.name === 'Pod 1' ? '5786' : 
-                                 booking.room.name === 'Pod 2' ? '9857' : 'N/A'}#
+                                {booking.room.name === 'Live Room' ? '5234' : 
+                                 booking.room.name === 'Pod 1' ? '2369' : 
+                                 booking.room.name === 'Pod 2' ? '3542' : 'N/A'}#
                               </code>
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => {
-                                  const interiorCode = booking.room.name === 'Live Room' ? '4537' : 
-                                                     booking.room.name === 'Pod 1' ? '5786' : 
-                                                     booking.room.name === 'Pod 2' ? '9857' : 'N/A';
+                                  const interiorCode = booking.room.name === 'Live Room' ? '5234' : 
+                                                     booking.room.name === 'Pod 1' ? '2369' : 
+                                                     booking.room.name === 'Pod 2' ? '3542' : 'N/A';
                                   copyAccessCode(interiorCode);
                                 }}
                                 className="text-green-600 hover:text-green-700"
@@ -324,17 +324,17 @@ export default function Bookings() {
                               <div className="flex items-center space-x-2">
                                 <span className="text-xs text-gray-500">Interior:</span>
                                 <code className="bg-green-100 px-2 py-1 rounded text-sm font-mono">
-                                  {booking.room.name === 'Live Room' ? '4537' : 
-                                   booking.room.name === 'Pod 1' ? '5786' : 
-                                   booking.room.name === 'Pod 2' ? '9857' : 'N/A'}#
+                                  {booking.room.name === 'Live Room' ? '5234' : 
+                                   booking.room.name === 'Pod 1' ? '2369' : 
+                                   booking.room.name === 'Pod 2' ? '3542' : 'N/A'}#
                                 </code>
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => {
-                                    const interiorCode = booking.room.name === 'Live Room' ? '4537' : 
-                                                       booking.room.name === 'Pod 1' ? '5786' : 
-                                                       booking.room.name === 'Pod 2' ? '9857' : 'N/A';
+                                    const interiorCode = booking.room.name === 'Live Room' ? '5234' : 
+                                                       booking.room.name === 'Pod 1' ? '2369' : 
+                                                       booking.room.name === 'Pod 2' ? '3542' : 'N/A';
                                     copyAccessCode(interiorCode);
                                   }}
                                   className="p-1 text-gray-400 hover:text-gray-600"
