@@ -13,6 +13,15 @@ function LazyPhoto({ userId, type, label }: { userId: number; type: 'id' | 'self
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [error, setError] = useState(false);
 
+  // Cleanup blob URL on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (photoUrl && photoUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(photoUrl);
+      }
+    };
+  }, [photoUrl]);
+
   const loadPhoto = async () => {
     if (photoUrl || loading) return; // Already loaded or loading
     
@@ -22,7 +31,27 @@ function LazyPhoto({ userId, type, label }: { userId: number; type: 'id' | 'self
     try {
       const response = await apiRequest('GET', `/api/admin/id-verifications/${userId}/photo?type=${type}`) as any;
       const json = await response.json();
-      setPhotoUrl(json.photoUrl);
+      const returnedUrl = json.photoUrl;
+      
+      // If it's a base64 data URL, use it directly
+      if (returnedUrl.startsWith('data:')) {
+        setPhotoUrl(returnedUrl);
+      } 
+      // If it's an object storage path, fetch it with credentials and create blob URL
+      else if (returnedUrl.startsWith('/objects/')) {
+        const imageResponse = await fetch(returnedUrl, {
+          credentials: 'include'
+        });
+        if (!imageResponse.ok) {
+          throw new Error('Failed to fetch image from storage');
+        }
+        const blob = await imageResponse.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        setPhotoUrl(blobUrl);
+      } else {
+        // Fallback - just use the URL
+        setPhotoUrl(returnedUrl);
+      }
     } catch (err) {
       console.error('Failed to load photo:', err);
       setError(true);
