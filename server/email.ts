@@ -326,7 +326,7 @@ export async function sendBookingConfirmationEmail(
           <div style="border-top: 1px solid #f59e0b; padding-top: 15px;">
             <p style="color: #92400e; margin: 0 0 8px 0; font-weight: bold;">${room.name} Door Code:</p>
             <div style="background-color: #fff; border: 2px solid #10b981; border-radius: 6px; padding: 15px; margin: 10px 0; font-family: monospace; font-size: 24px; font-weight: bold; color: #065f46; letter-spacing: 3px;">
-              ${room.name === 'Live Room' ? '4537' : room.name === 'Pod 1' ? '5786' : room.name === 'Pod 2' ? '9857' : 'N/A'}#
+              ${room.name === 'Live Room' ? '5234' : room.name === 'Pod 1' ? '2369' : room.name === 'Pod 2' ? '3542' : 'N/A'}#
             </div>
             <p style="color: #92400e; margin: 5px 0 0 0; font-size: 12px;">
               For ${room.name} interior door - works 24/7.
@@ -339,7 +339,7 @@ export async function sendBookingConfirmationEmail(
           <ol style="color: #1e40af; margin: 0; padding-left: 20px;">
             <li>Arrive at your scheduled time</li>
             <li><strong>Front Door:</strong> Enter ${booking.accessCode}# on the main entrance keypad</li>
-            <li><strong>${room.name} Door:</strong> Enter ${room.name === 'Live Room' ? '4537' : room.name === 'Pod 1' ? '5786' : room.name === 'Pod 2' ? '9857' : 'N/A'}# on the studio keypad</li>
+            <li><strong>${room.name} Door:</strong> Enter ${room.name === 'Live Room' ? '5234' : room.name === 'Pod 1' ? '2369' : room.name === 'Pod 2' ? '3542' : 'N/A'}# on the studio keypad</li>
             <li>Set up your equipment and enjoy your session</li>
             <li>Please leave the room tidy for the next musicians</li>
           </ol>
@@ -387,14 +387,14 @@ ACCESS CODES
 Front Door Code (Smart Lock): ${booking.accessCode}#
 - For main building entrance only
 
-${room.name} Door Code: ${room.name === 'Live Room' ? '4537' : room.name === 'Pod 1' ? '5786' : room.name === 'Pod 2' ? '9857' : 'N/A'}#
+${room.name} Door Code: ${room.name === 'Live Room' ? '5234' : room.name === 'Pod 1' ? '2369' : room.name === 'Pod 2' ? '3542' : 'N/A'}#
 - For ${room.name} interior door - works 24/7
 
 STUDIO ACCESS INSTRUCTIONS
 --------------------------
 1. Arrive at your scheduled time
 2. Front Door: Enter ${booking.accessCode}# on the main entrance keypad
-3. ${room.name} Door: Enter ${room.name === 'Live Room' ? '4537' : room.name === 'Pod 1' ? '5786' : room.name === 'Pod 2' ? '9857' : 'N/A'}# on the studio keypad
+3. ${room.name} Door: Enter ${room.name === 'Live Room' ? '5234' : room.name === 'Pod 1' ? '2369' : room.name === 'Pod 2' ? '3542' : 'N/A'}# on the studio keypad
 4. Set up your equipment and enjoy your session
 5. Please leave the room tidy for the next musicians
 
