@@ -33,24 +33,36 @@ function LazyPhoto({ userId, type, label }: { userId: number; type: 'id' | 'self
       const json = await response.json();
       const returnedUrl = json.photoUrl;
       
+      console.log('[LazyPhoto] Received photoUrl:', returnedUrl?.substring(0, 50));
+      
       // If it's a base64 data URL, use it directly
-      if (returnedUrl.startsWith('data:')) {
+      if (returnedUrl && returnedUrl.startsWith('data:')) {
+        console.log('[LazyPhoto] Using base64 data directly');
         setPhotoUrl(returnedUrl);
       } 
       // If it's an object storage path, fetch it with credentials and create blob URL
-      else if (returnedUrl.startsWith('/objects/')) {
+      else if (returnedUrl && returnedUrl.startsWith('/objects/')) {
+        console.log('[LazyPhoto] Fetching from object storage:', returnedUrl);
         const imageResponse = await fetch(returnedUrl, {
           credentials: 'include'
         });
         if (!imageResponse.ok) {
+          console.error('[LazyPhoto] Object storage fetch failed:', imageResponse.status);
           throw new Error('Failed to fetch image from storage');
         }
         const blob = await imageResponse.blob();
         const blobUrl = URL.createObjectURL(blob);
+        console.log('[LazyPhoto] Created blob URL successfully');
         setPhotoUrl(blobUrl);
-      } else {
-        // Fallback - just use the URL
-        setPhotoUrl(returnedUrl);
+      } 
+      // Old /uploads/ paths are no longer valid
+      else if (returnedUrl && returnedUrl.startsWith('/uploads/')) {
+        console.error('[LazyPhoto] Old upload path not supported:', returnedUrl);
+        throw new Error('Photo stored in old format - please ask user to re-upload');
+      }
+      else {
+        console.error('[LazyPhoto] Unknown photo URL format:', returnedUrl);
+        throw new Error('Invalid photo format');
       }
     } catch (err) {
       console.error('Failed to load photo:', err);

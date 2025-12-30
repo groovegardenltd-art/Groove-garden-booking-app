@@ -2454,8 +2454,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve private objects from object storage (admin only for ID photos)
   app.get("/objects/*", requireAuth, requireAdmin, async (req, res) => {
     try {
+      console.log("[objects] Serving object, path:", req.path);
       const objectStorage = new ObjectStorageService();
       const objectFile = await objectStorage.getObjectEntityFile(req.path);
+      console.log("[objects] Found object file, streaming...");
       
       // Add security headers
       res.set({
@@ -2466,7 +2468,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await objectStorage.downloadObject(objectFile, res, 0);
     } catch (error) {
-      console.error("Error serving object:", error);
+      console.error("[objects] Error serving object:", error);
       if (error instanceof ObjectNotFoundError) {
         return res.status(404).json({ message: "Object not found" });
       }

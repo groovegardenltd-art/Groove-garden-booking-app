@@ -154,23 +154,30 @@ export class ObjectStorageService {
   }
 
   async getObjectEntityFile(objectPath: string): Promise<File> {
+    console.log("[objectStorage] getObjectEntityFile called with:", objectPath);
     if (!objectPath.startsWith("/objects/")) {
+      console.log("[objectStorage] Path doesn't start with /objects/");
       throw new ObjectNotFoundError();
     }
     const parts = objectPath.slice(1).split("/");
     if (parts.length < 2) {
+      console.log("[objectStorage] Path has less than 2 parts");
       throw new ObjectNotFoundError();
     }
     const entityId = parts.slice(1).join("/");
     let entityDir = this.getPrivateObjectDir();
+    console.log("[objectStorage] entityId:", entityId, "entityDir:", entityDir);
     if (!entityDir.endsWith("/")) {
       entityDir = `${entityDir}/`;
     }
     const objectEntityPath = `${entityDir}${entityId}`;
+    console.log("[objectStorage] Full object path:", objectEntityPath);
     const { bucketName, objectName } = parseObjectPath(objectEntityPath);
+    console.log("[objectStorage] bucketName:", bucketName, "objectName:", objectName);
     const bucket = objectStorageClient.bucket(bucketName);
     const objectFile = bucket.file(objectName);
     const [exists] = await objectFile.exists();
+    console.log("[objectStorage] File exists:", exists);
     if (!exists) {
       throw new ObjectNotFoundError();
     }
