@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { getAuthHeaders } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,9 +32,7 @@ function LazyPhoto({ userId, type, label }: { userId: number; type: 'id' | 'self
     try {
       const response = await fetch(`/api/admin/id-verifications/${userId}/photo?type=${type}`, {
         credentials: 'include',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('sessionId') || ''}`
-        }
+        headers: getAuthHeaders()
       });
       
       if (!response.ok) {
