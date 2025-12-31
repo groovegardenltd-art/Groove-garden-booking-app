@@ -2421,16 +2421,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = parseInt(req.params.userId);
       const photoType = req.query.type as string; // 'id' or 'selfie'
       
+      console.log(`[photo] Loading ${photoType} photo for user ${userId}`);
+      
       if (!photoType || !['id', 'selfie'].includes(photoType)) {
         return res.status(400).json({ message: "Photo type must be 'id' or 'selfie'" });
       }
 
       const user = await storage.getUser(userId);
       if (!user) {
+        console.log(`[photo] User ${userId} not found`);
         return res.status(404).json({ message: "User not found" });
       }
 
       const photoUrl = photoType === 'id' ? user.idPhotoUrl : user.selfiePhotoUrl;
+      console.log(`[photo] Photo URL type: ${photoUrl ? (photoUrl.startsWith('data:') ? 'base64' : photoUrl.substring(0, 30)) : 'null'}`);
+      
       if (!photoUrl) {
         return res.status(404).json({ message: "Photo not found" });
       }
@@ -2444,9 +2449,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // If it's an object storage path, return the path for the frontend to fetch from /objects/ endpoint
       // If it's base64 data (legacy), return it directly
+      console.log(`[photo] Returning photo (length: ${photoUrl.length})`);
       res.json({ photoUrl });
     } catch (error) {
-      console.error('Failed to fetch photo:', error);
+      console.error('[photo] Failed to fetch photo:', error);
       res.status(500).json({ message: "Failed to fetch photo" });
     }
   });
