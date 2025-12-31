@@ -2434,7 +2434,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const photoUrl = photoType === 'id' ? user.idPhotoUrl : user.selfiePhotoUrl;
-      console.log(`[photo] Photo URL type: ${photoUrl ? (photoUrl.startsWith('data:') ? 'base64' : photoUrl.substring(0, 30)) : 'null'}`);
+      console.log(`[photo] Photo URL type: ${photoUrl ? (photoUrl.startsWith('data:') ? 'base64' : photoUrl.substring(0, 50)) : 'null'}`);
       
       if (!photoUrl) {
         return res.status(404).json({ message: "Photo not found" });
@@ -2447,9 +2447,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'Expires': '0'
       });
 
-      // If it's an object storage path, return the path for the frontend to fetch from /objects/ endpoint
-      // If it's base64 data (legacy), return it directly
-      console.log(`[photo] Returning photo (length: ${photoUrl.length})`);
+      // If it's an object storage path, fetch and stream the image directly
+      if (photoUrl.startsWith('/objects/')) {
+        console.log(`[photo] Fetching from object storage: ${photoUrl}`);
+        try {
+          const objectStorage = new ObjectStorageService();
+          const objectFile = await objectStorage.getObjectEntityFile(photoUrl);
+          console.log(`[photo] Found object file, streaming...`);
+          await objectStorage.downloadObject(objectFile, res, 0);
+          return;
+        } catch (objError) {
+          console.error('[photo] Object storage error:', objError);
+          return res.status(404).json({ message: "Photo file not found in storage" });
+        }
+      }
+      
+      // If it's base64 data, return it as JSON for the frontend
+      console.log(`[photo] Returning base64 photo (length: ${photoUrl.length})`);
       res.json({ photoUrl });
     } catch (error) {
       console.error('[photo] Failed to fetch photo:', error);

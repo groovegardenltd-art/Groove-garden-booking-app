@@ -29,40 +29,44 @@ function LazyPhoto({ userId, type, label }: { userId: number; type: 'id' | 'self
     setError(false);
     
     try {
-      const response = await apiRequest('GET', `/api/admin/id-verifications/${userId}/photo?type=${type}`) as any;
-      const json = await response.json();
-      const returnedUrl = json.photoUrl;
-      
-      console.log('[LazyPhoto] Received photoUrl:', returnedUrl?.substring(0, 50));
-      
-      // If it's a base64 data URL, use it directly
-      if (returnedUrl && returnedUrl.startsWith('data:')) {
-        console.log('[LazyPhoto] Using base64 data directly');
-        setPhotoUrl(returnedUrl);
-      } 
-      // If it's an object storage path, fetch it with credentials and create blob URL
-      else if (returnedUrl && returnedUrl.startsWith('/objects/')) {
-        console.log('[LazyPhoto] Fetching from object storage:', returnedUrl);
-        const imageResponse = await fetch(returnedUrl, {
-          credentials: 'include'
-        });
-        if (!imageResponse.ok) {
-          console.error('[LazyPhoto] Object storage fetch failed:', imageResponse.status);
-          throw new Error('Failed to fetch image from storage');
+      const response = await fetch(`/api/admin/id-verifications/${userId}/photo?type=${type}`, {
+        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('sessionId') || ''}`
         }
-        const blob = await imageResponse.blob();
+      });
+      
+      if (!response.ok) {
+        console.error('[LazyPhoto] API request failed:', response.status);
+        throw new Error('Failed to load photo');
+      }
+      
+      const contentType = response.headers.get('content-type') || '';
+      console.log('[LazyPhoto] Response content-type:', contentType);
+      
+      // If it's an image, the server streamed it directly from object storage
+      if (contentType.startsWith('image/')) {
+        console.log('[LazyPhoto] Received image directly from server');
+        const blob = await response.blob();
         const blobUrl = URL.createObjectURL(blob);
-        console.log('[LazyPhoto] Created blob URL successfully');
         setPhotoUrl(blobUrl);
       } 
-      // Old /uploads/ paths are no longer valid
-      else if (returnedUrl && returnedUrl.startsWith('/uploads/')) {
-        console.error('[LazyPhoto] Old upload path not supported:', returnedUrl);
-        throw new Error('Photo stored in old format - please ask user to re-upload');
+      // If it's JSON, it's base64 data
+      else if (contentType.includes('application/json')) {
+        const json = await response.json();
+        const returnedUrl = json.photoUrl;
+        console.log('[LazyPhoto] Received base64 photoUrl');
+        
+        if (returnedUrl && returnedUrl.startsWith('data:')) {
+          setPhotoUrl(returnedUrl);
+        } else {
+          console.error('[LazyPhoto] Unknown photo format in JSON:', returnedUrl?.substring(0, 50));
+          throw new Error('Invalid photo format');
+        }
       }
       else {
-        console.error('[LazyPhoto] Unknown photo URL format:', returnedUrl);
-        throw new Error('Invalid photo format');
+        console.error('[LazyPhoto] Unexpected content type:', contentType);
+        throw new Error('Unexpected response format');
       }
     } catch (err) {
       console.error('Failed to load photo:', err);
