@@ -1035,6 +1035,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log(`No locks configured for room ${bookingData.roomId}`);
           } else {
             console.log(`🚪 Setting up access for ${room.name}: Front Door ${room.lockId ? '✅' : '❌'} | Interior Door ${room.interiorLockId ? '✅' : '❌'}`);
+            console.log(`👤 Customer name for TTLock: "${user.name}" (User ID: ${user.id})`);
             
             // Create dates in local timezone (UK is UTC+1 in summer)
             const [startHours, startMinutes = '00'] = bookingData.startTime.split(':');

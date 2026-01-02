@@ -121,6 +121,7 @@ export class TTLockService {
         ? `${customerName} #${bookingId}`
         : `Booking-${bookingId}`;
 
+      console.log(`📝 TTLock passcode name will be: "${passcodeName}"`);
       console.log(`Sending passcode ${maskPasscode(passcode)} to TTLock lock ${lockId} for booking ${bookingId}`);
       console.log(`Valid from ${startTime.toISOString()} to ${endTime.toISOString()}`);
       console.log(`TTLock timestamps - Start: ${startTimeMs}, End: ${endTimeMs}`);
