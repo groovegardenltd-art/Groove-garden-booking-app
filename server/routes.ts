@@ -961,8 +961,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Payment intent ID is required" });
       }
 
-      // Skip verification in test mode
-      if (!TEST_MODE && !paymentIntentId.includes('test')) {
+      // Skip verification for free bookings (100% discount promo codes) or test mode
+      if (paymentIntentId === 'free_booking') {
+        console.log(`🎁 Free booking verified - 100% discount promo code applied`);
+      } else if (!TEST_MODE && !paymentIntentId.includes('test')) {
         if (!stripe) {
           return res.status(503).json({ message: "Payment service not configured" });
         }
@@ -1554,7 +1556,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { amount, currency = "gbp" } = req.body;
       const authReq = req as AuthenticatedRequest;
       
-      if (!amount || amount <= 0) {
+      // Handle free bookings (100% discount promo codes)
+      if (amount === 0) {
+        console.log(`🎁 Free booking - no payment required (100% discount applied)`);
+        return res.json({ 
+          clientSecret: null,
+          paymentIntentId: "free_booking",
+          freeBooking: true
+        });
+      }
+      
+      if (!amount || amount < 0) {
         return res.status(400).json({ message: "Invalid amount" });
       }
 

@@ -337,6 +337,16 @@ export const BookingModal = React.memo(function BookingModal({
       }
       
       const paymentData = await createPaymentIntent();
+      
+      // Handle free bookings (100% discount promo codes)
+      if (paymentData.freeBooking) {
+        console.log('🎁 Free booking - skipping payment form');
+        setPaymentIntentId(paymentData.paymentIntentId);
+        // Directly create booking without payment
+        await handleFreeBooking();
+        return;
+      }
+      
       setClientSecret(paymentData.clientSecret);
       setPaymentIntentId(paymentData.paymentIntentId);
       setShowPayment(true);
@@ -372,6 +382,56 @@ export const BookingModal = React.memo(function BookingModal({
     };
 
     bookingMutation.mutate(bookingData);
+  };
+
+  const handleFreeBooking = async () => {
+    // Handle 100% discount promo code bookings - no payment needed
+    console.log('🎁 Processing free booking...');
+
+    if (!selectedRoom || !selectedDate || !selectedTime) {
+      console.error('Missing booking data:', { selectedRoom, selectedDate, selectedTime });
+      setIsSubmitting(false);
+      toast({
+        title: "Booking Error",
+        description: "Missing booking information. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const endTime = `${String(parseInt(selectedTime.split(':')[0]) + selectedDuration).padStart(2, '0')}:00`;
+    
+    // Use discounted price (should be 0)
+    const finalPrice = appliedPromoCode ? Number(appliedPromoCode.finalAmount) : calculatePrice(selectedDuration);
+    
+    const bookingData = {
+      roomId: selectedRoom.id,
+      date: selectedDate,
+      startTime: selectedTime,
+      endTime: endTime,
+      duration: selectedDuration,
+      totalPrice: finalPrice,
+      idNumber: currentUser?.idNumber || "",
+      idType: currentUser?.idType || "",
+      paymentIntentId: "free_booking", // Identifier for free bookings
+      promoCodeId: appliedPromoCode?.promoCodeId,
+      originalPrice: appliedPromoCode ? String(appliedPromoCode.originalAmount) : undefined,
+      discountAmount: appliedPromoCode ? String(appliedPromoCode.discountAmount) : undefined,
+    };
+
+    console.log('📋 Creating free booking with data:', bookingData);
+    
+    try {
+      bookingMutation.mutate(bookingData);
+    } catch (error) {
+      console.error('Booking mutation error:', error);
+      setIsSubmitting(false);
+      toast({
+        title: "Booking Failed",
+        description: "Failed to create booking. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handlePaymentSuccess = async () => {
