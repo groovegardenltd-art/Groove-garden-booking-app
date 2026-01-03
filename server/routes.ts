@@ -1108,6 +1108,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         stripePaymentIntentId: (req.body as any).paymentIntentId || undefined
       });
 
+      // Increment promo code usage if one was used
+      if (bookingData.promoCodeId) {
+        try {
+          await storage.incrementPromoCodeUsage(bookingData.promoCodeId);
+          console.log(`📊 Promo code usage incremented for code ID: ${bookingData.promoCodeId}`);
+        } catch (error) {
+          console.error('Failed to increment promo code usage:', error);
+          // Don't fail the booking if usage increment fails
+        }
+      }
+
       // Get user details for email confirmation
       const bookingUser = await storage.getUser(authReq.userId);
       
