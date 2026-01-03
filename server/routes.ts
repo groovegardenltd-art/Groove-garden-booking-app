@@ -962,7 +962,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Skip verification for free bookings (100% discount promo codes) or test mode
-      console.log(`📝 Booking request - paymentIntentId: ${paymentIntentId}, discountAmount: ${bookingData.discountAmount}, totalPrice: ${bookingData.totalPrice}`);
+      console.log(`📝 Booking request - paymentIntentId: ${paymentIntentId}, discountAmount: ${bookingData.discountAmount}, totalPrice: ${bookingData.totalPrice}, promoCodeId: ${bookingData.promoCodeId}, raw promoCodeId: ${(req.body as any).promoCodeId}`);
       
       if (paymentIntentId === 'free_booking') {
         console.log(`🎁 Free booking verified - 100% discount promo code applied`);
