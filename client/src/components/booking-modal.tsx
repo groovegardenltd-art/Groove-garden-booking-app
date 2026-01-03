@@ -135,6 +135,17 @@ export const BookingModal = React.memo(function BookingModal({
           
           if (!response.ok) {
             const errorText = await response.text();
+            console.error(`❌ Booking API error ${response.status}:`, errorText);
+            
+            // Try to parse JSON error
+            let errorMessage = errorText;
+            try {
+              const errorJson = JSON.parse(errorText);
+              errorMessage = errorJson.message || errorJson.error || errorText;
+              console.error('Parsed error:', errorJson);
+            } catch {
+              // Not JSON, use raw text
+            }
             
             // If session expired, don't retry - throw immediately
             if (response.status === 401) {
@@ -148,7 +159,7 @@ export const BookingModal = React.memo(function BookingModal({
               continue;
             }
             
-            throw new Error(errorText || `Request failed: ${response.status}`);
+            throw new Error(errorMessage || `Request failed: ${response.status}`);
           }
           
           return response.json();
@@ -404,6 +415,9 @@ export const BookingModal = React.memo(function BookingModal({
     // Use discounted price (should be 0)
     const finalPrice = appliedPromoCode ? Number(appliedPromoCode.finalAmount) : calculatePrice(selectedDuration);
     
+    // Calculate original price from final + discount
+    const originalPrice = calculatePrice(selectedDuration);
+    
     const bookingData = {
       roomId: selectedRoom.id,
       date: selectedDate,
@@ -414,8 +428,8 @@ export const BookingModal = React.memo(function BookingModal({
       idNumber: currentUser?.idNumber || "",
       idType: currentUser?.idType || "",
       paymentIntentId: "free_booking", // Identifier for free bookings
-      promoCodeId: appliedPromoCode?.promoCodeId,
-      originalPrice: appliedPromoCode ? String(appliedPromoCode.originalAmount) : undefined,
+      promoCodeId: appliedPromoCode?.promoCode?.id, // Nested inside promoCode object
+      originalPrice: appliedPromoCode ? String(originalPrice) : undefined,
       discountAmount: appliedPromoCode ? String(appliedPromoCode.discountAmount) : undefined,
     };
 
