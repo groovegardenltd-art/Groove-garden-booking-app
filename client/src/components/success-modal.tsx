@@ -189,12 +189,7 @@ export function SuccessModal({
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="text-sm text-gray-600 space-y-1">
-                <p>Enter this code on your room's interior door keypad</p>
-                <p className="text-xs text-gray-500">
-                  Available 24/7 - manually set code
-                </p>
-              </div>
+              <p className="text-sm text-gray-600">Enter this code on your room's interior door keypad</p>
             </div>
           </div>
 
