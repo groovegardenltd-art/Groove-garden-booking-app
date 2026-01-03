@@ -199,6 +199,98 @@ app.use((req, res, next) => {
       }
     };
 
+    // Daily passcode verification and sync
+    const verifyAndSyncPasscodes = async () => {
+      try {
+        log('🔄 Starting daily passcode verification sync...');
+        const { storage } = await import('./storage');
+        const { createTTLockService } = await import('./ttlock');
+        const { db } = await import('./db');
+        const { bookings } = await import('@shared/schema');
+        const { eq, gte, and, isNotNull, asc } = await import('drizzle-orm');
+        
+        const ttlockService = createTTLockService();
+        if (!ttlockService) {
+          log('⚠️ TTLock not configured, skipping passcode verification');
+          return;
+        }
+
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Get all future confirmed bookings with passcodes
+        const futureBookings = await db
+          .select()
+          .from(bookings)
+          .where(
+            and(
+              gte(bookings.date, today),
+              eq(bookings.status, 'confirmed'),
+              isNotNull(bookings.ttlockPasscode)
+            )
+          )
+          .orderBy(asc(bookings.date), asc(bookings.startTime));
+
+        log(`📋 Verifying ${futureBookings.length} future bookings with passcodes...`);
+        
+        let syncedCount = 0;
+        let failedCount = 0;
+
+        for (const booking of futureBookings) {
+          try {
+            const room = await storage.getRoom(booking.roomId);
+            if (!room?.lockId) continue;
+
+            const bookingUser = await storage.getUser(booking.userId);
+            const customerName = bookingUser?.name;
+
+            // Parse booking time
+            const [year, month, day] = booking.date.split('-').map(Number);
+            const [startHour] = booking.startTime.split(':').map(Number);
+            const [endHour] = booking.endTime.split(':').map(Number);
+            
+            const startTime = new Date(year, month - 1, day, startHour, 0, 0);
+            const endTime = new Date(year, month - 1, day, endHour, 0, 0);
+            
+            // Handle overnight bookings
+            if (endHour <= startHour) {
+              endTime.setDate(endTime.getDate() + 1);
+            }
+
+            // Recreate passcode on the lock to ensure it's synced with correct name
+            const result = await ttlockService.createTimeLimitedPasscode(
+              room.lockId,
+              startTime,
+              endTime,
+              booking.id,
+              customerName
+            );
+
+            // Update booking with new passcode details
+            await db
+              .update(bookings)
+              .set({ 
+                ttlockPasscode: result.passcode,
+                ttlockPasscodeId: result.passcodeId.toString()
+              })
+              .where(eq(bookings.id, booking.id));
+
+            syncedCount++;
+            
+            // Small delay to avoid rate limiting
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+          } catch (error) {
+            failedCount++;
+            log(`⚠️ Failed to verify/sync passcode for booking ${booking.id}:`, String(error));
+          }
+        }
+
+        log(`✅ Daily passcode sync complete: ${syncedCount} synced, ${failedCount} failed`);
+      } catch (error) {
+        log('❌ Daily passcode verification failed:', String(error));
+      }
+    };
+
     // Run cleanups immediately on startup
     await cleanupOldBookings();
     await cleanupExpiredPasscodes();
@@ -209,6 +301,7 @@ app.use((req, res, next) => {
     
     setInterval(cleanupExpiredPasscodes, HOURLY_MS); // Run every hour for security
     setInterval(cleanupOldBookings, DAILY_MS); // Run daily for old bookings
+    setInterval(verifyAndSyncPasscodes, DAILY_MS); // Run daily to verify passcodes are synced
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
