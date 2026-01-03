@@ -146,10 +146,13 @@ export const insertBookingSchema = createInsertSchema(bookings).omit({
   createdAt: true,
 }).extend({
   contactPhone: z.string().optional(),
-  idNumber: z.string().min(1, "ID number is required for studio access"),
-  idType: z.string().min(1, "ID type is required"),
+  idNumber: z.string().optional(), // ID verification is now post-booking process
+  idType: z.string().optional(), // ID verification is now post-booking process
   totalPrice: z.union([z.string(), z.number()]).transform(val => String(val)),
   promoCode: z.string().optional(),
+  paymentIntentId: z.string().optional(), // For payment tracking
+  discountAmount: z.string().optional(), // For promo code discounts
+  originalPrice: z.string().optional(), // Original price before discount
 });
 
 export const insertBlockedSlotSchema = createInsertSchema(blockedSlots).omit({
