@@ -1012,7 +1012,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const startHour = parseInt(bookingData.startTime.split(':')[0]);
       const endHour = parseInt(bookingData.endTime.split(':')[0]);
       const duration = endHour - startHour;
-      const totalPrice = calculateBookingPrice(room, bookingData.startTime, bookingData.endTime, duration);
+      let totalPrice = calculateBookingPrice(room, bookingData.startTime, bookingData.endTime, duration);
+      
+      // Apply promo code discount if provided
+      if (bookingData.discountAmount && parseFloat(bookingData.discountAmount) > 0) {
+        const originalPrice = totalPrice;
+        const discount = parseFloat(bookingData.discountAmount);
+        totalPrice = Math.max(0, originalPrice - discount);
+        console.log(`🎁 Promo code applied: £${originalPrice} - £${discount} = £${totalPrice}`);
+      }
 
       // Generate access code
       const accessCode = generateAccessCode();
