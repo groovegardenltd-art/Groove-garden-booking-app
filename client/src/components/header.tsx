@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Bell, Menu, X, Settings } from "lucide-react";
+import { Menu, X, Settings, ChevronDown } from "lucide-react";
 import { getAuthState, clearAuthState } from "@/lib/auth";
 import { useState, useEffect } from "react";
 import { User } from "@shared/schema";
@@ -110,14 +110,21 @@ export function Header({ onLogout }: HeaderProps) {
             )}
           </div>
           <div className="flex items-center space-x-4">
-            {/* Mobile menu button */}
+            {/* Mobile menu button - more prominent with Menu label */}
             {user && (
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden relative z-50 p-2 rounded-md text-gray-600 hover:text-music-purple bg-white shadow-sm"
+                className="md:hidden relative z-50 flex items-center gap-1 px-3 py-2 rounded-lg bg-music-purple text-white hover:bg-music-purple/90 shadow-md"
                 data-testid="mobile-menu-toggle"
               >
-                {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                {mobileMenuOpen ? (
+                  <X className="h-5 w-5" />
+                ) : (
+                  <>
+                    <Menu className="h-5 w-5" />
+                    <ChevronDown className="h-4 w-4" />
+                  </>
+                )}
               </button>
             )}
             {user ? (
@@ -127,7 +134,8 @@ export function Header({ onLogout }: HeaderProps) {
                     <Settings className="h-5 w-5" />
                   </Button>
                 </Link>
-                <div className="flex items-center space-x-3">
+                {/* Hide username/avatar on mobile, show on desktop */}
+                <div className="hidden md:flex items-center space-x-3">
                   <span className="text-sm text-gray-700">{user.name}</span>
                   <div className="w-8 h-8 bg-music-indigo rounded-full flex items-center justify-center">
                     <span className="text-white text-sm font-medium">
@@ -222,6 +230,18 @@ export function Header({ onLogout }: HeaderProps) {
                   </Link>
                 </>
               )}
+              <div className="border-t border-gray-200 mt-3 pt-3">
+                <button
+                  onClick={() => {
+                    closeMobileMenu();
+                    handleLogout();
+                  }}
+                  className="block w-full text-left py-2 px-3 rounded-md text-red-600 hover:bg-red-50 transition-colors"
+                  data-testid="mobile-nav-logout"
+                >
+                  Logout
+                </button>
+              </div>
             </div>
           </div>
         )}
