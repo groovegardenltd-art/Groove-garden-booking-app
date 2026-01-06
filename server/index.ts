@@ -291,16 +291,34 @@ app.use((req, res, next) => {
       }
     };
 
+    // Automatic cleanup of old blocked slots - runs daily
+    const cleanupOldBlockedSlots = async () => {
+      try {
+        log('🔍 Starting old blocked slots cleanup check...');
+        const { storage } = await import('./storage');
+        
+        const daysOld = 30;
+        const deletedCount = await storage.deleteOldBlockedSlots(daysOld);
+        if (deletedCount > 0) {
+          log(`🗑️ Automatic cleanup: Deleted ${deletedCount} blocked slots older than ${daysOld} days`);
+        }
+      } catch (error) {
+        log("⚠️ Automatic blocked slots cleanup failed:", String(error));
+      }
+    };
+
     // Run cleanups immediately on startup
     await cleanupOldBookings();
     await cleanupExpiredPasscodes();
+    await cleanupOldBlockedSlots();
 
-    // Schedule cleanups to run every hour (for passcodes) and daily (for old bookings)
+    // Schedule cleanups to run every hour (for passcodes) and daily (for old bookings/blocked slots)
     const HOURLY_MS = 60 * 60 * 1000;
     const DAILY_MS = 24 * 60 * 60 * 1000;
     
     setInterval(cleanupExpiredPasscodes, HOURLY_MS); // Run every hour for security
     setInterval(cleanupOldBookings, DAILY_MS); // Run daily for old bookings
+    setInterval(cleanupOldBlockedSlots, DAILY_MS); // Run daily for old blocked slots
     setInterval(verifyAndSyncPasscodes, DAILY_MS); // Run daily to verify passcodes are synced
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

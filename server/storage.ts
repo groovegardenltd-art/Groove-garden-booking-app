@@ -50,6 +50,7 @@ export interface IStorage {
   createBlockedSlot(blockedSlot: InsertBlockedSlot & { createdBy: number }): Promise<BlockedSlot[]>;
   updateBlockedSlot(id: number, updates: Partial<BlockedSlot>): Promise<boolean>;
   deleteBlockedSlot(id: number): Promise<boolean>;
+  deleteOldBlockedSlots(daysOld: number): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -638,6 +639,19 @@ export class DatabaseStorage implements IStorage {
       console.error('Failed to delete blocked slot:', error);
       return false;
     }
+  }
+
+  async deleteOldBlockedSlots(daysOld: number): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysOld);
+    const cutoffDateString = cutoffDate.toISOString().split('T')[0];
+
+    const result = await db
+      .delete(blockedSlots)
+      .where(lt(blockedSlots.date, cutoffDateString))
+      .returning();
+    
+    return result.length;
   }
 }
 
