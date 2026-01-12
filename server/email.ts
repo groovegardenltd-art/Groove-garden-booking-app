@@ -1,9 +1,59 @@
-import sgMail from '@sendgrid/mail';
+import { google } from 'googleapis';
 
-if (!process.env.SENDGRID_API_KEY) {
-  console.warn('SENDGRID_API_KEY not found - email notifications disabled');
-} else {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+// Gmail integration - Replit connector
+let connectionSettings: any;
+
+async function getAccessToken() {
+  if (connectionSettings && connectionSettings.settings.expires_at && new Date(connectionSettings.settings.expires_at).getTime() > Date.now()) {
+    return connectionSettings.settings.access_token;
+  }
+  
+  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
+  const xReplitToken = process.env.REPL_IDENTITY 
+    ? 'repl ' + process.env.REPL_IDENTITY 
+    : process.env.WEB_REPL_RENEWAL 
+    ? 'depl ' + process.env.WEB_REPL_RENEWAL 
+    : null;
+
+  if (!xReplitToken || !hostname) {
+    console.log('Gmail connector not available - email disabled');
+    return null;
+  }
+
+  try {
+    connectionSettings = await fetch(
+      'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=google-mail',
+      {
+        headers: {
+          'Accept': 'application/json',
+          'X_REPLIT_TOKEN': xReplitToken
+        }
+      }
+    ).then(res => res.json()).then(data => data.items?.[0]);
+
+    const accessToken = connectionSettings?.settings?.access_token || connectionSettings?.settings?.oauth?.credentials?.access_token;
+
+    if (!connectionSettings || !accessToken) {
+      console.log('Gmail not connected - email disabled');
+      return null;
+    }
+    return accessToken;
+  } catch (error) {
+    console.error('Failed to get Gmail access token:', error);
+    return null;
+  }
+}
+
+async function getGmailClient() {
+  const accessToken = await getAccessToken();
+  if (!accessToken) return null;
+
+  const oauth2Client = new google.auth.OAuth2();
+  oauth2Client.setCredentials({
+    access_token: accessToken
+  });
+
+  return google.gmail({ version: 'v1', auth: oauth2Client });
 }
 
 // Helper function to get the correct base URL for the current environment
@@ -55,27 +105,61 @@ interface EmailParams {
   html?: string;
 }
 
-export async function sendEmail(params: EmailParams): Promise<boolean> {
-  if (!process.env.SENDGRID_API_KEY) {
-    console.log('Email notification skipped - no SendGrid API key configured');
-    return false;
+// Create RFC 2822 formatted email
+function createEmail(params: EmailParams): string {
+  const boundary = 'boundary_' + Date.now().toString(16);
+  
+  let email = [
+    `From: ${params.from}`,
+    `To: ${params.to}`,
+    `Subject: ${params.subject}`,
+    'MIME-Version: 1.0',
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    '',
+  ].join('\r\n');
+
+  if (params.text) {
+    email += `\r\n--${boundary}\r\n`;
+    email += 'Content-Type: text/plain; charset="UTF-8"\r\n\r\n';
+    email += params.text;
   }
 
+  if (params.html) {
+    email += `\r\n--${boundary}\r\n`;
+    email += 'Content-Type: text/html; charset="UTF-8"\r\n\r\n';
+    email += params.html;
+  }
+
+  email += `\r\n--${boundary}--`;
+
+  return email;
+}
+
+export async function sendEmail(params: EmailParams): Promise<boolean> {
   try {
-    const mailData: any = {
-      to: params.to,
-      from: params.from,
-      subject: params.subject,
-    };
-    
-    if (params.text) mailData.text = params.text;
-    if (params.html) mailData.html = params.html;
-    
-    await sgMail.send(mailData);
-    console.log(`Email sent successfully to ${params.to}`);
+    const gmail = await getGmailClient();
+    if (!gmail) {
+      console.log('Gmail not available - email skipped');
+      return false;
+    }
+
+    const rawEmail = createEmail(params);
+    const encodedEmail = Buffer.from(rawEmail).toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+
+    await gmail.users.messages.send({
+      userId: 'me',
+      requestBody: {
+        raw: encodedEmail
+      }
+    });
+
+    console.log(`Email sent successfully via Gmail to ${params.to}`);
     return true;
   } catch (error) {
-    console.error('SendGrid email error:', error);
+    console.error('Gmail email error:', error);
     return false;
   }
 }
