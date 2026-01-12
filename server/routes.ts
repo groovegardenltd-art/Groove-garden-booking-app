@@ -1411,10 +1411,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`🔒 Updated ${result.length} rooms to use new lock ID: ${newLockId}`);
       
+      // Automatically sync passcodes to the new lock
+      let syncResults = { total: 0, success: 0, failed: 0 };
+      
+      if (ttlockService) {
+        const today = new Date().toISOString().split('T')[0];
+        const bookingsToSync = await db
+          .select()
+          .from(bookings)
+          .where(
+            and(
+              gte(bookings.date, today),
+              eq(bookings.status, 'confirmed'),
+              isNotNull(bookings.ttlockPasscode)
+            )
+          )
+          .orderBy(asc(bookings.date), asc(bookings.startTime));
+
+        console.log(`🔄 Auto-syncing ${bookingsToSync.length} passcodes to new lock ${newLockId}`);
+        syncResults.total = bookingsToSync.length;
+
+        for (const booking of bookingsToSync) {
+          try {
+            const [year, month, day] = booking.date.split('-').map(Number);
+            const [startHour] = booking.startTime.split(':').map(Number);
+            const [endHour] = booking.endTime.split(':').map(Number);
+            
+            const startTime = new Date(year, month - 1, day, startHour, 0, 0);
+            const endTime = new Date(year, month - 1, day, endHour, 0, 0);
+            if (endHour <= startHour) endTime.setDate(endTime.getDate() + 1);
+
+            const bookingUser = await storage.getUser(booking.userId);
+            const result = await ttlockService.createTimeLimitedPasscode(
+              newLockId,
+              startTime,
+              endTime,
+              booking.id,
+              bookingUser?.name
+            );
+
+            await db
+              .update(bookings)
+              .set({ 
+                ttlockPasscode: result.passcode,
+                ttlockPasscodeId: result.passcodeId.toString()
+              })
+              .where(eq(bookings.id, booking.id));
+
+            syncResults.success++;
+          } catch (error) {
+            syncResults.failed++;
+            console.error(`❌ Failed to sync booking #${booking.id}:`, error);
+          }
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        console.log(`✅ Auto-sync complete: ${syncResults.success}/${syncResults.total} passcodes synced`);
+      }
+      
       res.json({ 
         message: `Updated ${result.length} rooms to use new lock`, 
         updatedRooms: result.length,
-        newLockId 
+        newLockId,
+        passcodesSync: syncResults
       });
     } catch (error) {
       console.error('Bulk lock update error:', error);
