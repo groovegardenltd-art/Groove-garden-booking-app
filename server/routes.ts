@@ -506,12 +506,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Normalize email for case-insensitive lookup
       const normalizedEmail = email.toLowerCase().trim();
+      console.log(`[PASSWORD RESET] Request received for email: ${normalizedEmail}`);
       
       const user = await storage.getUserByEmail(normalizedEmail);
       if (!user) {
+        console.log(`[PASSWORD RESET] No user found with email: ${normalizedEmail}`);
         // Don't reveal if email exists or not for security
         return res.json({ message: "If an account with that email exists, a password reset link has been sent." });
       }
+
+      console.log(`[PASSWORD RESET] User found: ${user.username} (ID: ${user.id})`);
 
       // Generate secure reset token
       const resetToken = crypto.randomBytes(32).toString('hex');
@@ -519,16 +523,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Save reset token to database
       const tokenSaved = await storage.setUserResetToken(user.id, resetToken, expiryDate);
+      console.log(`[PASSWORD RESET] Token saved to database: ${tokenSaved}`);
       
       if (tokenSaved) {
         // Send password reset email
+        console.log(`[PASSWORD RESET] Attempting to send email to: ${user.email}`);
         const emailSent = await sendPasswordResetEmail(user.email, user.username, resetToken);
         
         if (emailSent) {
-          console.log(`Password reset email sent to ${user.email}`);
+          console.log(`[PASSWORD RESET] ✅ Email sent successfully to ${user.email}`);
         } else {
-          console.error(`Failed to send password reset email to ${user.email}`);
+          console.error(`[PASSWORD RESET] ❌ Failed to send password reset email to ${user.email}`);
         }
+      } else {
+        console.error(`[PASSWORD RESET] ❌ Failed to save reset token for user ${user.id}`);
       }
 
       // Always return success message (don't reveal if email exists)
@@ -537,7 +545,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid email address", errors: error.errors });
       }
-      console.error('Forgot password error:', error);
+      console.error('[PASSWORD RESET] Error:', error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
