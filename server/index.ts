@@ -310,14 +310,15 @@ app.use((req, res, next) => {
 
     // Run cleanups immediately on startup
     await cleanupOldBookings();
-    await cleanupExpiredPasscodes();
+    // DISABLED: cleanupExpiredPasscodes - TTLock passcodes auto-expire, no need to delete
+    // await cleanupExpiredPasscodes();
     await cleanupOldBlockedSlots();
 
-    // Schedule cleanups to run every hour (for passcodes) and daily (for old bookings/blocked slots)
-    const HOURLY_MS = 60 * 60 * 1000;
+    // Schedule cleanups to run daily (passcode cleanup disabled - TTLock handles expiry automatically)
     const DAILY_MS = 24 * 60 * 60 * 1000;
     
-    setInterval(cleanupExpiredPasscodes, HOURLY_MS); // Run every hour for security
+    // DISABLED: Passcode cleanup - TTLock time-limited passcodes expire automatically
+    // setInterval(cleanupExpiredPasscodes, HOURLY_MS);
     setInterval(cleanupOldBookings, DAILY_MS); // Run daily for old bookings
     setInterval(cleanupOldBlockedSlots, DAILY_MS); // Run daily for old blocked slots
     setInterval(verifyAndSyncPasscodes, DAILY_MS); // Run daily to verify passcodes are synced
