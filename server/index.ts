@@ -145,13 +145,14 @@ app.use((req, res, next) => {
             continue;
           }
 
-          // Check if booking has ended
+          // Check if booking has ended - parse date correctly to avoid timezone issues
           const [endHours, endMinutes = '00'] = booking.endTime.split(':');
-          const bookingEndDateTime = new Date(booking.date);
-          bookingEndDateTime.setHours(parseInt(endHours), parseInt(endMinutes), 0, 0);
+          const [year, month, day] = booking.date.split('-').map(Number);
+          const bookingEndDateTime = new Date(year, month - 1, day, parseInt(endHours), parseInt(endMinutes), 0);
 
-          // If booking ended, delete the passcode
-          if (bookingEndDateTime < now) {
+          // Only delete if booking ended more than 2 hours ago (safety buffer)
+          const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+          if (bookingEndDateTime < twoHoursAgo) {
             try {
               const room = await storage.getRoom(booking.roomId);
               const hoursExpired = Math.round((now.getTime() - bookingEndDateTime.getTime()) / (1000 * 60 * 60));
