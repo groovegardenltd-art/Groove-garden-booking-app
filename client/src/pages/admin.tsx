@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Clock, User, FileText, Shield, CalendarX, Plus, Trash2, Repeat, Calendar, MapPin, CreditCard, Phone, Mail, List, Grid3X3, ChevronRight, Edit, Key } from "lucide-react";
+import { CheckCircle, XCircle, Clock, User, FileText, Shield, CalendarX, Plus, Trash2, Repeat, Calendar, MapPin, CreditCard, Phone, Mail, List, Grid3X3, ChevronRight, Edit, Key, DoorOpen } from "lucide-react";
 import { Link } from "wouter";
 import { AdminCalendar } from "@/components/admin-calendar";
 import { getAuthState } from "@/lib/auth";
@@ -488,12 +488,20 @@ export default function Admin() {
                 <p className="text-gray-600 mt-1">Manage bookings, review ID verifications, and block time slots</p>
               </div>
             </div>
-            <Link href="/lock-management">
-              <Button variant="outline" className="gap-2" data-testid="button-lock-management">
-                <Key className="h-4 w-4" />
-                Lock Management
-              </Button>
-            </Link>
+            <div className="flex gap-2">
+              <Link href="/admin/access-log">
+                <Button variant="outline" className="gap-2" data-testid="button-access-log">
+                  <DoorOpen className="h-4 w-4" />
+                  Access Log
+                </Button>
+              </Link>
+              <Link href="/lock-management">
+                <Button variant="outline" className="gap-2" data-testid="button-lock-management">
+                  <Key className="h-4 w-4" />
+                  Lock Management
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
 

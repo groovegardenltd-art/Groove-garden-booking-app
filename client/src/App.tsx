@@ -19,6 +19,7 @@ const CancellationPolicy = lazy(() => import("@/pages/cancellation-policy"));
 const PrivacyPolicy = lazy(() => import("@/pages/privacy-policy"));
 const AccountSettings = lazy(() => import("@/pages/account-settings"));
 const IdVerificationAdmin = lazy(() => import("@/pages/id-verification-admin"));
+const AccessLog = lazy(() => import("@/pages/access-log"));
 const Admin = lazy(() => import("@/pages/admin"));
 const ResubmitVerification = lazy(() => import("@/pages/resubmit-verification"));
 
@@ -74,6 +75,7 @@ function Router() {
         <Route path="/privacy-policy" component={PrivacyPolicy} />
         <Route path="/account-settings" component={AccountSettings} />
         <Route path="/admin/id-verification" component={IdVerificationAdmin} />
+        <Route path="/admin/access-log" component={AccessLog} />
         <Route path="/admin" component={Admin} />
         <Route path="/resubmit-verification" component={ResubmitVerification} />
         <Route path="/login" component={Login} />
