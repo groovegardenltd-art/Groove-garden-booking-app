@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import { rooms, sessions, users, bookings, type Booking, type BlockedSlot } from "@shared/schema";
-import { eq, and, gte, asc, isNotNull } from "drizzle-orm";
+import { eq, and, gte, lte, asc, isNotNull } from "drizzle-orm";
 import { insertUserSchema, loginSchema, insertBookingSchema } from "@shared/schema";
 import { createTTLockService } from "./ttlock";
 import { z } from "zod";
@@ -1275,11 +1275,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { startDate, endDate } = req.query;
-      const start = startDate ? new Date(startDate as string) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // 7 days ago
+      const start = startDate ? new Date(startDate as string) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       const end = endDate ? new Date(endDate as string) : new Date();
 
-      // For now, get logs from first available lock
-      // TODO: Make this room-specific or aggregate all rooms
       const rooms = await storage.getAllRooms();
       const roomWithLock = rooms.find(room => room.lockId);
       
@@ -1290,6 +1288,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const logs = await ttlockService.getAccessLogs(roomWithLock.lockId, start, end);
       res.json(logs);
     } catch (error) {
+      res.status(500).json({ message: "Failed to get access logs" });
+    }
+  });
+
+  app.get("/api/admin/access-log", requireAuth, async (req, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const user = await storage.getUser(authReq.userId);
+      const adminEmails = ["groovegardenltd@gmail.com", "tomearl1508@gmail.com"];
+      if (!user || !adminEmails.includes(user.email)) {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      if (!ttlockService) {
+        return res.status(503).json({ message: "Smart lock service not configured" });
+      }
+
+      const { startDate, endDate } = req.query;
+      const start = startDate ? new Date(startDate as string) : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const end = endDate ? new Date(endDate as string) : new Date();
+
+      const rooms = await storage.getAllRooms();
+      const roomWithLock = rooms.find(room => room.lockId);
+      
+      if (!roomWithLock || !roomWithLock.lockId) {
+        return res.status(404).json({ message: "No locks configured" });
+      }
+      
+      const logs = await ttlockService.getAccessLogs(roomWithLock.lockId, start, end);
+      
+      const startDateStr = start.toISOString().split('T')[0];
+      const endDateStr = end.toISOString().split('T')[0];
+      const bookingsInRange = await db
+        .select({
+          id: bookings.id,
+          date: bookings.date,
+          startTime: bookings.startTime,
+          endTime: bookings.endTime,
+          roomId: bookings.roomId,
+          userId: bookings.userId,
+          ttlockPasscode: bookings.ttlockPasscode,
+          status: bookings.status,
+        })
+        .from(bookings)
+        .where(
+          and(
+            gte(bookings.date, startDateStr),
+            lte(bookings.date, endDateStr),
+            eq(bookings.status, 'confirmed')
+          )
+        )
+        .orderBy(asc(bookings.date), asc(bookings.startTime));
+
+      const userIds = Array.from(new Set(bookingsInRange.map(b => b.userId)));
+      const users: Record<number, { name: string; email: string }> = {};
+      for (const userId of userIds) {
+        const u = await storage.getUser(userId);
+        if (u) users[userId] = { name: u.name, email: u.email };
+      }
+
+      const roomsMap: Record<number, string> = {};
+      for (const room of rooms) {
+        roomsMap[room.id] = room.name;
+      }
+
+      const enrichedLogs = logs.map((log: any) => {
+        const unlockTime = new Date(log.lockDate || log.operateDate);
+        
+        let matchedBooking = null;
+        let customerName = null;
+        let roomName = null;
+
+        for (const booking of bookingsInRange) {
+          const [year, month, day] = booking.date.split('-').map(Number);
+          const [startHour] = booking.startTime.split(':').map(Number);
+          const [endHour] = booking.endTime.split(':').map(Number);
+          
+          const bookingStart = new Date(year, month - 1, day, startHour - 1, 0);
+          const bookingEnd = new Date(year, month - 1, day, endHour, 30);
+          if (endHour <= startHour) bookingEnd.setDate(bookingEnd.getDate() + 1);
+
+          if (unlockTime >= bookingStart && unlockTime <= bookingEnd) {
+            matchedBooking = booking;
+            customerName = users[booking.userId]?.name || 'Unknown';
+            roomName = roomsMap[booking.roomId] || 'Unknown Room';
+            break;
+          }
+        }
+
+        return {
+          unlockTime: unlockTime.toISOString(),
+          method: log.recordType === 1 ? 'Passcode' : log.recordType === 2 ? 'App' : log.recordType === 3 ? 'Fingerprint' : 'Other',
+          passcode: log.keyboardPwd || null,
+          customerName,
+          roomName,
+          bookingId: matchedBooking?.id || null,
+          rawLog: log
+        };
+      });
+
+      res.json({
+        logs: enrichedLogs,
+        totalEntries: enrichedLogs.length,
+        matchedEntries: enrichedLogs.filter((l: any) => l.customerName).length,
+        dateRange: { start: start.toISOString(), end: end.toISOString() }
+      });
+    } catch (error) {
+      console.error('Access log error:', error);
       res.status(500).json({ message: "Failed to get access logs" });
     }
   });
