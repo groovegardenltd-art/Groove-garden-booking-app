@@ -35,7 +35,7 @@ export default function Website() {
       name: "Live Room",
       description: "Large space for bigger bands and performances",
       equipment: ["Full backline", "PA system", "Lighting rig", "Stage monitors"],
-      price: "£13/hr (9am-5pm) • £19/hr (5pm-midnight)", 
+      price: "£14/hr (9am-5pm) • £18/hr (5pm-midnight)", 
       capacity: "Up to 12 people",
       image: "🎸"
     }
@@ -54,8 +54,8 @@ export default function Website() {
       title: "Live Room", 
       description: "Time-based pricing",
       rates: [
-        { time: "9am - 5pm", price: "£13/hour", type: "day" },
-        { time: "5pm - midnight", price: "£19/hour", type: "evening" }
+        { time: "9am - 5pm", price: "£14/hour", type: "day" },
+        { time: "5pm - midnight", price: "£18/hour", type: "evening" }
       ]
     }
   ];
