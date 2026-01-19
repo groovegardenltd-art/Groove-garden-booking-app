@@ -1056,17 +1056,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log(`🚪 Setting up access for ${room.name}: Front Door ${room.lockId ? '✅' : '❌'} | Interior Door ${room.interiorLockId ? '✅' : '❌'}`);
             console.log(`👤 Customer name for TTLock: "${user.name}" (User ID: ${user.id})`);
             
-            // Create dates in local timezone (UK is UTC+1 in summer)
-            const [startHours, startMinutes = '00'] = bookingData.startTime.split(':');
-            const [endHours, endMinutes = '00'] = bookingData.endTime.split(':');
-            const [year, month, day] = bookingData.date.split('-');
+            // Create date strings in ISO format - TTLock expects milliseconds since epoch
+            const startDateTimeStr = `${bookingData.date}T${bookingData.startTime}:00`;
+            const endDateTimeStr = `${bookingData.date}T${bookingData.endTime}:00`;
             
-            // Adjust for timezone difference - subtract 1 hour to correct TTLock display
-            const adjustedStartHour = parseInt(startHours) - 1;
-            const adjustedEndHour = parseInt(endHours) - 1;
-            
-            const startDateTime = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), adjustedStartHour, parseInt(startMinutes)));
-            const endDateTime = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), adjustedEndHour, parseInt(endMinutes)));
+            // Parse as local time - server time should match TTLock expectations
+            const startDateTime = new Date(startDateTimeStr);
+            const endDateTime = new Date(endDateTimeStr);
             
             // Use new multi-lock method to create same passcode on all locks
             const lockResult = await ttlockService.createMultiLockPasscode(
@@ -2209,17 +2205,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (room.lockId) lockIds.push(room.lockId);
           if (room.interiorLockId) lockIds.push(room.interiorLockId);
 
-          // Parse the new date and time
+          // Parse the new date and time - create as UK local time
           const [year, month, day] = date.split('-');
           const [startHours, startMinutes = '00'] = startTime.split(':');
           const [endHours, endMinutes = '00'] = endTime.split(':');
           
-          // Adjust for timezone difference
-          const adjustedStartHour = parseInt(startHours) - 1;
-          const adjustedEndHour = parseInt(endHours) - 1;
+          // Create date strings in ISO format and let JS handle timezone conversion
+          const startDateTimeStr = `${date}T${startTime}:00`;
+          const endDateTimeStr = `${date}T${endTime}:00`;
           
-          const startDateTime = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), adjustedStartHour, parseInt(startMinutes)));
-          const endDateTime = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), adjustedEndHour, parseInt(endMinutes)));
+          // Parse as local time (server runs in UTC, so we need to treat these as UK times)
+          // TTLock expects milliseconds since epoch in UTC
+          const startDateTime = new Date(startDateTimeStr);
+          const endDateTime = new Date(endDateTimeStr);
 
           // Get customer name for passcode label
           const bookingUser = await storage.getUser(booking.userId);
