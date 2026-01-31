@@ -1097,19 +1097,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      const booking = await storage.createBooking({
-        ...bookingData,
-        totalPrice: totalPrice.toString(),
-        userId: authReq.userId,
-        accessCode: ttlockPasscode || accessCode, // Use TTLock passcode if available, fallback to generated code
-        ttlockPasscode: ttlockPasscode || undefined,
-        ttlockPasscodeId: ttlockPasscodeId ? ttlockPasscodeId.toString() : undefined,
-        lockAccessEnabled,
-        promoCodeId: bookingData.promoCodeId || undefined,
-        originalPrice: bookingData.originalPrice || undefined,
-        discountAmount: bookingData.discountAmount || undefined,
-        stripePaymentIntentId: (req.body as any).paymentIntentId || undefined
-      });
+      // Retry logic for booking creation - ensures booking is saved even if first attempt fails
+      const maxRetries = 3;
+      let booking;
+      let lastError;
+      
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          booking = await storage.createBooking({
+            ...bookingData,
+            totalPrice: totalPrice.toString(),
+            userId: authReq.userId,
+            accessCode: ttlockPasscode || accessCode,
+            ttlockPasscode: ttlockPasscode || undefined,
+            ttlockPasscodeId: ttlockPasscodeId ? ttlockPasscodeId.toString() : undefined,
+            lockAccessEnabled,
+            promoCodeId: bookingData.promoCodeId || undefined,
+            originalPrice: bookingData.originalPrice || undefined,
+            discountAmount: bookingData.discountAmount || undefined,
+            stripePaymentIntentId: (req.body as any).paymentIntentId || undefined
+          });
+          console.log(`✅ Booking created successfully on attempt ${attempt}`);
+          break; // Success - exit retry loop
+        } catch (retryError) {
+          lastError = retryError;
+          console.error(`❌ Booking creation attempt ${attempt}/${maxRetries} failed:`, retryError);
+          
+          // Don't retry on validation or conflict errors
+          const errorMsg = retryError instanceof Error ? retryError.message : '';
+          if (errorMsg.includes('already booked') || errorMsg.includes('blocked and unavailable')) {
+            throw retryError; // Rethrow conflict errors immediately
+          }
+          
+          if (attempt < maxRetries) {
+            // Exponential backoff: 500ms, 1000ms, 2000ms
+            const delay = 500 * Math.pow(2, attempt - 1);
+            console.log(`⏳ Retrying in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+        }
+      }
+      
+      // If all retries failed, refund the payment and throw error
+      if (!booking) {
+        const paymentIntentId = (req.body as any).paymentIntentId;
+        if (paymentIntentId && stripe) {
+          try {
+            console.log(`💳 Auto-refunding payment ${paymentIntentId} due to booking creation failure`);
+            await stripe.refunds.create({ payment_intent: paymentIntentId });
+            console.log(`✅ Auto-refund successful for payment ${paymentIntentId}`);
+          } catch (refundError) {
+            console.error(`❌ CRITICAL: Auto-refund failed for payment ${paymentIntentId}:`, refundError);
+            // Log for manual intervention
+            console.error(`⚠️ MANUAL REFUND NEEDED: Payment ${paymentIntentId}, User ${authReq.userId}, Amount £${totalPrice}`);
+          }
+        }
+        throw lastError || new Error('Booking creation failed after all retries');
+      }
 
       // Increment promo code usage if one was used
       if (bookingData.promoCodeId) {
