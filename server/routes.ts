@@ -1206,9 +1206,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
-      // Return 409 Conflict for booking conflicts (from transaction)
+      // Return 409 Conflict for booking conflicts (from transaction) - refund the payment
       if (errorMessage.includes('already booked') || errorMessage.includes('blocked and unavailable')) {
+        const conflictPaymentId = (req.body as any).paymentIntentId;
+        if (conflictPaymentId && stripe) {
+          try {
+            console.log(`💳 Auto-refunding payment ${conflictPaymentId} due to booking conflict: ${errorMessage}`);
+            await stripe.refunds.create({ payment_intent: conflictPaymentId });
+            console.log(`✅ Auto-refund successful for conflict payment ${conflictPaymentId}`);
+          } catch (refundError) {
+            console.error(`❌ CRITICAL: Auto-refund failed for conflict payment ${conflictPaymentId}:`, refundError);
+            console.error(`⚠️ MANUAL REFUND NEEDED: Payment ${conflictPaymentId}`);
+          }
+        }
         return res.status(409).json({ message: errorMessage });
+      }
+      
+      // Auto-refund for ANY other error after payment was taken
+      const failedPaymentId = (req.body as any).paymentIntentId;
+      if (failedPaymentId && stripe) {
+        try {
+          console.log(`💳 Auto-refunding payment ${failedPaymentId} due to booking error: ${errorMessage}`);
+          await stripe.refunds.create({ payment_intent: failedPaymentId });
+          console.log(`✅ Auto-refund successful for payment ${failedPaymentId}`);
+        } catch (refundError) {
+          console.error(`❌ CRITICAL: Auto-refund failed for payment ${failedPaymentId}:`, refundError);
+          console.error(`⚠️ MANUAL REFUND NEEDED: Payment ${failedPaymentId}`);
+        }
       }
       
       // Return 500 for other errors
@@ -2136,7 +2160,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Process refund if requested (default: yes)
-      let refundResult = { refunded: false, reason: "Refund not processed by admin request" };
+      let refundResult: { refunded: boolean; amount?: number; reason?: string; error?: string } = { refunded: false, reason: "Refund not processed by admin request" };
       if (processRefund) {
         refundResult = await processRefundIfEligible(booking);
         if (refundResult.refunded) {
