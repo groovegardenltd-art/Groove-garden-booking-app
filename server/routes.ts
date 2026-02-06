@@ -2923,7 +2923,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Check each date for booking conflicts
+      // Check each date for booking AND blocked slot conflicts
       const conflictingDates: string[] = [];
       const conflictDetails: any[] = [];
       
@@ -2932,53 +2932,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       for (const dateToCheck of datesToCheck) {
         const existingBookings = await storage.getBookingsByRoomAndDate(roomId, dateToCheck);
+        const existingBlocks = await storage.getBlockedSlotsByRoomAndDate(roomId, dateToCheck);
         
-        console.log(`📋 Found ${existingBookings.length} bookings on ${dateToCheck}:`, 
-          existingBookings.map(b => ({ id: b.id, time: `${b.startTime}-${b.endTime}`, status: b.status })));
+        console.log(`📋 Found ${existingBookings.length} bookings and ${existingBlocks.length} blocked slots on ${dateToCheck}`);
         
-        const hasConflict = existingBookings.some(booking => {
-          // Skip cancelled bookings
-          if (booking.status === 'cancelled') return false;
+        // Check conflicts with existing bookings
+        existingBookings.forEach(booking => {
+          if (booking.status === 'cancelled') return;
           
-          const bookingStart = booking.startTime;
-          const bookingEnd = booking.endTime;
-          const blockStart = startTime;
-          const blockEnd = endTime;
-
-          const conflicts = (blockStart < bookingEnd && blockEnd > bookingStart);
-          
+          const conflicts = (startTime < booking.endTime && endTime > booking.startTime);
           if (conflicts) {
-            console.log(`⚠️  CONFLICT DETECTED with booking ${booking.id}: ${bookingStart}-${bookingEnd} vs block ${blockStart}-${blockEnd}`);
+            console.log(`⚠️  CONFLICT with booking ${booking.id}: ${booking.startTime}-${booking.endTime}`);
             conflictDetails.push({
               date: dateToCheck,
+              type: 'booking',
               bookingId: booking.id,
-              bookingTime: `${bookingStart}-${bookingEnd}`,
+              bookingTime: `${booking.startTime}-${booking.endTime}`,
               bookingStatus: booking.status
             });
+            if (!conflictingDates.includes(dateToCheck)) {
+              conflictingDates.push(dateToCheck);
+            }
           }
-          
-          return conflicts;
         });
 
-        if (hasConflict) {
-          conflictingDates.push(dateToCheck);
-        }
+        // Check conflicts with existing blocked slots
+        existingBlocks.forEach(block => {
+          const conflicts = (startTime < block.endTime && endTime > block.startTime);
+          if (conflicts) {
+            console.log(`⚠️  CONFLICT with blocked slot ${block.id}: ${block.startTime}-${block.endTime}`);
+            conflictDetails.push({
+              date: dateToCheck,
+              type: 'block',
+              blockId: block.id,
+              blockTime: `${block.startTime}-${block.endTime}`,
+              reason: block.reason
+            });
+            if (!conflictingDates.includes(dateToCheck)) {
+              conflictingDates.push(dateToCheck);
+            }
+          }
+        });
       }
 
       if (conflictingDates.length > 0) {
         console.log(`❌ Cannot create blocked slot - conflicts found:`, conflictDetails);
         
-        // Enhanced error message showing specific booking details
-        const detailsText = conflictDetails.slice(0, 3).map(d => 
-          `Booking #${d.bookingId} (${d.bookingTime}, status: ${d.bookingStatus})`
-        ).join('; ');
+        const bookingConflicts = conflictDetails.filter(d => d.type === 'booking');
+        const blockConflicts = conflictDetails.filter(d => d.type === 'block');
         
-        const datesList = conflictingDates.slice(0, 5).join(', ');
-        const moreText = conflictingDates.length > 5 ? ` and ${conflictingDates.length - 5} more` : '';
+        let message = 'Cannot create blocked slot: ';
+        const parts: string[] = [];
         
-        return res.status(400).json({ 
-          message: `Cannot create blocked slot: ${conflictDetails.length} existing booking(s) found on ${datesList}${moreText}. Details: ${detailsText}. Please cancel those bookings first from the admin panel.` 
-        });
+        if (bookingConflicts.length > 0) {
+          const detailsText = bookingConflicts.slice(0, 3).map((d: any) => 
+            `Booking #${d.bookingId} (${d.bookingTime})`
+          ).join('; ');
+          parts.push(`${bookingConflicts.length} existing booking(s) clash - ${detailsText}. Cancel those bookings first.`);
+        }
+        
+        if (blockConflicts.length > 0) {
+          const detailsText = blockConflicts.slice(0, 3).map((d: any) => 
+            `Block ${d.blockTime}${d.reason ? ` (${d.reason})` : ''}`
+          ).join('; ');
+          parts.push(`${blockConflicts.length} existing blocked slot(s) overlap - ${detailsText}. Remove those blocks first.`);
+        }
+        
+        message += parts.join(' Also, ');
+        
+        return res.status(400).json({ message });
       }
 
       const blockedSlots = await storage.createBlockedSlot({
