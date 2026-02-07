@@ -40,3 +40,8 @@ integrations = ["javascript_sendgrid:1.0.0", "javascript_object_storage:1.0.0", 
 
 [objectStorage]
 defaultBucketID = "replit-objstore-e2722618-874c-4ad3-8a00-7cfe277fc956"
+
+[userenv]
+
+[userenv.production]
+BASE_URL = "https://music-space-manager-groovegardenltd.replit.app"
