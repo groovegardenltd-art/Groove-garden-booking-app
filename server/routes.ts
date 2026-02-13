@@ -621,6 +621,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update user email
+  app.patch("/api/user/email", requireAuth, async (req, res) => {
+    const authReq = req as AuthenticatedRequest;
+    const { email } = req.body;
+    
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      return res.status(400).json({ message: "Please enter a valid email address" });
+    }
+    
+    try {
+      const existingUser = await storage.getUserByEmail(email.trim().toLowerCase());
+      if (existingUser && existingUser.id !== authReq.userId) {
+        return res.status(409).json({ message: "This email address is already in use by another account" });
+      }
+
+      const updatedUser = await storage.updateUser(authReq.userId, { email: email.trim().toLowerCase() });
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json({ message: "Email updated successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update email" });
+    }
+  });
+
   // GDPR: Export user data (Right to Data Portability)
   app.get("/api/user/export-data", requireAuth, async (req, res) => {
     try {

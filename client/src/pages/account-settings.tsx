@@ -2,12 +2,13 @@ import { useState } from "react";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { clearAuthState, getAuthState } from "@/lib/auth";
 import { useLocation, Link } from "wouter";
-import { Download, Trash2, User, Shield, AlertTriangle, Loader2 } from "lucide-react";
+import { Download, Trash2, User, Shield, AlertTriangle, Loader2, Pencil, Check, X } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,11 +25,36 @@ export default function AccountSettings() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
   const authState = getAuthState();
 
   const { data: user, isLoading: userLoading } = useQuery({
     queryKey: ["/api/me"],
     enabled: !!authState?.sessionId,
+  });
+
+  const updateEmailMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const response = await apiRequest("PATCH", "/api/user/email", { email });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/me"] });
+      setEditingEmail(false);
+      setNewEmail("");
+      toast({
+        title: "Email Updated",
+        description: "Your email address has been updated successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update email address.",
+        variant: "destructive",
+      });
+    },
   });
 
   const exportDataMutation = useMutation({
@@ -157,7 +183,46 @@ export default function AccountSettings() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Email</p>
-                  <p className="font-medium">{user?.email || "-"}</p>
+                  {editingEmail ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <Input
+                        type="email"
+                        value={newEmail}
+                        onChange={(e) => setNewEmail(e.target.value)}
+                        placeholder="Enter new email"
+                        className="h-8 text-sm"
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                        onClick={() => updateEmailMutation.mutate(newEmail)}
+                        disabled={updateEmailMutation.isPending || !newEmail.trim()}
+                      >
+                        {updateEmailMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 text-gray-500 hover:text-gray-700"
+                        onClick={() => { setEditingEmail(false); setNewEmail(""); }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">{user?.email || "-"}</p>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0 text-gray-400 hover:text-gray-600"
+                        onClick={() => { setEditingEmail(true); setNewEmail(user?.email || ""); }}
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Phone</p>
