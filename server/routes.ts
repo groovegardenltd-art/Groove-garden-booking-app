@@ -1003,7 +1003,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 🛡️ DUPLICATE REQUEST PROTECTION: Check if a booking already exists for this payment intent
       // This prevents client-side retries from creating duplicate TTLock codes or triggering false refunds
-      if (paymentIntentId !== 'free_booking' && !paymentIntentId.includes('test')) {
+      if (paymentIntentId !== 'free_booking' && paymentIntentId !== 'test_mode_booking') {
         const existingBooking = await storage.getBookingByPaymentIntent(paymentIntentId);
         if (existingBooking) {
           console.log(`⚠️ Duplicate booking request detected for payment ${paymentIntentId} - returning existing booking #${existingBooking.id}`);
@@ -1253,14 +1253,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
-      // Return 409 Conflict for booking conflicts (from transaction) - refund the payment
-      // Only refund if the booking was NOT already created
+      // Return 409 Conflict for booking conflicts (from transaction)
       if (errorMessage.includes('already booked') || errorMessage.includes('blocked and unavailable')) {
-        if (!bookingCreatedOuter) {
-          const conflictPaymentId = (req.body as any).paymentIntentId;
-          if (conflictPaymentId && stripe) {
+        const conflictPaymentId = (req.body as any).paymentIntentId;
+        
+        // Before refunding, check if a booking already exists for this payment intent
+        // (this handles client-side retries where the first request succeeded)
+        if (!bookingCreatedOuter && conflictPaymentId && stripe) {
+          const existingForPayment = await storage.getBookingByPaymentIntent(conflictPaymentId).catch(() => undefined);
+          if (existingForPayment) {
+            console.log(`⚠️ Conflict is from a retry - booking #${existingForPayment.id} already exists for payment ${conflictPaymentId}. NOT refunding.`);
+          } else {
             try {
-              console.log(`💳 Auto-refunding payment ${conflictPaymentId} due to booking conflict: ${errorMessage}`);
+              console.log(`💳 Auto-refunding payment ${conflictPaymentId} due to genuine booking conflict: ${errorMessage}`);
               await stripe.refunds.create({ payment_intent: conflictPaymentId });
               console.log(`✅ Auto-refund successful for conflict payment ${conflictPaymentId}`);
             } catch (refundError) {
@@ -1277,13 +1282,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!bookingCreatedOuter) {
         const failedPaymentId = (req.body as any).paymentIntentId;
         if (failedPaymentId && stripe) {
-          try {
-            console.log(`💳 Auto-refunding payment ${failedPaymentId} due to booking error: ${errorMessage}`);
-            await stripe.refunds.create({ payment_intent: failedPaymentId });
-            console.log(`✅ Auto-refund successful for payment ${failedPaymentId}`);
-          } catch (refundError) {
-            console.error(`❌ CRITICAL: Auto-refund failed for payment ${failedPaymentId}:`, refundError);
-            console.error(`⚠️ MANUAL REFUND NEEDED: Payment ${failedPaymentId}`);
+          // Double-check no booking exists for this payment before refunding
+          const existingForPayment = await storage.getBookingByPaymentIntent(failedPaymentId).catch(() => undefined);
+          if (existingForPayment) {
+            console.log(`⚠️ Booking #${existingForPayment.id} exists for payment ${failedPaymentId} despite error. NOT refunding.`);
+          } else {
+            try {
+              console.log(`💳 Auto-refunding payment ${failedPaymentId} due to booking error: ${errorMessage}`);
+              await stripe.refunds.create({ payment_intent: failedPaymentId });
+              console.log(`✅ Auto-refund successful for payment ${failedPaymentId}`);
+            } catch (refundError) {
+              console.error(`❌ CRITICAL: Auto-refund failed for payment ${failedPaymentId}:`, refundError);
+              console.error(`⚠️ MANUAL REFUND NEEDED: Payment ${failedPaymentId}`);
+            }
           }
         }
       } else {
