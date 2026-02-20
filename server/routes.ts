@@ -979,6 +979,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/bookings", requireAuth, async (req, res) => {
+    let bookingCreatedOuter = false;
+    let bookingIdOuter: number | undefined;
     try {
       const authReq = req as AuthenticatedRequest;
       
@@ -1131,6 +1133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const maxRetries = 3;
       let booking;
       let lastError;
+      let bookingCreated = false;
       
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
@@ -1148,6 +1151,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             stripePaymentIntentId: (req.body as any).paymentIntentId || undefined
           });
           console.log(`✅ Booking created successfully on attempt ${attempt}`);
+          bookingCreated = true;
+          bookingCreatedOuter = true;
+          bookingIdOuter = booking?.id;
           break; // Success - exit retry loop
         } catch (retryError) {
           lastError = retryError;
@@ -1196,12 +1202,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Get user details for email confirmation
-      const bookingUser = await storage.getUser(authReq.userId);
-      
-      // Send booking confirmation email
-      if (bookingUser) {
-        try {
+      // Get user details for email confirmation - wrapped in try-catch to prevent
+      // post-booking errors from triggering false refunds
+      try {
+        const bookingUser = await storage.getUser(authReq.userId);
+        
+        // Send booking confirmation email
+        if (bookingUser) {
           await sendBookingConfirmationEmail(
             bookingUser.email,
             bookingUser.name,
@@ -1218,10 +1225,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           );
           console.log(`Booking confirmation email sent to ${bookingUser.email} for booking #${booking.id}`);
-        } catch (error) {
-          console.error('Failed to send booking confirmation email:', error);
-          // Continue even if email fails - don't block the booking process
         }
+      } catch (error) {
+        console.error('Failed to send booking confirmation email:', error);
+        // Continue even if email fails - booking is already created and paid for
       }
 
       res.status(201).json(booking);
@@ -1237,32 +1244,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
       // Return 409 Conflict for booking conflicts (from transaction) - refund the payment
+      // Only refund if the booking was NOT already created
       if (errorMessage.includes('already booked') || errorMessage.includes('blocked and unavailable')) {
-        const conflictPaymentId = (req.body as any).paymentIntentId;
-        if (conflictPaymentId && stripe) {
-          try {
-            console.log(`💳 Auto-refunding payment ${conflictPaymentId} due to booking conflict: ${errorMessage}`);
-            await stripe.refunds.create({ payment_intent: conflictPaymentId });
-            console.log(`✅ Auto-refund successful for conflict payment ${conflictPaymentId}`);
-          } catch (refundError) {
-            console.error(`❌ CRITICAL: Auto-refund failed for conflict payment ${conflictPaymentId}:`, refundError);
-            console.error(`⚠️ MANUAL REFUND NEEDED: Payment ${conflictPaymentId}`);
+        if (!bookingCreatedOuter) {
+          const conflictPaymentId = (req.body as any).paymentIntentId;
+          if (conflictPaymentId && stripe) {
+            try {
+              console.log(`💳 Auto-refunding payment ${conflictPaymentId} due to booking conflict: ${errorMessage}`);
+              await stripe.refunds.create({ payment_intent: conflictPaymentId });
+              console.log(`✅ Auto-refund successful for conflict payment ${conflictPaymentId}`);
+            } catch (refundError) {
+              console.error(`❌ CRITICAL: Auto-refund failed for conflict payment ${conflictPaymentId}:`, refundError);
+              console.error(`⚠️ MANUAL REFUND NEEDED: Payment ${conflictPaymentId}`);
+            }
           }
         }
         return res.status(409).json({ message: errorMessage });
       }
       
-      // Auto-refund for ANY other error after payment was taken
-      const failedPaymentId = (req.body as any).paymentIntentId;
-      if (failedPaymentId && stripe) {
-        try {
-          console.log(`💳 Auto-refunding payment ${failedPaymentId} due to booking error: ${errorMessage}`);
-          await stripe.refunds.create({ payment_intent: failedPaymentId });
-          console.log(`✅ Auto-refund successful for payment ${failedPaymentId}`);
-        } catch (refundError) {
-          console.error(`❌ CRITICAL: Auto-refund failed for payment ${failedPaymentId}:`, refundError);
-          console.error(`⚠️ MANUAL REFUND NEEDED: Payment ${failedPaymentId}`);
+      // Auto-refund ONLY if the booking was NOT already created
+      // This prevents false refunds when post-booking steps (email, etc.) fail
+      if (!bookingCreatedOuter) {
+        const failedPaymentId = (req.body as any).paymentIntentId;
+        if (failedPaymentId && stripe) {
+          try {
+            console.log(`💳 Auto-refunding payment ${failedPaymentId} due to booking error: ${errorMessage}`);
+            await stripe.refunds.create({ payment_intent: failedPaymentId });
+            console.log(`✅ Auto-refund successful for payment ${failedPaymentId}`);
+          } catch (refundError) {
+            console.error(`❌ CRITICAL: Auto-refund failed for payment ${failedPaymentId}:`, refundError);
+            console.error(`⚠️ MANUAL REFUND NEEDED: Payment ${failedPaymentId}`);
+          }
         }
+      } else {
+        console.log(`⚠️ Post-booking error occurred but booking #${bookingIdOuter} was already created - NOT refunding payment`);
       }
       
       // Return 500 for other errors

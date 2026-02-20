@@ -25,7 +25,7 @@ The system is built with a React (TypeScript, Tailwind CSS, shadcn/ui) frontend,
 - **Payment Processing**: Integrated Stripe for secure, pre-booking payment processing.
 - **Smart Lock Integration**: Automated generation and synchronization of time-limited access codes with TTLock smart locks for booked sessions. Supports multiple locks and includes a lock management interface. All studios use a unified front door lock (LL609_5aa163, ID 24518732).
 - **GDPR Compliance**: Includes features for data portability, account deletion, explicit consent management, and third-party disclosures.
-- **Booking Resilience**: Implemented retry logic with exponential backoff for booking creation after payment to handle transient errors.
+- **Booking Resilience**: Implemented retry logic with exponential backoff for booking creation after payment to handle transient errors. Auto-refund only triggers if the booking was NOT successfully created — prevents false refunds when post-booking steps (email, promo code) fail after a successful booking.
 - **Admin Features**: Comprehensive admin panel for booking management (cancel/edit), ID verification review, and lock management.
 
 ### Feature Specifications
