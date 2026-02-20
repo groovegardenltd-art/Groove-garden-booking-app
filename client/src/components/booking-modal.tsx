@@ -108,17 +108,20 @@ export const BookingModal = React.memo(function BookingModal({
     mutationFn: async (bookingData: any) => {
       if (!authUser) throw new Error("Not authenticated");
 
-      // Retry logic for cold start resilience
-      const maxRetries = 3;
+      const hasRealPayment = bookingData.paymentIntentId && 
+        bookingData.paymentIntentId !== 'free_booking' && 
+        !bookingData.paymentIntentId.includes('test');
+      
+      const maxRetries = hasRealPayment ? 1 : 3;
+      const requestTimeout = hasRealPayment ? 60000 : 30000;
       let lastError: Error | null = null;
       
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
           console.log(`📤 Booking attempt ${attempt}/${maxRetries}...`);
           
-          // Create AbortController for timeout
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+          const timeoutId = setTimeout(() => controller.abort(), requestTimeout);
           
           const response = await fetch("/api/bookings", {
             method: "POST",
@@ -137,23 +140,19 @@ export const BookingModal = React.memo(function BookingModal({
             const errorText = await response.text();
             console.error(`❌ Booking API error ${response.status}:`, errorText);
             
-            // Try to parse JSON error
             let errorMessage = errorText;
             try {
               const errorJson = JSON.parse(errorText);
               errorMessage = errorJson.message || errorJson.error || errorText;
               console.error('Parsed error:', errorJson);
             } catch {
-              // Not JSON, use raw text
             }
             
-            // If session expired, don't retry - throw immediately
             if (response.status === 401) {
               throw new Error("Session expired. Please log in and try again.");
             }
             
-            // If server error (5xx), retry
-            if (response.status >= 500 && attempt < maxRetries) {
+            if (response.status >= 500 && attempt < maxRetries && !hasRealPayment) {
               console.warn(`⚠️ Server error ${response.status}, retrying in ${attempt * 2}s...`);
               await new Promise(r => setTimeout(r, attempt * 2000));
               continue;
@@ -166,26 +165,26 @@ export const BookingModal = React.memo(function BookingModal({
         } catch (error: any) {
           lastError = error;
           
-          // If aborted due to timeout, retry
+          if (hasRealPayment) {
+            throw error;
+          }
+          
           if (error.name === 'AbortError' && attempt < maxRetries) {
             console.warn(`⏱️ Request timeout, retrying (attempt ${attempt + 1})...`);
             await new Promise(r => setTimeout(r, attempt * 2000));
             continue;
           }
           
-          // Network errors - retry
           if (error.message?.includes('Failed to fetch') && attempt < maxRetries) {
             console.warn(`🌐 Network error, retrying in ${attempt * 2}s...`);
             await new Promise(r => setTimeout(r, attempt * 2000));
             continue;
           }
           
-          // Don't retry auth errors
           if (error.message?.includes('Session expired') || error.message?.includes('401')) {
             throw error;
           }
           
-          // Last attempt - throw the error
           if (attempt === maxRetries) {
             throw error;
           }

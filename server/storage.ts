@@ -201,6 +201,11 @@ export class DatabaseStorage implements IStorage {
     return booking || undefined;
   }
 
+  async getBookingByPaymentIntent(paymentIntentId: string): Promise<Booking | undefined> {
+    const [booking] = await db.select().from(bookings).where(eq(bookings.stripePaymentIntentId, paymentIntentId));
+    return booking || undefined;
+  }
+
   async getBookingsByRoomAndDate(roomId: number, date: string): Promise<Booking[]> {
     console.log(`🔍 DB Query: getBookingsByRoomAndDate(roomId=${roomId}, date='${date}')`);
     const results = await db
