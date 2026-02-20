@@ -572,15 +572,25 @@ export const BookingModal = React.memo(function BookingModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(open) => {
+      if (isSubmitting || bookingMutation.isPending) return;
+      onOpenChange(open);
+    }}>
       <DialogContent className="sm:max-w-lg max-w-full mx-2 max-h-screen overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-gray-900">
-            {showPayment ? "Payment" : "Complete Your Booking"}
+            {isSubmitting || bookingMutation.isPending ? "Confirming Booking..." : showPayment ? "Payment" : "Complete Your Booking"}
           </DialogTitle>
         </DialogHeader>
 
-        {showPayment && clientSecret ? (
+        {(isSubmitting || bookingMutation.isPending) && showPayment ? (
+          <div className="text-center py-12 px-4">
+            <div className="w-16 h-16 border-4 border-music-purple border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Setting Up Your Session</h3>
+            <p className="text-gray-600 mb-4">Payment received! We're generating your access codes and confirming your booking.</p>
+            <p className="text-sm text-gray-500">This may take a few moments...</p>
+          </div>
+        ) : showPayment && clientSecret ? (
           TEST_MODE ? (
             <TestPaymentForm
               amount={appliedPromoCode ? Number(appliedPromoCode.finalAmount) : calculatePrice(selectedDuration)}
