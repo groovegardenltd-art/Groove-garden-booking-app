@@ -1001,6 +1001,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Payment intent ID is required" });
       }
 
+      // 🛡️ DUPLICATE REQUEST PROTECTION: Check if a booking already exists for this payment intent
+      // This prevents client-side retries from creating duplicate TTLock codes or triggering false refunds
+      if (paymentIntentId !== 'free_booking' && !paymentIntentId.includes('test')) {
+        const existingBooking = await storage.getBookingByPaymentIntent(paymentIntentId);
+        if (existingBooking) {
+          console.log(`⚠️ Duplicate booking request detected for payment ${paymentIntentId} - returning existing booking #${existingBooking.id}`);
+          return res.status(200).json(existingBooking);
+        }
+      }
+
       // Skip verification for free bookings (100% discount promo codes) or test mode
       
       if (paymentIntentId === 'free_booking') {

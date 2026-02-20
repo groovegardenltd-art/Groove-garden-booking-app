@@ -24,6 +24,7 @@ export interface IStorage {
   getAllBookings(): Promise<Booking[]>;
   getBookingsByUser(userId: number): Promise<BookingWithRoom[]>;
   getBooking(id: number): Promise<Booking | undefined>;
+  getBookingByPaymentIntent(paymentIntentId: string): Promise<Booking | undefined>;
   getBookingsByRoomAndDate(roomId: number, date: string): Promise<Booking[]>;
   createBooking(booking: InsertBooking & { userId: number; accessCode: string; ttlockPasscode?: string; ttlockPasscodeId?: string; lockAccessEnabled?: boolean; promoCodeId?: number; originalPrice?: string; discountAmount?: string; stripePaymentIntentId?: string }): Promise<Booking>;
   updateBookingStatus(id: number, status: string): Promise<Booking | undefined>;
