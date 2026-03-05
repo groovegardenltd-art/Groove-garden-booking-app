@@ -298,9 +298,18 @@ export const BookingModal = React.memo(function BookingModal({
   // Create payment intent
   const createPaymentIntent = async () => {
     const finalAmount = appliedPromoCode ? Number(appliedPromoCode.finalAmount) : calculatePrice(selectedDuration);
+    const endTime = selectedTime
+      ? `${String(parseInt(selectedTime.split(':')[0]) + selectedDuration).padStart(2, '0')}:00`
+      : undefined;
     const response = await apiRequest("POST", "/api/create-payment-intent", {
       amount: finalAmount,
-      currency: "gbp"
+      currency: "gbp",
+      // Include booking details in payment intent metadata for recovery purposes
+      roomId: selectedRoom?.id,
+      date: selectedDate,
+      startTime: selectedTime,
+      endTime,
+      duration: selectedDuration,
     });
     const data = await response.json();
     return data;
@@ -453,11 +462,21 @@ export const BookingModal = React.memo(function BookingModal({
     console.log('🎵 Payment successful, creating booking...');
 
     if (!selectedRoom || !selectedDate || !selectedTime) {
-      console.error('Missing booking data:', { selectedRoom, selectedDate, selectedTime });
+      console.error('Missing booking data after payment:', { selectedRoom, selectedDate, selectedTime, paymentIntentId });
+      // Payment was taken but state is missing - attempt emergency refund
+      if (paymentIntentId && paymentIntentId !== 'free_booking' && !paymentIntentId.includes('test')) {
+        console.error('⚠️ CRITICAL: Payment taken but booking state lost, attempting emergency refund');
+        try {
+          await apiRequest("POST", "/api/payments/refund", { paymentIntentId, reason: "Booking state lost after payment" });
+          console.log('✅ Emergency refund triggered');
+        } catch (refundError) {
+          console.error('❌ Emergency refund failed:', refundError);
+        }
+      }
       setIsSubmitting(false);
       toast({
         title: "Booking Error",
-        description: "Missing booking information. Please try again.",
+        description: "Something went wrong after your payment. Our team will contact you to resolve this or issue a full refund.",
         variant: "destructive",
       });
       return;
@@ -479,18 +498,7 @@ export const BookingModal = React.memo(function BookingModal({
 
     console.log('📋 Creating booking with data:', bookingData);
     
-    // Add timeout protection to prevent freezing
-    try {
-      bookingMutation.mutate(bookingData);
-    } catch (error) {
-      console.error('Booking mutation error:', error);
-      setIsSubmitting(false);
-      toast({
-        title: "Booking Failed",
-        description: "Failed to create booking after payment. Please contact support.",
-        variant: "destructive",
-      });
-    }
+    bookingMutation.mutate(bookingData);
   };
 
   const formatDate = (dateStr: string) => {

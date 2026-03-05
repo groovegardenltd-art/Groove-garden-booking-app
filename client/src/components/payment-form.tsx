@@ -42,10 +42,6 @@ export function PaymentForm({ amount, onSuccess, onCancel }: PaymentFormProps) {
           variant: "destructive",
         });
       } else {
-        toast({
-          title: "Payment Successful",
-          description: "Your booking has been confirmed!",
-        });
         onSuccess();
       }
     } catch (error) {

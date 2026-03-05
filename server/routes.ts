@@ -1872,6 +1872,156 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============================================================
+  // STRIPE WEBHOOK - Safety net for payments where client fails
+  // to POST the booking after Stripe confirms payment.
+  // Setup: Add https://your-domain.replit.app/api/webhooks/stripe
+  // in Stripe Dashboard → Developers → Webhooks, selecting
+  // payment_intent.succeeded event. Set STRIPE_WEBHOOK_SECRET env var.
+  // ============================================================
+  app.post("/api/webhooks/stripe", async (req: any, res) => {
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    
+    if (!webhookSecret) {
+      console.warn("⚠️ STRIPE_WEBHOOK_SECRET not configured - webhook received but cannot be verified");
+      return res.status(200).json({ received: true, warning: "Webhook secret not configured" });
+    }
+    
+    if (!stripe) {
+      return res.status(503).json({ message: "Stripe not configured" });
+    }
+
+    const signature = req.headers['stripe-signature'];
+    if (!signature) {
+      return res.status(400).json({ message: "Missing Stripe signature" });
+    }
+
+    let event: any;
+    try {
+      const rawBody = req.rawBody;
+      if (!rawBody) {
+        console.error("❌ No raw body available for webhook verification");
+        return res.status(400).json({ message: "No raw body available" });
+      }
+      event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+    } catch (err: any) {
+      console.error(`❌ Webhook signature verification failed: ${err.message}`);
+      return res.status(400).json({ message: `Webhook error: ${err.message}` });
+    }
+
+    console.log(`📬 Stripe webhook received: ${event.type}`);
+
+    if (event.type === 'payment_intent.succeeded') {
+      const paymentIntent = event.data.object;
+      const paymentIntentId = paymentIntent.id;
+      const amountPaid = paymentIntent.amount / 100;
+
+      console.log(`💳 Webhook: payment_intent.succeeded for ${paymentIntentId} (£${amountPaid})`);
+
+      try {
+        // Check if booking already exists for this payment
+        const existingBooking = await storage.getBookingByPaymentIntent(paymentIntentId);
+        if (existingBooking) {
+          console.log(`✅ Webhook: Booking #${existingBooking.id} already exists for payment ${paymentIntentId} - all good`);
+          return res.json({ received: true, bookingId: existingBooking.id });
+        }
+
+        // No booking found - this is a problem. Log critical alert.
+        const meta = paymentIntent.metadata || {};
+        console.error(`🚨 CRITICAL: Payment ${paymentIntentId} (£${amountPaid}) succeeded but NO BOOKING EXISTS!`);
+        console.error(`   User ID: ${meta.userId}, Email: ${meta.userEmail}, Name: ${meta.userName}`);
+        console.error(`   Room: ${meta.roomId}, Date: ${meta.date}, Time: ${meta.startTime}-${meta.endTime}`);
+        console.error(`   ACTION REQUIRED: Manually create booking or issue refund`);
+
+        // Attempt to auto-create the booking from metadata if we have enough info
+        if (meta.userId && meta.roomId && meta.date && meta.startTime && meta.endTime) {
+          console.log(`🔄 Attempting to auto-create booking from webhook metadata...`);
+          
+          try {
+            const userId = parseInt(meta.userId);
+            const roomId = parseInt(meta.roomId);
+            const duration = parseInt(meta.duration) || (parseInt(meta.endTime) - parseInt(meta.startTime));
+            
+            const user = await storage.getUser(userId);
+            const room = await storage.getRoom(roomId);
+            
+            if (!user || !room) {
+              console.error(`❌ Webhook auto-create: User ${userId} or Room ${roomId} not found`);
+              return res.json({ received: true, autoCreated: false, reason: "User or room not found" });
+            }
+
+            // Generate access code and create TTLock passcode
+            const accessCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+            let ttlockPasscode: string | undefined;
+            let ttlockPasscodeId: number | undefined;
+
+            if (ttlockService && room.lockId) {
+              try {
+                const startDateTime = new Date(`${meta.date}T${meta.startTime}:00`);
+                const endDateTime = new Date(`${meta.date}T${meta.endTime}:00`);
+                const lockIds = [room.lockId];
+                if (room.interiorLockId) lockIds.push(room.interiorLockId);
+                
+                const lockResult = await ttlockService.createMultiLockPasscode(
+                  lockIds, startDateTime, endDateTime, Date.now(), user.name
+                );
+                ttlockPasscode = lockResult.passcode;
+                ttlockPasscodeId = lockResult.passcodeIds[0];
+                console.log(`🔑 Webhook auto-create: TTLock passcode generated`);
+              } catch (lockErr) {
+                console.warn(`⚠️ Webhook auto-create: TTLock setup failed, continuing without:`, lockErr);
+              }
+            }
+
+            const booking = await storage.createBooking({
+              roomId,
+              date: meta.date,
+              startTime: meta.startTime,
+              endTime: meta.endTime,
+              duration,
+              totalPrice: amountPaid.toString(),
+              userId,
+              accessCode: ttlockPasscode || accessCode,
+              ttlockPasscode: ttlockPasscode,
+              ttlockPasscodeId: ttlockPasscodeId?.toString(),
+              lockAccessEnabled: false,
+              stripePaymentIntentId: paymentIntentId,
+              idNumber: user.idNumber || "",
+              idType: user.idType || "",
+            });
+
+            console.log(`✅ Webhook auto-created booking #${booking.id} for payment ${paymentIntentId}`);
+
+            // Send confirmation email
+            try {
+              await sendBookingConfirmationEmail(
+                user.email, user.name,
+                { id: booking.id, date: booking.date, startTime: booking.startTime, endTime: booking.endTime, accessCode: booking.accessCode, totalPrice: booking.totalPrice },
+                { name: room.name }
+              );
+            } catch (emailErr) {
+              console.warn(`⚠️ Webhook: Failed to send confirmation email:`, emailErr);
+            }
+
+            return res.json({ received: true, autoCreated: true, bookingId: booking.id });
+          } catch (autoCreateErr: any) {
+            console.error(`❌ Webhook auto-create failed:`, autoCreateErr);
+            return res.json({ received: true, autoCreated: false, error: autoCreateErr.message });
+          }
+        } else {
+          console.error(`❌ Webhook: Cannot auto-create - insufficient metadata. MANUAL ACTION REQUIRED for payment ${paymentIntentId}`);
+          return res.json({ received: true, autoCreated: false, reason: "Insufficient metadata - manual action required" });
+        }
+      } catch (err: any) {
+        console.error(`❌ Webhook processing error:`, err);
+        return res.status(500).json({ message: "Webhook processing failed" });
+      }
+    }
+
+    // Return 200 for all other event types so Stripe doesn't retry
+    res.json({ received: true });
+  });
+
   // Stripe payment routes
   app.post("/api/create-payment-intent", requireAuth, async (req, res) => {
     try {
@@ -1914,6 +2064,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(503).json({ message: "Payment service not configured" });
       }
 
+      const { roomId, date, startTime, endTime, duration } = req.body;
+
       const paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(amount * 100), // Convert pounds to pence
         currency,
@@ -1927,6 +2079,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userEmail: user.email,
           userName: user.name,
           userPhone: user.phone || "not provided",
+          // Store booking intent details for recovery if client fails to POST booking
+          roomId: roomId?.toString() || "",
+          date: date || "",
+          startTime: startTime || "",
+          endTime: endTime || "",
+          duration: duration?.toString() || "",
         },
       });
 
@@ -1938,6 +2096,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         message: "Error creating payment intent: " + error.message 
       });
+    }
+  });
+
+  // Emergency refund endpoint - used when payment succeeds but booking creation fails on the client
+  app.post("/api/payments/refund", requireAuth, async (req, res) => {
+    try {
+      const { paymentIntentId, reason } = req.body;
+      const authReq = req as AuthenticatedRequest;
+      
+      if (!paymentIntentId) {
+        return res.status(400).json({ message: "Payment intent ID is required" });
+      }
+      
+      // Don't refund test/free payments
+      if (paymentIntentId === 'free_booking' || paymentIntentId.includes('test')) {
+        return res.json({ refunded: false, message: "No refund needed for test/free payments" });
+      }
+      
+      if (!stripe) {
+        return res.status(503).json({ message: "Payment service not configured" });
+      }
+      
+      // Verify the payment intent belongs to this user
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      if (!paymentIntent) {
+        return res.status(404).json({ message: "Payment intent not found" });
+      }
+      
+      if (paymentIntent.metadata?.userId !== authReq.userId.toString()) {
+        console.error(`⚠️ SECURITY: User ${authReq.userId} attempted to refund payment ${paymentIntentId} belonging to user ${paymentIntent.metadata?.userId}`);
+        return res.status(403).json({ message: "Payment does not belong to your account" });
+      }
+      
+      // Check no booking exists for this payment
+      const existingBooking = await storage.getBookingByPaymentIntent(paymentIntentId).catch(() => undefined);
+      if (existingBooking) {
+        return res.status(409).json({ message: "A booking already exists for this payment - no refund needed", bookingId: existingBooking.id });
+      }
+      
+      // Only refund if the payment actually succeeded
+      if (paymentIntent.status !== 'succeeded') {
+        return res.json({ refunded: false, message: `Payment status is ${paymentIntent.status} - no refund needed` });
+      }
+      
+      console.log(`💳 Emergency refund requested for payment ${paymentIntentId} by user ${authReq.userId}. Reason: ${reason}`);
+      
+      const refund = await stripe.refunds.create({ payment_intent: paymentIntentId });
+      
+      console.log(`✅ Emergency refund processed: ${refund.id} for payment ${paymentIntentId}`);
+      
+      return res.json({ refunded: true, refundId: refund.id, message: "Refund processed successfully" });
+    } catch (error: any) {
+      console.error('❌ Emergency refund error:', error);
+      return res.status(500).json({ message: "Failed to process refund: " + error.message });
     }
   });
 
