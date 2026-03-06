@@ -205,12 +205,44 @@ export const BookingModal = React.memo(function BookingModal({
         description: "Your rehearsal room has been successfully booked.",
       });
     },
-    onError: (error: any) => {
-      console.error('❌ Booking creation failed after all retries:', error);
+    onError: async (error: any) => {
+      console.error('❌ Booking creation failed:', error);
+      
+      const failedPaymentId = paymentIntentId;
+      
+      // Before showing an error, check if the booking was actually created
+      // (the webhook may have rescued it while the client request failed)
+      if (failedPaymentId && failedPaymentId !== 'free_booking' && !failedPaymentId.includes('test')) {
+        try {
+          console.log('🔍 Checking if booking was rescued by webhook...');
+          const response = await fetch(`/api/bookings/by-payment/${failedPaymentId}`, {
+            headers: getAuthHeaders(),
+            credentials: 'include',
+          });
+          
+          if (response.ok) {
+            const rescuedBooking = await response.json();
+            console.log('✅ Booking was rescued by webhook:', rescuedBooking);
+            // Booking exists — treat as success
+            queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
+            onBookingSuccess(rescuedBooking);
+            resetForm();
+            onOpenChange(false);
+            setIsSubmitting(false);
+            toast({
+              title: "Booking Confirmed!",
+              description: "Your rehearsal room has been successfully booked.",
+            });
+            return;
+          }
+        } catch (checkError) {
+          console.warn('Could not check for rescued booking:', checkError);
+        }
+      }
+      
       setIsSubmitting(false);
       
       // Store payment intent for recovery
-      const failedPaymentId = paymentIntentId;
       if (failedPaymentId) {
         console.error(`💳 PAYMENT RECOVERY NEEDED: ${failedPaymentId}`);
         localStorage.setItem('failedBookingPayment', JSON.stringify({
@@ -226,13 +258,13 @@ export const BookingModal = React.memo(function BookingModal({
       const isSessionError = error.message?.includes("Session expired") || error.message?.includes("401");
       const errorDescription = isSessionError 
         ? "Your session expired after payment. Please contact support with your payment confirmation."
-        : `Booking could not be created. Your payment ID is: ${failedPaymentId || 'N/A'}. Please contact support immediately.`;
+        : `Booking could not be confirmed. Your payment ID is: ${failedPaymentId || 'N/A'}. Please contact support — your payment is safe.`;
       
       toast({
         title: "⚠️ Booking Failed - Payment Received",
         description: errorDescription,
         variant: "destructive",
-        duration: 30000, // Show for 30 seconds - very important message
+        duration: 30000,
       });
     },
   });

@@ -958,6 +958,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Check if a booking exists for a given payment intent ID (used by client after errors)
+  // IMPORTANT: Must be registered BEFORE /api/bookings/:id to avoid route conflict
+  app.get("/api/bookings/by-payment/:paymentIntentId", requireAuth, async (req, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const { paymentIntentId } = req.params;
+      const booking = await storage.getBookingByPaymentIntent(paymentIntentId);
+      if (!booking) {
+        return res.status(404).json({ message: "No booking found for this payment" });
+      }
+      // Only return if it belongs to this user
+      if (booking.userId !== authReq.userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      res.json(booking);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to check booking" });
+    }
+  });
+
   app.get("/api/bookings/:id", requireAuth, async (req, res) => {
     try {
       const authReq = req as AuthenticatedRequest;
