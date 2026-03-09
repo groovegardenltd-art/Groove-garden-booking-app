@@ -90,7 +90,7 @@ export const bookings = pgTable("bookings", {
   idType: text("id_type"), // "drivers_license", "passport", "state_id", etc.
   idPhotoUrl: text("id_photo_url"), // URL to uploaded ID photo for this booking
   // Stripe payment tracking
-  stripePaymentIntentId: text("stripe_payment_intent_id").unique(), // Stripe payment intent ID for refunds — unique prevents race condition duplicates
+  stripePaymentIntentId: text("stripe_payment_intent_id"), // Stripe payment intent ID for refunds — unique constraint applied via startup migration
   refundStatus: text("refund_status"), // null, "pending", "succeeded", "failed"
   refundAmount: decimal("refund_amount", { precision: 10, scale: 2 }), // Amount refunded
   refundedAt: timestamp("refunded_at"), // Timestamp of refund
