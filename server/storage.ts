@@ -294,17 +294,31 @@ export class DatabaseStorage implements IStorage {
 
       // If no conflicts, create the booking
       console.log(`✅ No conflicts detected, creating booking...`);
-      const [newBooking] = await tx
-        .insert(bookings)
-        .values({
-          ...booking,
-          ttlockPasscodeId: booking.ttlockPasscodeId || null,
-          status: "confirmed"
-        })
-        .returning();
+      try {
+        const [newBooking] = await tx
+          .insert(bookings)
+          .values({
+            ...booking,
+            ttlockPasscodeId: booking.ttlockPasscodeId || null,
+            status: "confirmed"
+          })
+          .returning();
 
-      console.log(`✅ Transaction successful: Created booking #${newBooking.id}`);
-      return newBooking;
+        console.log(`✅ Transaction successful: Created booking #${newBooking.id}`);
+        return newBooking;
+      } catch (insertError: any) {
+        // Handle unique constraint violation on stripe_payment_intent_id (race condition)
+        // PostgreSQL error code 23505 = unique_violation
+        if (insertError?.code === '23505' && booking.stripePaymentIntentId) {
+          console.warn(`⚠️ Unique constraint violation for payment ${booking.stripePaymentIntentId} — returning existing booking`);
+          const [existing] = await tx
+            .select()
+            .from(bookings)
+            .where(eq(bookings.stripePaymentIntentId, booking.stripePaymentIntentId));
+          if (existing) return existing;
+        }
+        throw insertError;
+      }
     });
   }
 
