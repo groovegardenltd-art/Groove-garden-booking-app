@@ -2,8 +2,6 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { seedAdminUsers } from "./seed-admin";
-import { db } from "./db";
-import { sql } from "drizzle-orm";
 
 const app = express();
 
@@ -61,22 +59,6 @@ app.use((req, res, next) => {
       const isProduction = process.env.NODE_ENV === 'production';
       const errorMessage = isProduction ? '[Admin seeding error - details hidden in production]' : String(error);
       log("⚠️ Admin seeding failed:", errorMessage);
-    }
-
-    // Apply any pending schema migrations (idempotent — safe to run every startup)
-    try {
-      await db.execute(sql`
-        ALTER TABLE bookings 
-        ADD CONSTRAINT bookings_stripe_payment_intent_id_unique 
-        UNIQUE (stripe_payment_intent_id)
-      `);
-      log("✅ Migration applied: unique constraint on stripe_payment_intent_id");
-    } catch (migrationError: any) {
-      if (migrationError?.code === '42P07' || migrationError?.message?.includes('already exists')) {
-        log("✅ Migration already applied: stripe_payment_intent_id unique constraint exists");
-      } else {
-        log("⚠️ Migration warning:", migrationError?.message || String(migrationError));
-      }
     }
 
     // Automatic cleanup of old bookings - runs daily
