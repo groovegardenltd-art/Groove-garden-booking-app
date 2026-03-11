@@ -74,6 +74,16 @@ export default function GroupBooking() {
     enabled: !!selectedDate && !!selectedRoom,
   });
 
+  // Must be before any early returns to satisfy Rules of Hooks
+  const groupRooms = rooms?.filter(r => (groupInfo?.roomIds ?? []).includes(r.id)) || [];
+
+  useEffect(() => {
+    if (!autoRoomSelected && groupRooms.length === 1 && !selectedRoom) {
+      setSelectedRoom(groupRooms[0]);
+      setAutoRoomSelected(true);
+    }
+  }, [groupRooms.length, autoRoomSelected, selectedRoom]);
+
   if (groupLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -205,16 +215,6 @@ export default function GroupBooking() {
     if (h === 12) return "12:00 PM";
     return `${h - 12}:00 PM`;
   };
-
-  const groupRooms = rooms?.filter(r => groupInfo.roomIds.includes(r.id)) || [];
-
-  // Auto-select if only one room
-  useEffect(() => {
-    if (!autoRoomSelected && groupRooms.length === 1 && !selectedRoom) {
-      setSelectedRoom(groupRooms[0]);
-      setAutoRoomSelected(true);
-    }
-  }, [groupRooms.length, autoRoomSelected, selectedRoom]);
 
   return (
     <div className="min-h-screen bg-gray-50">

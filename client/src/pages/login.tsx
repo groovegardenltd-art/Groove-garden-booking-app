@@ -11,14 +11,13 @@ import grooveGardenLogo from "@assets/groove-garden-logo.jpeg";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { setAuthState } from "@/lib/auth";
-import { useLocation, useSearch, Link } from "wouter";
+import { useLocation, Link } from "wouter";
 
 import logoImage from "@assets/groove-garden-logo.jpeg";
 
 export default function Login() {
   const [, setLocation] = useLocation();
-  const search = useSearch();
-  const redirectTo = new URLSearchParams(search).get("redirect") || "/";
+  const redirectTo = new URLSearchParams(window.location.search).get("redirect") || "/";
   const { toast } = useToast();
 
   // Login form state
