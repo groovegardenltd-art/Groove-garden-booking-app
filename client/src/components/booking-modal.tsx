@@ -663,8 +663,6 @@ export const BookingModal = React.memo(function BookingModal({
           )
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-            {/* Booking Details Review */}
-          {/* Booking Details Review */}
           <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
             <h4 className="font-medium text-gray-900 mb-2 sm:mb-3 text-sm sm:text-base">Booking Details</h4>
             <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
@@ -707,7 +705,7 @@ export const BookingModal = React.memo(function BookingModal({
               <div className="flex justify-between items-center pt-2 border-t border-gray-200">
                 <span className="text-gray-600 font-medium">Total:</span>
                 <span className="font-semibold text-music-purple text-base sm:text-lg">
-                  £{appliedPromoCode ? appliedPromoCode.finalAmount : calculatePrice(selectedDuration).toFixed(2)}
+                  {isFreeGroupBooking ? "FREE" : `£${appliedPromoCode ? appliedPromoCode.finalAmount : calculatePrice(selectedDuration).toFixed(2)}`}
                 </span>
               </div>
             </div>
@@ -863,7 +861,7 @@ export const BookingModal = React.memo(function BookingModal({
               disabled={isSubmitting || !acceptedTerms}
               data-testid="button-proceed-payment"
             >
-              {isSubmitting ? "Processing..." : TEST_MODE ? "Confirm Booking" : "Proceed to Payment"}
+              {isSubmitting ? "Processing..." : (isFreeGroupBooking || TEST_MODE) ? "Confirm Booking" : "Proceed to Payment"}
             </Button>
           </div>
         </form>

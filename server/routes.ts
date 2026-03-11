@@ -1129,6 +1129,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const endHour = parseInt(bookingData.endTime.split(':')[0]);
       const duration = endHour - startHour;
       let totalPrice = calculateBookingPrice(room, bookingData.startTime, bookingData.endTime, duration);
+
+      // Group bookings are always £0 — the organisation is invoiced directly
+      if ((req.body as any).groupCode && paymentIntentId === 'free_booking') {
+        totalPrice = 0;
+        console.log(`🏫 Group booking (${(req.body as any).groupCode}) — price set to £0`);
+      }
       
       // Apply promo code discount if provided
       if (bookingData.discountAmount && parseFloat(bookingData.discountAmount) > 0) {
