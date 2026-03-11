@@ -11,12 +11,14 @@ import grooveGardenLogo from "@assets/groove-garden-logo.jpeg";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { setAuthState } from "@/lib/auth";
-import { useLocation, Link } from "wouter";
+import { useLocation, useSearch, Link } from "wouter";
 
 import logoImage from "@assets/groove-garden-logo.jpeg";
 
 export default function Login() {
   const [, setLocation] = useLocation();
+  const search = useSearch();
+  const redirectTo = new URLSearchParams(search).get("redirect") || "/";
   const { toast } = useToast();
 
   // Login form state
@@ -65,7 +67,7 @@ export default function Login() {
       
       // Small delay to ensure auth state is properly set before redirect
       setTimeout(() => {
-        setLocation("/");
+        setLocation(redirectTo);
       }, 50);
     },
     onError: (error: any) => {
@@ -93,7 +95,7 @@ export default function Login() {
       
       // Small delay to ensure auth state is properly set before redirect
       setTimeout(() => {
-        setLocation("/");
+        setLocation(redirectTo);
       }, 50);
     },
     onError: (error: any) => {
