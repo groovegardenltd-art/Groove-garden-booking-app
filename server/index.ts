@@ -61,6 +61,18 @@ app.use((req, res, next) => {
       log("⚠️ Admin seeding failed:", errorMessage);
     }
 
+    // Startup schema migration — safely adds new columns if they don't already exist
+    try {
+      const { db } = await import('./db');
+      const { sql } = await import('drizzle-orm');
+      await db.execute(sql`ALTER TABLE blocked_slots ADD COLUMN IF NOT EXISTS group_code TEXT`);
+      await db.execute(sql`ALTER TABLE blocked_slots ADD COLUMN IF NOT EXISTS group_name TEXT`);
+      await db.execute(sql`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS group_code TEXT`);
+      log("✅ Schema migration complete (group booking columns)");
+    } catch (error) {
+      log("⚠️ Schema migration warning:", String(error));
+    }
+
     // Automatic cleanup of old bookings - runs daily
     const cleanupOldBookings = async () => {
       try {
