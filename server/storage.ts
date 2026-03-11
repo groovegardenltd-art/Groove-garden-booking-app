@@ -275,7 +275,15 @@ export class DatabaseStorage implements IStorage {
 
       console.log(`🔍 Found ${blockedSlotsData.length} blocked slots for this room/date within transaction`);
 
+      const bookingGroupCode = (booking as any).groupCode;
+
       const hasBlockedSlotConflict = blockedSlotsData.some(slot => {
+        // Group members are allowed to book within their own organisation's reserved window
+        if (slot.groupCode && bookingGroupCode && slot.groupCode === bookingGroupCode) {
+          console.log(`✅ Group booking allowed within reserved window (code: ${slot.groupCode})`);
+          return false;
+        }
+
         const blockedStart = slot.startTime;
         const blockedEnd = slot.endTime;
         const newStart = booking.startTime;

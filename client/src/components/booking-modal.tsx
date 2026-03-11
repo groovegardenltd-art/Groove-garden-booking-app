@@ -246,23 +246,35 @@ export const BookingModal = React.memo(function BookingModal({
       
       setIsSubmitting(false);
       
-      // Store payment intent for recovery
-      if (failedPaymentId) {
-        console.error(`💳 PAYMENT RECOVERY NEEDED: ${failedPaymentId}`);
-        localStorage.setItem('failedBookingPayment', JSON.stringify({
-          paymentIntentId: failedPaymentId,
-          timestamp: new Date().toISOString(),
-          roomId: selectedRoom?.id,
-          date: selectedDate,
-          time: selectedTime,
-          duration: selectedDuration,
-        }));
+      // For free group bookings — no payment was taken, show a simple error
+      if (isFreeGroupBooking || !failedPaymentId) {
+        const isSessionError = error.message?.includes("Session expired") || error.message?.includes("401");
+        toast({
+          title: "Booking Failed",
+          description: isSessionError
+            ? "Your session expired. Please sign in again and try booking."
+            : error.message || "Could not create your booking. Please try again.",
+          variant: "destructive",
+          duration: 10000,
+        });
+        return;
       }
+      
+      // Store payment intent for recovery (paid bookings only)
+      console.error(`💳 PAYMENT RECOVERY NEEDED: ${failedPaymentId}`);
+      localStorage.setItem('failedBookingPayment', JSON.stringify({
+        paymentIntentId: failedPaymentId,
+        timestamp: new Date().toISOString(),
+        roomId: selectedRoom?.id,
+        date: selectedDate,
+        time: selectedTime,
+        duration: selectedDuration,
+      }));
       
       const isSessionError = error.message?.includes("Session expired") || error.message?.includes("401");
       const errorDescription = isSessionError 
         ? "Your session expired after payment. Please contact support with your payment confirmation."
-        : `Booking could not be confirmed. Your payment ID is: ${failedPaymentId || 'N/A'}. Please contact support — your payment is safe.`;
+        : `Booking could not be confirmed. Your payment ID is: ${failedPaymentId}. Please contact support — your payment is safe.`;
       
       toast({
         title: "⚠️ Booking Failed - Payment Received",
