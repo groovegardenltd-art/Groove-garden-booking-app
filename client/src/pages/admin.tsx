@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Clock, User, FileText, Shield, CalendarX, Plus, Trash2, Repeat, Calendar, MapPin, CreditCard, Phone, Mail, List, Grid3X3, ChevronRight, Edit, Key } from "lucide-react";
+import { CheckCircle, XCircle, Clock, User, FileText, Shield, CalendarX, Plus, Trash2, Repeat, Calendar, MapPin, CreditCard, Phone, Mail, List, Grid3X3, ChevronRight, Edit, Key, Link2, Users } from "lucide-react";
 import { Link } from "wouter";
 import { AdminCalendar } from "@/components/admin-calendar";
 import { getAuthState } from "@/lib/auth";
@@ -43,6 +43,8 @@ interface BlockedSlot {
   isRecurring: boolean;
   recurringUntil: string | null;
   parentBlockId: number | null;
+  groupCode: string | null;
+  groupName: string | null;
 }
 
 interface Room {
@@ -87,6 +89,7 @@ interface AdminBooking {
   createdAt: string;
   contactPhone?: string;
   lockAccessEnabled: boolean;
+  groupCode: string | null;
 }
 
 export default function Admin() {
@@ -141,6 +144,8 @@ export default function Admin() {
     reason: "",
     isRecurring: false,
     recurringUntil: "",
+    groupCode: "",
+    groupName: "",
   });
 
   const approveMutation = useMutation({
@@ -188,11 +193,13 @@ export default function Admin() {
       reason: data.reason || null,
       isRecurring: data.isRecurring,
       recurringUntil: data.isRecurring ? data.recurringUntil : null,
+      groupCode: data.groupCode || null,
+      groupName: data.groupName || null,
     }),
     onSuccess: (createdSlots) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/blocked-slots"] });
       setBlockSlotDialogOpen(false);
-      setBlockSlotData({ roomId: "", date: "", startTime: "", endTime: "", reason: "", isRecurring: false, recurringUntil: "" });
+      setBlockSlotData({ roomId: "", date: "", startTime: "", endTime: "", reason: "", isRecurring: false, recurringUntil: "", groupCode: "", groupName: "" });
       const count = Array.isArray(createdSlots) ? createdSlots.length : 1;
       toast({
         title: "✅ Time Slot Blocked",
@@ -740,6 +747,51 @@ export default function Admin() {
                         />
                       </div>
 
+                      <div className="border rounded-lg p-4 space-y-3 bg-blue-50 border-blue-200">
+                        <div className="text-sm font-medium text-blue-800">Group Booking (Optional)</div>
+                        <p className="text-xs text-blue-600">Link this block to an organisation so their members can book free slots within this window.</p>
+                        <div>
+                          <Label htmlFor="groupCode">Access Code</Label>
+                          <Input
+                            id="groupCode"
+                            placeholder="e.g., sheffield-hallam-2026"
+                            value={blockSlotData.groupCode}
+                            onChange={(e) => setBlockSlotData(prev => ({ ...prev, groupCode: e.target.value.toLowerCase().replace(/\s+/g, '-') }))}
+                          />
+                          <p className="text-xs text-gray-500 mt-1">URL-safe code students use to access their booking page</p>
+                        </div>
+                        <div>
+                          <Label htmlFor="groupName">Organisation Name</Label>
+                          <Input
+                            id="groupName"
+                            placeholder="e.g., Sheffield Hallam University"
+                            value={blockSlotData.groupName}
+                            onChange={(e) => setBlockSlotData(prev => ({ ...prev, groupName: e.target.value }))}
+                          />
+                        </div>
+                        {blockSlotData.groupCode && (
+                          <div className="bg-white rounded border border-blue-200 p-3 space-y-1">
+                            <p className="text-xs text-gray-500">Shareable booking link:</p>
+                            <div className="flex items-center gap-2">
+                              <code className="text-xs bg-gray-100 px-2 py-1 rounded flex-1 truncate">
+                                {window.location.origin}/book/{blockSlotData.groupCode}
+                              </code>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(`${window.location.origin}/book/${blockSlotData.groupCode}`);
+                                  toast({ title: "Copied!", description: "Link copied to clipboard" });
+                                }}
+                              >
+                                Copy
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
                       <div className="space-y-3">
                         <div className="flex items-center space-x-2">
                           <Checkbox 
@@ -909,6 +961,23 @@ export default function Admin() {
                             {slot.reason && (
                               <p className="text-xs text-gray-600 mt-1">{slot.reason}</p>
                             )}
+                            {slot.groupCode && (
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-xs">
+                                  <Users className="h-3 w-3 mr-1" />
+                                  {slot.groupName || slot.groupCode}
+                                </Badge>
+                                <button
+                                  className="text-xs text-blue-600 hover:underline"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(`${window.location.origin}/book/${slot.groupCode}`);
+                                    toast({ title: "Copied!", description: "Group booking link copied" });
+                                  }}
+                                >
+                                  Copy link
+                                </button>
+                              </div>
+                            )}
                           </div>
                           <div className="flex gap-2">
                             <Button
@@ -945,6 +1014,91 @@ export default function Admin() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Group Bookings Section */}
+        {(() => {
+          if (!blockedSlots || !Array.isArray(blockedSlots)) return null;
+          const groupSlots = (blockedSlots as BlockedSlot[]).filter(s => s.groupCode);
+          if (groupSlots.length === 0) return null;
+
+          // Deduplicate by groupCode, keeping latest metadata
+          const groupMap = new Map<string, { groupName: string | null; roomIds: number[]; dates: string[]; slotCount: number }>();
+          groupSlots.forEach(slot => {
+            const existing = groupMap.get(slot.groupCode!);
+            if (existing) {
+              if (!existing.roomIds.includes(slot.roomId)) existing.roomIds.push(slot.roomId);
+              if (!existing.dates.includes(slot.date)) existing.dates.push(slot.date);
+              existing.slotCount++;
+            } else {
+              groupMap.set(slot.groupCode!, { groupName: slot.groupName, roomIds: [slot.roomId], dates: [slot.date], slotCount: 1 });
+            }
+          });
+
+          return (
+            <div className="mb-8">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-blue-500" />
+                    Group Bookings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {Array.from(groupMap.entries()).map(([code, info]) => {
+                      const groupBookings = adminBookings?.filter(b => b.groupCode === code && b.status !== 'cancelled') || [];
+                      const sortedDates = [...info.dates].sort();
+                      const roomNames = info.roomIds.map(id => {
+                        if (!rooms || !Array.isArray(rooms)) return `Room ${id}`;
+                        const room = (rooms as Room[]).find(r => r.id === id);
+                        return room?.name || `Room ${id}`;
+                      });
+                      return (
+                        <div key={code} className="border rounded-lg p-4 bg-blue-50 border-blue-200">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="space-y-1 flex-1">
+                              <div className="font-medium text-blue-900">{info.groupName || code}</div>
+                              <div className="text-sm text-blue-700">Code: <code className="bg-white px-1 rounded">{code}</code></div>
+                              <div className="text-sm text-gray-600">
+                                {roomNames.join(', ')} &bull; {sortedDates.length === 1 ? sortedDates[0] : `${sortedDates[0]} – ${sortedDates[sortedDates.length - 1]}`}
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                <span className="font-medium text-blue-800">{groupBookings.length}</span> booking{groupBookings.length !== 1 ? 's' : ''} made
+                              </div>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-blue-300 text-blue-700 hover:bg-blue-100 shrink-0"
+                              onClick={() => {
+                                navigator.clipboard.writeText(`${window.location.origin}/book/${code}`);
+                                toast({ title: "Copied!", description: "Group booking link copied to clipboard" });
+                              }}
+                            >
+                              <Link2 className="h-4 w-4 mr-1" />
+                              Copy Link
+                            </Button>
+                          </div>
+                          {groupBookings.length > 0 && (
+                            <div className="mt-3 border-t border-blue-200 pt-3 space-y-1">
+                              {groupBookings.map(b => (
+                                <div key={b.id} className="text-xs text-gray-600 flex items-center gap-2">
+                                  <span className="font-medium">{b.userName}</span>
+                                  <span>{b.date} {b.startTime}–{b.endTime}</span>
+                                  <span className="text-gray-400">{b.roomName}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          );
+        })()}
 
         {/* Edit Blocked Slot Dialog */}
         <Dialog open={editBlockSlotDialogOpen} onOpenChange={setEditBlockSlotDialogOpen}>

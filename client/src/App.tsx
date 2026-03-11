@@ -22,6 +22,7 @@ const IdVerificationAdmin = lazy(() => import("@/pages/id-verification-admin"));
 const AccessLog = lazy(() => import("@/pages/access-log"));
 const Admin = lazy(() => import("@/pages/admin"));
 const ResubmitVerification = lazy(() => import("@/pages/resubmit-verification"));
+const GroupBooking = lazy(() => import("@/pages/group-booking"));
 
 function LoadingFallback() {
   return (
@@ -78,6 +79,7 @@ function Router() {
         <Route path="/admin/access-log" component={AccessLog} />
         <Route path="/admin" component={Admin} />
         <Route path="/resubmit-verification" component={ResubmitVerification} />
+        <Route path="/book/:groupCode" component={GroupBooking} />
         <Route path="/login" component={Login} />
         <Route path="/forgot-password" component={ForgotPassword} />
         <Route path="/reset-password" component={ResetPassword} />

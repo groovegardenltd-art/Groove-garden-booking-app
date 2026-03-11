@@ -94,6 +94,8 @@ export const bookings = pgTable("bookings", {
   refundStatus: text("refund_status"), // null, "pending", "succeeded", "failed"
   refundAmount: decimal("refund_amount", { precision: 10, scale: 2 }), // Amount refunded
   refundedAt: timestamp("refunded_at"), // Timestamp of refund
+  // Group booking tracking
+  groupCode: text("group_code"), // Set if booking was made via a group booking link
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -108,6 +110,9 @@ export const blockedSlots = pgTable("blocked_slots", {
   isRecurring: boolean("is_recurring").notNull().default(false), // Whether this is part of a recurring block
   recurringUntil: text("recurring_until"), // YYYY-MM-DD format - last date for recurring blocks
   parentBlockId: integer("parent_block_id"), // ID of the parent block for recurring entries
+  // Group booking fields — links this block to a private group booking (e.g. university)
+  groupCode: text("group_code"), // URL-safe access code, e.g. "sheffield-hallam"
+  groupName: text("group_name"), // Display name, e.g. "Sheffield Hallam University"
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -163,6 +168,8 @@ export const insertBlockedSlotSchema = createInsertSchema(blockedSlots).omit({
 }).extend({
   isRecurring: z.boolean().optional().default(false),
   recurringUntil: z.string().optional(),
+  groupCode: z.string().optional(),
+  groupName: z.string().optional(),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

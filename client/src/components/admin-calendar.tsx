@@ -28,6 +28,7 @@ interface AdminBooking {
   createdAt: string;
   contactPhone?: string;
   lockAccessEnabled: boolean;
+  groupCode?: string | null;
 }
 
 interface BlockedSlot {
@@ -153,8 +154,8 @@ export function AdminCalendar({ bookings, blockedSlots }: AdminCalendarProps) {
     setCurrentDate(new Date());
   };
 
-  // Filter out cancelled bookings and group by date
-  const activeBookings = bookings.filter(booking => booking.status !== "cancelled");
+  // Filter out cancelled bookings and group bookings (group bookings are represented by blocked slots)
+  const activeBookings = bookings.filter(booking => booking.status !== "cancelled" && !booking.groupCode);
   const bookingsByDate: BookingsByDate = activeBookings.reduce((acc, booking) => {
     const date = booking.date;
     if (!acc[date]) {

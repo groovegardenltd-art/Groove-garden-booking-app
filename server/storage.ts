@@ -48,6 +48,7 @@ export interface IStorage {
   getAllBlockedSlots(): Promise<BlockedSlot[]>;
   getBlockedSlot(id: number): Promise<BlockedSlot | undefined>;
   getBlockedSlotsByRoomAndDate(roomId: number, date: string): Promise<BlockedSlot[]>;
+  getBlockedSlotsByGroupCode(groupCode: string): Promise<BlockedSlot[]>;
   createBlockedSlot(blockedSlot: InsertBlockedSlot & { createdBy: number }): Promise<BlockedSlot[]>;
   updateBlockedSlot(id: number, updates: Partial<BlockedSlot>): Promise<boolean>;
   deleteBlockedSlot(id: number): Promise<boolean>;
@@ -556,6 +557,13 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(blockedSlots)
       .where(and(eq(blockedSlots.roomId, roomId), eq(blockedSlots.date, date)));
+  }
+
+  async getBlockedSlotsByGroupCode(groupCode: string): Promise<BlockedSlot[]> {
+    return await db
+      .select()
+      .from(blockedSlots)
+      .where(eq(blockedSlots.groupCode, groupCode));
   }
 
   async createBlockedSlot(insertBlockedSlot: InsertBlockedSlot & { createdBy: number }): Promise<BlockedSlot[]> {

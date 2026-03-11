@@ -905,13 +905,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/rooms/:id/availability", async (req, res) => {
     try {
       const roomId = parseInt(req.params.id);
-      const { date } = req.query;
+      const { date, groupCode } = req.query;
       
       if (!date || typeof date !== 'string') {
         return res.status(400).json({ message: "Date parameter is required" });
       }
 
-      console.log(`📅 Availability check: Room ${roomId}, Date ${date}`);
+      console.log(`📅 Availability check: Room ${roomId}, Date ${date}${groupCode ? ` (groupCode: ${groupCode})` : ''}`);
 
       // Get both regular bookings and blocked slots
       const bookings = await storage.getBookingsByRoomAndDate(roomId, date);
@@ -923,17 +923,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // CRITICAL FIX: Filter out cancelled bookings from availability
-      const activeBookings = bookings.filter(booking => booking.status !== 'cancelled');
-      console.log(`✅ After filtering: ${activeBookings.length} active bookings (${bookings.length - activeBookings.length} cancelled excluded)`);
+      // Also filter out group bookings from the group's own view (they show as booked individually)
+      const activeBookings = bookings.filter(booking => {
+        if (booking.status === 'cancelled') return false;
+        // Hide group bookings from normal users; show them from the group's own view
+        if (booking.groupCode && groupCode && booking.groupCode === groupCode) return true;
+        if (booking.groupCode && !groupCode) return false; // don't block time for non-group users (group slots are only reserved by the block itself)
+        return true;
+      });
+      console.log(`✅ After filtering: ${activeBookings.length} active bookings (${bookings.length - activeBookings.length} cancelled/group excluded)`);
       
+      // For blocked slots: if groupCode is provided, skip blocks that belong to that group
+      // (so group members see those time slots as available for booking)
+      const effectiveBlockedSlots = blockedSlots.filter(slot => {
+        if (groupCode && typeof groupCode === 'string' && slot.groupCode === groupCode) {
+          return false; // This group can book within their own reserved window
+        }
+        return true;
+      });
+
       const bookedSlots = [
-        // Regular bookings (excluding cancelled)
+        // Regular bookings (excluding cancelled and group-owned bookings when viewing as group)
         ...activeBookings.map(booking => ({
           startTime: booking.startTime,
           endTime: booking.endTime
         })),
-        // Blocked slots (admin blocks)
-        ...blockedSlots.map(slot => ({
+        // Blocked slots (admin blocks, excluding group's own blocks)
+        ...effectiveBlockedSlots.map(slot => ({
           startTime: slot.startTime,
           endTime: slot.endTime
         }))
@@ -944,6 +960,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('❌ Availability check error:', error);
       res.status(500).json({ message: "Failed to check availability" });
+    }
+  });
+
+  // Group booking info endpoint — used by the student booking page
+  app.get("/api/group/:code", async (req, res) => {
+    try {
+      const { code } = req.params;
+      const slots = await storage.getBlockedSlotsByGroupCode(code);
+      
+      if (slots.length === 0) {
+        return res.status(404).json({ message: "Group booking code not found" });
+      }
+
+      const groupName = slots[0].groupName || code;
+      const roomIds = [...new Set(slots.map(s => s.roomId))];
+      const dates = [...new Set(slots.map(s => s.date))].sort();
+
+      // Build a list of date/room/time windows for each slot
+      const windows = slots.map(s => ({
+        date: s.date,
+        roomId: s.roomId,
+        startTime: s.startTime,
+        endTime: s.endTime,
+      }));
+
+      res.json({ code, groupName, roomIds, dates, windows });
+    } catch (error) {
+      console.error('❌ Group info error:', error);
+      res.status(500).json({ message: "Failed to load group info" });
     }
   });
 
@@ -1178,7 +1223,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             promoCodeId: bookingData.promoCodeId || undefined,
             originalPrice: bookingData.originalPrice || undefined,
             discountAmount: bookingData.discountAmount || undefined,
-            stripePaymentIntentId: (req.body as any).paymentIntentId || undefined
+            stripePaymentIntentId: (req.body as any).paymentIntentId || undefined,
+            groupCode: (req.body as any).groupCode || undefined,
           });
           console.log(`✅ Booking created successfully on attempt ${attempt}`);
           bookingCreated = true;
@@ -2816,7 +2862,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userEmail: user?.email || 'N/A',
           userPhone: user?.phone || 'N/A',
           roomName: room?.name || `Room ${booking.roomId}`,
-          idVerificationStatus: user?.idVerificationStatus || 'unknown'
+          idVerificationStatus: user?.idVerificationStatus || 'unknown',
+          groupCode: booking.groupCode || null,
         };
       });
 
@@ -3189,7 +3236,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/blocked-slots", requireAuth, requireAdmin, async (req, res) => {
     try {
       const authReq = req as AuthenticatedRequest;
-      const { roomId, date, startTime, endTime, reason, isRecurring, recurringUntil } = req.body;
+      const { roomId, date, startTime, endTime, reason, isRecurring, recurringUntil, groupCode, groupName } = req.body;
 
       if (!roomId || !date || !startTime || !endTime) {
         return res.status(400).json({ message: "Room ID, date, start time, and end time are required" });
@@ -3310,6 +3357,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isRecurring: isRecurring || false,
         recurringUntil: recurringUntil || null,
         createdBy: authReq.userId!,
+        groupCode: groupCode || null,
+        groupName: groupName || null,
       });
 
       res.status(201).json(blockedSlots);

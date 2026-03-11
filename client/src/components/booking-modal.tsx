@@ -41,6 +41,8 @@ interface BookingModalProps {
   selectedTime: string | null;
   selectedDuration: number;
   onBookingSuccess: (booking: any) => void;
+  isFreeGroupBooking?: boolean;
+  groupCode?: string;
 }
 
 export const BookingModal = React.memo(function BookingModal({
@@ -51,6 +53,8 @@ export const BookingModal = React.memo(function BookingModal({
   selectedTime,
   selectedDuration,
   onBookingSuccess,
+  isFreeGroupBooking = false,
+  groupCode,
 }: BookingModalProps) {
   const [promoCode, setPromoCode] = useState("");
   const [appliedPromoCode, setAppliedPromoCode] = useState<any>(null);
@@ -369,6 +373,12 @@ export const BookingModal = React.memo(function BookingModal({
     }
 
 
+    // For group bookings, skip payment entirely
+    if (isFreeGroupBooking) {
+      await handleFreeBooking();
+      return;
+    }
+
     // In test mode, directly process the booking without payment steps
     if (TEST_MODE) {
       await handleDirectBooking();
@@ -471,6 +481,7 @@ export const BookingModal = React.memo(function BookingModal({
       promoCodeId: appliedPromoCode?.promoCode?.id, // Nested inside promoCode object
       originalPrice: appliedPromoCode ? String(originalPrice) : undefined,
       discountAmount: appliedPromoCode ? String(appliedPromoCode.discountAmount) : undefined,
+      groupCode: groupCode || undefined,
     };
 
     console.log('📋 Creating free booking with data:', bookingData);
@@ -702,57 +713,66 @@ export const BookingModal = React.memo(function BookingModal({
             </div>
           </div>
 
+          {/* Group booking notice */}
+          {isFreeGroupBooking && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 text-sm text-blue-800">
+              This is a group booking — no payment required. Your slot is covered by your organisation.
+            </div>
+          )}
+
           {/* Promo Code Section */}
-          <div className="border border-gray-200 rounded-lg p-3 sm:p-4">
-            <h4 className="font-medium text-gray-900 mb-3 text-sm sm:text-base">Promo Code</h4>
-            {!appliedPromoCode ? (
-              <div className="space-y-2">
-                <Input
-                  type="text"
-                  placeholder="Enter promo code"
-                  value={promoCode}
-                  onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                  className={promoCodeError ? "border-red-300" : ""}
-                />
-                {promoCodeError && (
-                  <p className="text-red-600 text-sm">{promoCodeError}</p>
-                )}
-                <Button
-                  type="button"
-                  onClick={validatePromoCode}
-                  disabled={isValidatingPromo || !promoCode.trim()}
-                  className="bg-music-purple hover:bg-music-purple/90 w-full"
-                >
-                  {isValidatingPromo ? "Checking..." : "Apply"}
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <div>
-                    <p className="font-medium text-green-800">
-                      {appliedPromoCode.promoCode.code} applied
-                    </p>
-                    {appliedPromoCode.promoCode.description && (
-                      <p className="text-sm text-green-600">
-                        {appliedPromoCode.promoCode.description}
-                      </p>
-                    )}
-                  </div>
+          {!isFreeGroupBooking ? (
+            <div className="border border-gray-200 rounded-lg p-3 sm:p-4">
+              <h4 className="font-medium text-gray-900 mb-3 text-sm sm:text-base">Promo Code</h4>
+              {!appliedPromoCode ? (
+                <div className="space-y-2">
+                  <Input
+                    type="text"
+                    placeholder="Enter promo code"
+                    value={promoCode}
+                    onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                    className={promoCodeError ? "border-red-300" : ""}
+                  />
+                  {promoCodeError && (
+                    <p className="text-red-600 text-sm">{promoCodeError}</p>
+                  )}
+                  <Button
+                    type="button"
+                    onClick={validatePromoCode}
+                    disabled={isValidatingPromo || !promoCode.trim()}
+                    className="bg-music-purple hover:bg-music-purple/90 w-full"
+                  >
+                    {isValidatingPromo ? "Checking..." : "Apply"}
+                  </Button>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={removePromoCode}
-                  className="text-green-700 hover:text-green-800"
-                >
-                  Remove
-                </Button>
-              </div>
-            )}
-          </div>
+              ) : (
+                <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <div>
+                      <p className="font-medium text-green-800">
+                        {appliedPromoCode.promoCode.code} applied
+                      </p>
+                      {appliedPromoCode.promoCode.description && (
+                        <p className="text-sm text-green-600">
+                          {appliedPromoCode.promoCode.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={removePromoCode}
+                    className="text-green-700 hover:text-green-800"
+                  >
+                    Remove
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : null}
 
           {/* Contact Information */}
           <div>
