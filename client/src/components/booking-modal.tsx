@@ -816,6 +816,7 @@ export const BookingModal = React.memo(function BookingModal({
 
 
           {/* Payment Method */}
+          {!isFreeGroupBooking && (
           <div>
             <h4 className="font-medium text-gray-900 mb-2 sm:mb-3 text-sm sm:text-base">Payment Method</h4>
             <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
@@ -835,6 +836,7 @@ export const BookingModal = React.memo(function BookingModal({
               </div>
             </RadioGroup>
           </div>
+          )}
 
           {/* Terms */}
           <div className="flex items-start space-x-2">

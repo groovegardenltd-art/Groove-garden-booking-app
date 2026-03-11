@@ -150,10 +150,23 @@ export default function GroupBooking() {
               Your rehearsal slot is booked for <strong>{bookingSuccess.date}</strong> at <strong>{bookingSuccess.startTime}</strong>.
             </p>
             {bookingSuccess.accessCode && (
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                <p className="text-sm text-purple-700 font-medium">Door Access Code</p>
-                <p className="text-2xl font-bold text-purple-900 tracking-widest">{bookingSuccess.accessCode}</p>
-                <p className="text-xs text-purple-600 mt-1">Enter this code on the keypad</p>
+              <div className="space-y-3">
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                  <p className="text-sm text-purple-700 font-medium">Front Door Code</p>
+                  <p className="text-2xl font-bold text-purple-900 tracking-widest">{bookingSuccess.accessCode}#</p>
+                  <p className="text-xs text-purple-600 mt-1">Enter this code on the front door keypad</p>
+                </div>
+                {selectedRoom && (
+                  <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                    <p className="text-sm text-indigo-700 font-medium">{selectedRoom.name} Interior Code</p>
+                    <p className="text-2xl font-bold text-indigo-900 tracking-widest">
+                      {selectedRoom.name === 'Live Room' ? '5234' :
+                       selectedRoom.name === 'Pod 1' ? '2369' :
+                       selectedRoom.name === 'Pod 2' ? '3542' : 'N/A'}#
+                    </p>
+                    <p className="text-xs text-indigo-600 mt-1">Enter this code on the {selectedRoom.name} door keypad</p>
+                  </div>
+                )}
               </div>
             )}
             <p className="text-sm text-gray-500">A confirmation email has been sent to your email address.</p>
