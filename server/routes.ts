@@ -457,6 +457,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user: { id: user.id, username: user.username, email: user.email, name: user.name },
         sessionId 
       });
+
+      // Silently re-hash password if it was hashed with more than 10 rounds
+      // (done after response so it adds zero latency for the user)
+      const currentRounds = parseInt(user.password.split('$')[2] ?? '10', 10);
+      if (currentRounds > 10) {
+        hashPassword(password).then(newHash => {
+          storage.updateUser(user.id, { password: newHash }).catch(() => {});
+          console.log(`🔑 Re-hashed password for user ${user.id} from ${currentRounds} to 10 rounds`);
+        }).catch(() => {});
+      }
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
