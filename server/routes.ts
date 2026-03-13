@@ -244,8 +244,26 @@ async function createSession(userId: number): Promise<string> {
   }
 }
 
+// In-memory session cache — avoids a DB round-trip on every authenticated request.
+// Entries expire after 30 seconds so invalidation (logout, expiry) stays timely.
+const sessionCache = new Map<string, { userId: number; expiresAt: number }>();
+const SESSION_CACHE_TTL_MS = 30_000;
+
+function clearSessionCache(sessionId: string) {
+  sessionCache.delete(sessionId);
+}
+
 async function getSession(sessionId: string): Promise<{ userId: number } | null> {
   try {
+    // Check cache first
+    const cached = sessionCache.get(sessionId);
+    if (cached) {
+      if (Date.now() < cached.expiresAt) {
+        return { userId: cached.userId };
+      }
+      sessionCache.delete(sessionId);
+    }
+
     const [session] = await db
       .select()
       .from(sessions)
@@ -258,11 +276,12 @@ async function getSession(sessionId: string): Promise<{ userId: number } | null>
     
     if (session.expiresAt < new Date()) {
       console.log(`Session expired: ${sessionId.slice(0, 4)}...${sessionId.slice(-4)}`);
-      // Clean up expired session
       await db.delete(sessions).where(eq(sessions.sessionId, sessionId));
       return null;
     }
     
+    // Store in cache
+    sessionCache.set(sessionId, { userId: session.userId, expiresAt: Date.now() + SESSION_CACHE_TTL_MS });
     console.log(`Valid session found: ${sessionId.slice(0, 4)}...${sessionId.slice(-4)} for user ${session.userId}`);
     return { userId: session.userId };
   } catch (error) {
@@ -479,6 +498,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/logout", requireAuth, async (req, res) => {
     const sessionId = (req.headers.authorization?.replace('Bearer ', '') || req.headers['x-session-id']) as string;
     if (sessionId) {
+      clearSessionCache(sessionId);
       await deleteSession(sessionId);
     }
     res.json({ message: "Logged out successfully" });
@@ -2832,65 +2852,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin routes for bookings overview
   app.get("/api/admin/bookings", requireAuth, requireAdmin, async (req, res) => {
     try {
-      const allBookings = await storage.getAllBookings();
-      
-      // Batch fetch users and rooms to avoid N+1 queries
-      const uniqueUserIds = Array.from(new Set(allBookings.map(b => b.userId)));
-      const uniqueRoomIds = Array.from(new Set(allBookings.map(b => b.roomId)));
-      
-      const [users, rooms] = await Promise.all([
-        Promise.all(uniqueUserIds.map(id => storage.getUser(id))),
-        Promise.all(uniqueRoomIds.map(id => storage.getRoom(id)))
-      ]);
-      
-      // Create lookup maps
-      const userMap = new Map();
-      const roomMap = new Map();
-      
-      users.forEach(user => {
-        if (user) userMap.set(user.id, user);
-      });
-      
-      rooms.forEach(room => {
-        if (room) roomMap.set(room.id, room);
-      });
-      
-      // Create safe booking data (exclude sensitive fields)
-      const bookingsWithDetails = allBookings.map(booking => {
-        const user = userMap.get(booking.userId);
-        const room = roomMap.get(booking.roomId);
-        
-        return {
-          id: booking.id,
-          userId: booking.userId,
-          roomId: booking.roomId,
-          date: booking.date,
-          startTime: booking.startTime,
-          endTime: booking.endTime,
-          duration: booking.duration,
-          totalPrice: parseFloat(booking.totalPrice), // Convert to number
-          status: booking.status,
-          accessCode: booking.accessCode,
-          lockAccessEnabled: booking.lockAccessEnabled,
-          createdAt: booking.createdAt,
-          // Safe user data
-          userName: user?.name || 'Unknown User',
-          userEmail: user?.email || 'N/A',
-          userPhone: user?.phone || 'N/A',
-          roomName: room?.name || `Room ${booking.roomId}`,
-          idVerificationStatus: user?.idVerificationStatus || 'unknown',
-          groupCode: booking.groupCode || null,
-        };
-      });
+      // Single JOIN query — no N+1 per user/room
+      const rows = await db
+        .select({
+          id: bookings.id,
+          userId: bookings.userId,
+          roomId: bookings.roomId,
+          date: bookings.date,
+          startTime: bookings.startTime,
+          endTime: bookings.endTime,
+          duration: bookings.duration,
+          totalPrice: bookings.totalPrice,
+          status: bookings.status,
+          accessCode: bookings.accessCode,
+          lockAccessEnabled: bookings.lockAccessEnabled,
+          createdAt: bookings.createdAt,
+          groupCode: bookings.groupCode,
+          userName: users.name,
+          userEmail: users.email,
+          userPhone: users.phone,
+          idVerificationStatus: users.idVerificationStatus,
+          roomName: rooms.name,
+        })
+        .from(bookings)
+        .leftJoin(users, eq(bookings.userId, users.id))
+        .leftJoin(rooms, eq(bookings.roomId, rooms.id))
+        .orderBy(asc(bookings.date));
 
-      // Sort by booking date (newest dates first, then by creation date for same dates)
+      const bookingsWithDetails = rows.map(row => ({
+        ...row,
+        totalPrice: parseFloat(row.totalPrice),
+        userName: row.userName || 'Unknown User',
+        userEmail: row.userEmail || 'N/A',
+        userPhone: row.userPhone || 'N/A',
+        roomName: row.roomName || `Room ${row.roomId}`,
+        idVerificationStatus: row.idVerificationStatus || 'unknown',
+        groupCode: row.groupCode || null,
+      }));
+
+      // Sort newest dates first, then by creation date for same dates
       bookingsWithDetails.sort((a, b) => {
         const dateComparison = b.date.localeCompare(a.date);
         if (dateComparison !== 0) return dateComparison;
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
-      
-      // Return ALL bookings - no limit so nothing is ever hidden
+
       res.json(bookingsWithDetails);
     } catch (error) {
       console.error('Failed to fetch admin bookings:', error);
