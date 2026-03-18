@@ -358,6 +358,14 @@ export class DatabaseStorage implements IStorage {
     return result.length > 0;
   }
 
+  async deleteBookingById(id: number, userId: number): Promise<boolean> {
+    const result = await db
+      .delete(bookings)
+      .where(and(eq(bookings.id, id), eq(bookings.userId, userId)))
+      .returning();
+    return result.length > 0;
+  }
+
   async updateBooking(id: number, updates: Partial<Booking>): Promise<boolean> {
     const result = await db
       .update(bookings)

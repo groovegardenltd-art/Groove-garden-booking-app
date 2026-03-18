@@ -1469,6 +1469,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete a past or cancelled booking from a user's history
+  app.delete("/api/bookings/:id", requireAuth, async (req, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const id = parseInt(req.params.id);
+      const booking = await storage.getBooking(id);
+
+      if (!booking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+      if (booking.userId !== authReq.userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Only allow deletion of past or cancelled bookings
+      const bookingEnd = new Date(`${booking.date}T${booking.endTime}:00`);
+      const isPast = bookingEnd < new Date();
+      if (!isPast && booking.status !== "cancelled") {
+        return res.status(400).json({ message: "Only past or cancelled bookings can be deleted" });
+      }
+
+      const deleted = await storage.deleteBookingById(id, authReq.userId);
+      if (deleted) {
+        res.json({ message: "Booking deleted successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to delete booking" });
+      }
+    } catch (error) {
+      console.error("Booking deletion error:", error);
+      res.status(500).json({ message: "Failed to delete booking" });
+    }
+  });
+
   // Smart lock management routes
   app.get("/api/smart-lock/status", requireAuth, async (req, res) => {
     try {

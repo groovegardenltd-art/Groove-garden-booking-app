@@ -4,7 +4,7 @@ import { Header } from "@/components/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Calendar, Clock, MapPin } from "lucide-react";
+import { Copy, Calendar, Clock, MapPin, Trash2 } from "lucide-react";
 import { BookingWithRoom } from "@shared/schema";
 import { getAuthState } from "@/lib/auth";
 import { useLocation } from "wouter";
@@ -53,6 +53,34 @@ export default function Bookings() {
       });
     },
   });
+
+  // Delete booking mutation (past/cancelled only)
+  const deleteMutation = useMutation({
+    mutationFn: async (bookingId: number) => {
+      const response = await apiRequest("DELETE", `/api/bookings/${bookingId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/bookings", user?.id] });
+      toast({
+        title: "Booking Removed",
+        description: "The booking has been removed from your history.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Remove",
+        description: error.message || "Could not remove this booking. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteBooking = (bookingId: number) => {
+    if (confirm("Remove this booking from your history? This cannot be undone.")) {
+      deleteMutation.mutate(bookingId);
+    }
+  };
 
   const copyAccessCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -305,45 +333,57 @@ export default function Bookings() {
                               </div>
                             )}
                           </div>
-                          {booking.status !== "cancelled" && (
-                            <div className="ml-4 flex flex-col space-y-2">
-                              <div className="flex items-center space-x-2">
-                                <span className="text-xs text-gray-500">Front:</span>
-                                <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">
-                                  {booking.accessCode}#
-                                </code>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => copyAccessCode(booking.accessCode)}
-                                  className="p-1 text-gray-400 hover:text-gray-600"
-                                >
-                                  <Copy className="h-4 w-4" />
-                                </Button>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <span className="text-xs text-gray-500">Interior:</span>
-                                <code className="bg-green-100 px-2 py-1 rounded text-sm font-mono">
-                                  {booking.room.name === 'Live Room' ? '5234' : 
-                                   booking.room.name === 'Pod 1' ? '2369' : 
-                                   booking.room.name === 'Pod 2' ? '3542' : 'N/A'}#
-                                </code>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    const interiorCode = booking.room.name === 'Live Room' ? '5234' : 
-                                                       booking.room.name === 'Pod 1' ? '2369' : 
-                                                       booking.room.name === 'Pod 2' ? '3542' : 'N/A';
-                                    copyAccessCode(interiorCode);
-                                  }}
-                                  className="p-1 text-gray-400 hover:text-gray-600"
-                                >
-                                  <Copy className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          )}
+                          <div className="ml-4 flex flex-col items-end space-y-2">
+                            {booking.status !== "cancelled" && (
+                              <>
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-xs text-gray-500">Front:</span>
+                                  <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">
+                                    {booking.accessCode}#
+                                  </code>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => copyAccessCode(booking.accessCode)}
+                                    className="p-1 text-gray-400 hover:text-gray-600"
+                                  >
+                                    <Copy className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-xs text-gray-500">Interior:</span>
+                                  <code className="bg-green-100 px-2 py-1 rounded text-sm font-mono">
+                                    {booking.room.name === 'Live Room' ? '5234' : 
+                                     booking.room.name === 'Pod 1' ? '2369' : 
+                                     booking.room.name === 'Pod 2' ? '3542' : 'N/A'}#
+                                  </code>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      const interiorCode = booking.room.name === 'Live Room' ? '5234' : 
+                                                         booking.room.name === 'Pod 1' ? '2369' : 
+                                                         booking.room.name === 'Pod 2' ? '3542' : 'N/A';
+                                      copyAccessCode(interiorCode);
+                                    }}
+                                    className="p-1 text-gray-400 hover:text-gray-600"
+                                  >
+                                    <Copy className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteBooking(booking.id)}
+                              disabled={deleteMutation.isPending}
+                              className="p-1 text-gray-400 hover:text-red-500"
+                              title="Remove from history"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
