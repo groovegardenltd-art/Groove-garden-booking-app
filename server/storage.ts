@@ -41,6 +41,7 @@ export interface IStorage {
   createPromoCode(promoCode: InsertPromoCode): Promise<PromoCode>;
   updatePromoCode(id: number, data: Partial<PromoCode>): Promise<PromoCode | undefined>;
   togglePromoCodeStatus(id: number, isActive: boolean): Promise<boolean>;
+  deletePromoCode(id: number): Promise<boolean>;
   validatePromoCode(code: string, bookingAmount: number, roomId?: number): Promise<{ valid: boolean; promoCode?: PromoCode; error?: string }>;
   incrementPromoCodeUsage(promoCodeId: number): Promise<void>;
 
@@ -494,6 +495,14 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .update(promoCodes)
       .set({ isActive })
+      .where(eq(promoCodes.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  async deletePromoCode(id: number): Promise<boolean> {
+    const result = await db
+      .delete(promoCodes)
       .where(eq(promoCodes.id, id))
       .returning();
     return result.length > 0;

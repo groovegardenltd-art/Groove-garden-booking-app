@@ -1417,6 +1417,24 @@ function PromoCodeManagement() {
     },
   });
 
+  const deletePromoMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest('DELETE', `/api/admin/promo-codes/${id}`);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/promo-codes'] });
+      toast({ title: "Promo code deleted" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error deleting promo code", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
   const resetForm = () => {
     setFormData({
       code: '',
@@ -1788,6 +1806,20 @@ function PromoCodeManagement() {
                         data-testid={`button-toggle-${promo.id}`}
                       >
                         {promo.isActive ? 'Deactivate' : 'Activate'}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (confirm(`Delete promo code "${promo.code}"? This cannot be undone.`)) {
+                            deletePromoMutation.mutate(promo.id);
+                          }
+                        }}
+                        disabled={deletePromoMutation.isPending}
+                        className="text-gray-400 hover:text-red-600"
+                        data-testid={`button-delete-${promo.id}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
