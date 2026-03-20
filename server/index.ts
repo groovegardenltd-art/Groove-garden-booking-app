@@ -261,4 +261,17 @@ async function runStartupTasks() {
   setInterval(cleanupOldBookings, DAILY_MS);
   setInterval(cleanupOldBlockedSlots, DAILY_MS);
   setInterval(verifyAndSyncPasscodes, DAILY_MS);
+
+  // Keep the database connection alive every 4 minutes to prevent Neon cold-start delays
+  const DB_KEEPALIVE_MS = 4 * 60 * 1000;
+  const keepAlive = async () => {
+    try {
+      const { db } = await import('./db');
+      const { sql } = await import('drizzle-orm');
+      await db.execute(sql`SELECT 1`);
+    } catch {
+      // Silent — keepalive failures are non-critical
+    }
+  };
+  setInterval(keepAlive, DB_KEEPALIVE_MS);
 }
