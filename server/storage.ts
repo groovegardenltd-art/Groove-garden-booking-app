@@ -228,7 +228,16 @@ export class DatabaseStorage implements IStorage {
     // Use a transaction to prevent race conditions when checking availability and creating booking
     return await db.transaction(async (tx) => {
       console.log(`🔒 Transaction started for booking: Room ${booking.roomId}, ${booking.date} ${booking.startTime}-${booking.endTime}`);
-      
+
+      // Acquire a PostgreSQL advisory lock scoped to this room+date combination.
+      // This serialises concurrent booking attempts for the same room/date at the DB level,
+      // closing the TOCTOU race window that READ COMMITTED transactions alone cannot prevent.
+      // Lock key: roomId * 100_000_000 + YYYYMMDD (fits safely in int8 / bigint)
+      const dateInt = parseInt(booking.date.replace(/-/g, ''), 10); // e.g. 20260315
+      const lockKey = booking.roomId * 100_000_000 + dateInt;
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(${lockKey})`);
+      console.log(`🔐 Advisory lock acquired for room ${booking.roomId} on ${booking.date} (key: ${lockKey})`);
+
       // Re-check availability within the transaction to prevent race conditions
       // This ensures no other booking can be created between check and insert
       const existingBookings = await tx
