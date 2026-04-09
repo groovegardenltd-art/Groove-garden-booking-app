@@ -188,6 +188,10 @@ async function runStartupTasks() {
         return;
       }
 
+      // Only process bookings that are MISSING a passcode — e.g. TTLock was unavailable at booking time.
+      // Do NOT re-create passcodes for bookings that already have one: doing so orphans the old code
+      // in TTLock (it stays registered and usable) while replacing the DB record, causing "ghost codes".
+      const { isNull } = await import('drizzle-orm');
       const today = new Date().toISOString().split('T')[0];
       const futureBookings = await db
         .select()
@@ -196,12 +200,12 @@ async function runStartupTasks() {
           and(
             gte(bookings.date, today),
             eq(bookings.status, 'confirmed'),
-            isNotNull(bookings.ttlockPasscode)
+            isNull(bookings.ttlockPasscodeId)   // only bookings without a passcode yet
           )
         )
         .orderBy(asc(bookings.date), asc(bookings.startTime));
 
-      log(`📋 Verifying ${futureBookings.length} future bookings with passcodes...`);
+      log(`📋 Found ${futureBookings.length} future bookings missing a TTLock passcode — creating now...`);
 
       let syncedCount = 0;
       let failedCount = 0;
@@ -238,15 +242,16 @@ async function runStartupTasks() {
             })
             .where(eq(bookings.id, booking.id));
 
+          log(`✅ Created missing passcode for booking ${booking.id} (${booking.date} ${booking.startTime})`);
           syncedCount++;
           await new Promise(resolve => setTimeout(resolve, 500));
         } catch (error) {
           failedCount++;
-          log(`⚠️ Failed to verify/sync passcode for booking ${booking.id}:`, String(error));
+          log(`⚠️ Failed to create passcode for booking ${booking.id}:`, String(error));
         }
       }
 
-      log(`✅ Daily passcode sync complete: ${syncedCount} synced, ${failedCount} failed`);
+      log(`✅ Passcode backfill complete: ${syncedCount} created, ${failedCount} failed`);
     } catch (error) {
       log('❌ Daily passcode verification failed:', String(error));
     }
