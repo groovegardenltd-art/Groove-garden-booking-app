@@ -267,6 +267,42 @@ async function runStartupTasks() {
   setInterval(cleanupOldBlockedSlots, DAILY_MS);
   setInterval(verifyAndSyncPasscodes, DAILY_MS);
 
+  // Delete TTLock passcodes for sessions that have ended — runs hourly so codes stop working promptly
+  const deleteExpiredPasscodes = async () => {
+    try {
+      const { storage } = await import('./storage');
+      const { createTTLockService } = await import('./ttlock');
+      const ttlockService = createTTLockService();
+      if (!ttlockService) return;
+
+      const expired = await storage.getExpiredBookingsWithPasscodes();
+      if (expired.length === 0) return;
+
+      log(`🔑 Found ${expired.length} ended bookings with active passcodes — deleting from TTLock...`);
+
+      for (const booking of expired) {
+        try {
+          const room = await storage.getRoom(booking.roomId);
+          if (room?.lockId && booking.ttlockPasscodeId) {
+            await ttlockService.deletePasscode(room.lockId, parseInt(booking.ttlockPasscodeId));
+          }
+          if (room?.interiorLockId && booking.ttlockPasscodeId) {
+            await ttlockService.deletePasscode(room.interiorLockId, parseInt(booking.ttlockPasscodeId)).catch(() => {});
+          }
+          await storage.clearBookingPasscode(booking.id);
+          log(`✅ Expired passcode removed for booking ${booking.id} (ended ${booking.date} ${booking.endTime})`);
+        } catch (err) {
+          log(`⚠️ Could not delete expired passcode for booking ${booking.id}:`, String(err));
+        }
+      }
+    } catch (err) {
+      log('⚠️ Expired passcode cleanup failed:', String(err));
+    }
+  };
+
+  await deleteExpiredPasscodes();
+  setInterval(deleteExpiredPasscodes, 60 * 60 * 1000); // every hour
+
   // Keep the database connection alive every 4 minutes to prevent Neon cold-start delays
   const DB_KEEPALIVE_MS = 4 * 60 * 1000;
   const keepAlive = async () => {

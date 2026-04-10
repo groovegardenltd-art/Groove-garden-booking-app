@@ -31,6 +31,8 @@ export interface IStorage {
   updateBookingLockAccess(id: number, lockAccessEnabled: boolean): Promise<boolean>;
   updateBooking(id: number, updates: Partial<Booking>): Promise<boolean>;
   cancelBooking(id: number): Promise<boolean>;
+  getExpiredBookingsWithPasscodes(): Promise<Booking[]>;
+  clearBookingPasscode(id: number): Promise<void>;
   getOldBookingsCount(daysOld: number): Promise<number>;
   getOldBookings(daysOld: number): Promise<Booking[]>;
   deleteOldBookings(daysOld: number): Promise<number>;
@@ -383,6 +385,30 @@ export class DatabaseStorage implements IStorage {
       .where(eq(bookings.id, id))
       .returning();
     return result.length > 0;
+  }
+
+  async getExpiredBookingsWithPasscodes(): Promise<Booking[]> {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const currentTime = now.toTimeString().slice(0, 5); // HH:MM
+
+    return await db
+      .select()
+      .from(bookings)
+      .where(
+        and(
+          eq(bookings.status, 'confirmed'),
+          sql`${bookings.ttlockPasscodeId} IS NOT NULL`,
+          sql`(${bookings.date} < ${today} OR (${bookings.date} = ${today} AND ${bookings.endTime} <= ${currentTime}))`
+        )
+      );
+  }
+
+  async clearBookingPasscode(id: number): Promise<void> {
+    await db
+      .update(bookings)
+      .set({ ttlockPasscodeId: null, lockAccessEnabled: false })
+      .where(eq(bookings.id, id));
   }
 
   async getOldBookingsCount(daysOld: number): Promise<number> {
