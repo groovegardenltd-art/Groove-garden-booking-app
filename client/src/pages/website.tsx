@@ -17,26 +17,29 @@ export default function Website() {
   const studios = [
     {
       name: "Pod 1",
-      description: "Perfect for bands and loud rehearsals",
-      equipment: ["Full drum kit", "4-channel mixer", "Vocal microphones", "Amplifiers"],
-      price: "£8/hr (9am-5pm) • £10/hr (5pm-midnight)",
-      capacity: "Up to 5 people",
+      tag: "Drum Pod",
+      description: "A compact, soundproofed drum practice pod for solo or duo drummers. Not suitable for full band rehearsals.",
+      equipment: ["Full drum kit with cymbals"],
+      price: "£7/hr (9am-5pm) • £9/hr (5pm-midnight)",
+      capacity: "1–2 people",
       image: "🥁"
     },
     {
-      name: "Pod 2", 
-      description: "Ideal for acoustic sessions and recording",
-      equipment: ["Yamaha P-125 Digital Piano", "Audio Interface & Monitors", "Condenser Microphones", "Acoustic Treatment"],
-      price: "£8/hr (9am-5pm) • £10/hr (5pm-midnight)",
-      capacity: "Up to 8 people",
-      image: "🎹"
+      name: "Pod 2",
+      tag: "Drum Pod",
+      description: "A compact, soundproofed drum practice pod for solo or duo drummers. Not suitable for full band rehearsals.",
+      equipment: ["Full drum kit with cymbals"],
+      price: "£7/hr (9am-5pm) • £9/hr (5pm-midnight)",
+      capacity: "1–2 people",
+      image: "🥁"
     },
     {
       name: "Live Room",
-      description: "Large space for bigger bands and performances",
-      equipment: ["Full backline", "PA system", "Lighting rig", "Stage monitors"],
+      tag: "Band Room",
+      description: "Large rehearsal space with full backline and PA — perfect for full bands, loud sessions and performances.",
+      equipment: ["Full PA and mixer", "Full drum kit", "2x bass amps", "2x guitar amps", "6 mics", "Keyboard"],
       price: "£14/hr (9am-5pm) • £18/hr (5pm-midnight)", 
-      capacity: "Up to 12 people",
+      capacity: "Up to 6 people",
       image: "🎸"
     }
   ];
@@ -256,12 +259,17 @@ export default function Website() {
                 </div>
                 <CardHeader className="text-center">
                   <div className="text-6xl mb-4">{studio.image}</div>
-                  <CardTitle className="text-xl flex items-center justify-center">
+                  <CardTitle className="text-xl flex items-center justify-center gap-2">
                     {studio.name}
-                    {index === 0 && <Leaf className="w-4 h-4 text-green-500 ml-2 rotate-12" />}
-                    {index === 1 && <Flower2 className="w-4 h-4 text-green-500 ml-2" />}
-                    {index === 2 && <TreePine className="w-4 h-4 text-green-500 ml-2" />}
+                    {index === 0 && <Leaf className="w-4 h-4 text-green-500 rotate-12" />}
+                    {index === 1 && <Flower2 className="w-4 h-4 text-green-500" />}
+                    {index === 2 && <TreePine className="w-4 h-4 text-green-500" />}
                   </CardTitle>
+                  <div className="flex justify-center mt-1 mb-1">
+                    <Badge className={studio.tag === "Drum Pod" ? "bg-amber-100 text-amber-800 border border-amber-300" : "bg-blue-100 text-blue-800 border border-blue-300"}>
+                      {studio.tag}
+                    </Badge>
+                  </div>
                   <CardDescription>{studio.description}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">

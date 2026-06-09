@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check } from "lucide-react";
+import { Check, Drum } from "lucide-react";
 import { Room } from "@shared/schema";
 
 interface RoomSelectionProps {
@@ -50,12 +50,25 @@ export function RoomSelection({
             >
               <CardContent className="p-4">
                 <div className="flex items-start justify-between mb-2">
-                  <h4 className="font-medium text-gray-900">{room.name}</h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-medium text-gray-900">{room.name}</h4>
+                    {(room.name === "Pod 1" || room.name === "Pod 2") && (
+                      <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-800 border border-amber-300 rounded-full px-2 py-0.5 font-medium">
+                        <Drum className="w-3 h-3" /> Drum Pod
+                      </span>
+                    )}
+                  </div>
                   <Badge className={`text-xs px-2 py-1 ${status.color}`}>
                     {status.label}
                   </Badge>
                 </div>
                 <p className="text-sm text-gray-600 mb-3">{room.description}</p>
+                {(room.name === "Pod 1" || room.name === "Pod 2") && (
+                  <div className="flex items-start gap-1.5 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 mb-3 text-xs text-amber-800">
+                    <span className="mt-0.5">⚠️</span>
+                    <span>Solo/duo drumming only — not suitable for full band rehearsals</span>
+                  </div>
+                )}
                 <div>
                   <span className={`font-semibold ${isOccupied ? "text-gray-400" : "text-music-purple"}`}>
                     {(room as any).dayPricePerHour ? (

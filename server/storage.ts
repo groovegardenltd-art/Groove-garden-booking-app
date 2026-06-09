@@ -72,7 +72,7 @@ export class DatabaseStorage implements IStorage {
         const sampleRooms: InsertRoom[] = [
           {
             name: "Pod 1",
-            description: "Pod with full drum kit and cymbals",
+            description: "Small soundproofed drum practice pod — ideal for solo or duo drummers. Not suitable for full band rehearsals.",
             equipment: ["Full drum kit with cymbals"],
             pricePerHour: "7.00",
             dayPricePerHour: null,
@@ -83,7 +83,7 @@ export class DatabaseStorage implements IStorage {
           },
           {
             name: "Pod 2", 
-            description: "Pod with full drum kit and cymbals",
+            description: "Small soundproofed drum practice pod — ideal for solo or duo drummers. Not suitable for full band rehearsals.",
             equipment: ["Full drum kit with cymbals"],
             pricePerHour: "7.00",
             dayPricePerHour: null,

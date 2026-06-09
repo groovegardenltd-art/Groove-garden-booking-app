@@ -93,6 +93,15 @@ async function runStartupTasks() {
     await db.execute(sql`ALTER TABLE blocked_slots ADD COLUMN IF NOT EXISTS group_name TEXT`);
     await db.execute(sql`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS group_code TEXT`);
     log("✅ Schema migration complete (group booking columns)");
+
+    // Update Pod descriptions to clarify they are drum-only practice pods
+    await db.execute(sql`
+      UPDATE rooms
+      SET description = 'Small soundproofed drum practice pod — ideal for solo or duo drummers. Not suitable for full band rehearsals.'
+      WHERE name IN ('Pod 1', 'Pod 2')
+        AND description NOT LIKE '%drum practice pod%'
+    `);
+    log("✅ Room descriptions updated");
   } catch (error) {
     log("⚠️ Schema migration warning:", String(error));
   }
