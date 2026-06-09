@@ -63,12 +63,6 @@ export function RoomSelection({
                   </Badge>
                 </div>
                 <p className="text-sm text-gray-600 mb-3">{room.description}</p>
-                {(room.name === "Pod 1" || room.name === "Pod 2") && (
-                  <div className="flex items-start gap-1.5 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 mb-3 text-xs text-amber-800">
-                    <span className="mt-0.5">⚠️</span>
-                    <span>Solo/duo drumming only — not suitable for full band rehearsals</span>
-                  </div>
-                )}
                 <div>
                   <span className={`font-semibold ${isOccupied ? "text-gray-400" : "text-music-purple"}`}>
                     {(room as any).dayPricePerHour ? (
