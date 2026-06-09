@@ -328,6 +328,15 @@ Groove Garden Studios - Music Rehearsal Space
   }
 }
 
+function formatTime12Hour(time: string): string {
+  const [hourStr, minuteStr] = time.split(':');
+  const hour = parseInt(hourStr, 10);
+  const minute = minuteStr || '00';
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+  return `${hour12}:${minute} ${period}`;
+}
+
 export async function sendBookingConfirmationEmail(
   userEmail: string,
   userName: string,
@@ -347,7 +356,7 @@ export async function sendBookingConfirmationEmail(
   try {
     const subject = `Booking Confirmed - ${room.name} | Groove Garden Studios`;
     
-    // Format date for display
+    // Format date and times for display
     const bookingDate = new Date(booking.date + 'T00:00:00');
     const formattedDate = bookingDate.toLocaleDateString('en-GB', {
       weekday: 'long',
@@ -355,6 +364,8 @@ export async function sendBookingConfirmationEmail(
       month: 'long',
       day: 'numeric'
     });
+    const formattedStartTime = formatTime12Hour(booking.startTime);
+    const formattedEndTime = formatTime12Hour(booking.endTime);
 
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -385,7 +396,7 @@ export async function sendBookingConfirmationEmail(
             </tr>
             <tr>
               <td style="padding: 8px 0; color: #6b7280; font-weight: bold;">Time:</td>
-              <td style="padding: 8px 0; color: #374151;">${booking.startTime} - ${booking.endTime}</td>
+              <td style="padding: 8px 0; color: #374151;">${formattedStartTime} - ${formattedEndTime}</td>
             </tr>
             <tr>
               <td style="padding: 8px 0; color: #6b7280; font-weight: bold;">Total Paid:</td>
@@ -463,7 +474,7 @@ BOOKING DETAILS
 Booking ID: #${booking.id}
 Room: ${room.name}
 Date: ${formattedDate}
-Time: ${booking.startTime} - ${booking.endTime}
+Time: ${formattedStartTime} - ${formattedEndTime}
 Total Paid: £${booking.totalPrice}
 
 ACCESS CODES
@@ -588,6 +599,8 @@ export async function sendRefundConfirmationEmail(
 ): Promise<boolean> {
   const from = 'groovegardenltd@gmail.com';
   const subject = 'Booking Cancelled & Refund Processed - Groove Garden Studios';
+  const formattedStartTime = formatTime12Hour(bookingDetails.startTime);
+  const formattedEndTime = formatTime12Hour(bookingDetails.endTime);
 
   const htmlContent = `
     <!DOCTYPE html>
@@ -699,7 +712,7 @@ export async function sendRefundConfirmationEmail(
           </div>
           <div class="detail-row">
             <span class="detail-label">Time:</span>
-            <span class="detail-value">${bookingDetails.startTime} - ${bookingDetails.endTime}</span>
+            <span class="detail-value">${formattedStartTime} - ${formattedEndTime}</span>
           </div>
           <div class="detail-row" style="border-bottom: none;">
             <span class="detail-label">Refund:</span>
@@ -737,7 +750,7 @@ Processing time: 3-5 business days
 CANCELLED BOOKING DETAILS:
 - Room: ${bookingDetails.roomName}
 - Date: ${bookingDetails.date}
-- Time: ${bookingDetails.startTime} - ${bookingDetails.endTime}
+- Time: ${formattedStartTime} - ${formattedEndTime}
 - Refund: £${bookingDetails.refundAmount}
 
 The refund will be credited to your original payment method within 3-5 business days.
