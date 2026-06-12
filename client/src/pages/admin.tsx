@@ -682,7 +682,7 @@ export default function Admin() {
                       Block Time Slot
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>Block Time Slot</DialogTitle>
                     </DialogHeader>
