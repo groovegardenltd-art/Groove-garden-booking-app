@@ -654,7 +654,7 @@ export function AdminCalendar({ bookings, blockedSlots }: AdminCalendarProps) {
       {/* Edit Booking Dialog */}
       {editingBooking && (
         <Dialog open={true} onOpenChange={(open) => !open && setEditingBooking(null)}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Booking #{editingBooking.id}</DialogTitle>
             </DialogHeader>
@@ -669,7 +669,7 @@ export function AdminCalendar({ bookings, blockedSlots }: AdminCalendarProps) {
       {/* Edit Blocked Slot Dialog */}
       {editingBlockedSlot && (
         <Dialog open={true} onOpenChange={(open) => !open && setEditingBlockedSlot(null)}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Blocked Slot #{editingBlockedSlot.id}</DialogTitle>
             </DialogHeader>

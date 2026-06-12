@@ -1102,7 +1102,7 @@ export default function Admin() {
 
         {/* Edit Blocked Slot Dialog */}
         <Dialog open={editBlockSlotDialogOpen} onOpenChange={setEditBlockSlotDialogOpen}>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Blocked Time Slot</DialogTitle>
             </DialogHeader>
