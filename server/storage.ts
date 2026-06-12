@@ -26,6 +26,7 @@ export interface IStorage {
   getBooking(id: number): Promise<Booking | undefined>;
   getBookingByPaymentIntent(paymentIntentId: string): Promise<Booking | undefined>;
   getBookingsByRoomAndDate(roomId: number, date: string): Promise<Booking[]>;
+  getBookingsByDate(date: string): Promise<Booking[]>;
   createBooking(booking: InsertBooking & { userId: number; accessCode: string; ttlockPasscode?: string; ttlockPasscodeId?: string; lockAccessEnabled?: boolean; promoCodeId?: number; originalPrice?: string; discountAmount?: string; stripePaymentIntentId?: string }): Promise<Booking>;
   updateBookingStatus(id: number, status: string): Promise<Booking | undefined>;
   updateBookingLockAccess(id: number, lockAccessEnabled: boolean): Promise<boolean>;
@@ -208,6 +209,18 @@ export class DatabaseStorage implements IStorage {
   async getBookingByPaymentIntent(paymentIntentId: string): Promise<Booking | undefined> {
     const [booking] = await db.select().from(bookings).where(eq(bookings.stripePaymentIntentId, paymentIntentId));
     return booking || undefined;
+  }
+
+  async getBookingsByDate(date: string): Promise<Booking[]> {
+    return await db
+      .select()
+      .from(bookings)
+      .where(
+        and(
+          eq(bookings.date, date),
+          eq(bookings.status, "confirmed")
+        )
+      );
   }
 
   async getBookingsByRoomAndDate(roomId: number, date: string): Promise<Booking[]> {

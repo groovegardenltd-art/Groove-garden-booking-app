@@ -1207,13 +1207,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const startDateTime = new Date(startDateTimeStr);
             const endDateTime = new Date(endDateTimeStr);
             
+            // Fetch existing access codes for this date to avoid collisions
+            const existingBookingsToday = await storage.getBookingsByDate(bookingData.date);
+            const existingCodes = existingBookingsToday
+              .map(b => b.accessCode)
+              .filter(Boolean) as string[];
+
             // Use new multi-lock method to create same passcode on all locks
             const lockResult = await ttlockService.createMultiLockPasscode(
               lockIds,
               startDateTime,
               endDateTime,
               Date.now(), // temporary booking ID
-              user.name // Customer name for TTLock display
+              user.name, // Customer name for TTLock display
+              existingCodes
             );
             
             ttlockPasscode = lockResult.passcode;
@@ -2097,8 +2104,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 const lockIds = [room.lockId];
                 if (room.interiorLockId) lockIds.push(room.interiorLockId);
                 
+                const existingBookingsToday = await storage.getBookingsByDate(meta.date);
+                const existingCodes = existingBookingsToday
+                  .map((b: any) => b.accessCode)
+                  .filter(Boolean) as string[];
+
                 const lockResult = await ttlockService.createMultiLockPasscode(
-                  lockIds, startDateTime, endDateTime, Date.now(), user.name
+                  lockIds, startDateTime, endDateTime, Date.now(), user.name, existingCodes
                 );
                 ttlockPasscode = lockResult.passcode;
                 ttlockPasscodeId = lockResult.passcodeIds[0];
