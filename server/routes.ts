@@ -14,6 +14,18 @@ import crypto from "crypto";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 
+// Parse a date+time stored as UK local time (BST/GMT) and return a UTC Date for TTLock
+function parseAsUKTime(dateStr: string, timeStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  // Create a temporary UTC timestamp to determine the UK offset at that moment
+  const tempUTC = new Date(Date.UTC(year, month - 1, day, hours, minutes));
+  const londonStr = tempUTC.toLocaleString('en-GB', { timeZone: 'Europe/London', timeZoneName: 'short' });
+  const offsetHours = londonStr.includes('BST') ? 1 : 0;
+  // Subtract the offset so the returned UTC time corresponds to the correct UK local time
+  return new Date(Date.UTC(year, month - 1, day, hours - offsetHours, minutes));
+}
+
 // Security utility: Mask passcode for logging (show first 2 and last 2 digits)
 function maskPasscode(passcode: string): string {
   if (!passcode || passcode.length < 4) {
@@ -1199,13 +1211,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log(`🚪 Setting up access for ${room.name}: Front Door ${room.lockId ? '✅' : '❌'} | Interior Door ${room.interiorLockId ? '✅' : '❌'}`);
             console.log(`👤 Customer name for TTLock: "${user.name}" (User ID: ${user.id})`);
             
-            // Create date strings in ISO format - TTLock expects milliseconds since epoch
-            const startDateTimeStr = `${bookingData.date}T${bookingData.startTime}:00`;
-            const endDateTimeStr = `${bookingData.date}T${bookingData.endTime}:00`;
-            
-            // Parse as local time - server time should match TTLock expectations
-            const startDateTime = new Date(startDateTimeStr);
-            const endDateTime = new Date(endDateTimeStr);
+            // Parse booking times as UK local time (handles BST/GMT automatically)
+            const startDateTime = parseAsUKTime(bookingData.date, bookingData.startTime);
+            const endDateTime = parseAsUKTime(bookingData.date, bookingData.endTime);
             
             // Use new multi-lock method to create same passcode on all locks
             const lockResult = await ttlockService.createMultiLockPasscode(
@@ -2092,8 +2100,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             if (ttlockService && room.lockId) {
               try {
-                const startDateTime = new Date(`${meta.date}T${meta.startTime}:00`);
-                const endDateTime = new Date(`${meta.date}T${meta.endTime}:00`);
+                const startDateTime = parseAsUKTime(meta.date, meta.startTime);
+                const endDateTime = parseAsUKTime(meta.date, meta.endTime);
                 const lockIds = [room.lockId];
                 if (room.interiorLockId) lockIds.push(room.interiorLockId);
                 
@@ -2691,14 +2699,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const [startHours, startMinutes = '00'] = startTime.split(':');
           const [endHours, endMinutes = '00'] = endTime.split(':');
           
-          // Create date strings in ISO format and let JS handle timezone conversion
-          const startDateTimeStr = `${date}T${startTime}:00`;
-          const endDateTimeStr = `${date}T${endTime}:00`;
-          
-          // Parse as local time (server runs in UTC, so we need to treat these as UK times)
-          // TTLock expects milliseconds since epoch in UTC
-          const startDateTime = new Date(startDateTimeStr);
-          const endDateTime = new Date(endDateTimeStr);
+          // Parse booking times as UK local time (handles BST/GMT automatically)
+          const startDateTime = parseAsUKTime(date, startTime);
+          const endDateTime = parseAsUKTime(date, endTime);
 
           // Get customer name for passcode label
           const bookingUser = await storage.getUser(booking.userId);
