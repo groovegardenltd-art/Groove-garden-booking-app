@@ -80,17 +80,9 @@ export class TTLockService {
     }
   }
 
-  private generatePasscode(existingCodes: string[] = []): string {
-    // Generate a random 6-digit code (100000–999999).
-    // WiFi bridge locks relay codes from the cloud in real time so no special
-    // pattern is required — any valid 6-digit number works.
-    for (let attempt = 0; attempt < 100; attempt++) {
-      const code = crypto.randomInt(100000, 1000000).toString();
-      if (!existingCodes.includes(code)) {
-        return code;
-      }
-    }
-    return crypto.randomInt(100000, 1000000).toString();
+  private generatePasscode(bookingId: number): string {
+    // Generate a random 10-digit code — proven length for TTLock hardware sync
+    return Math.floor(Math.random() * 9000000000 + 1000000000).toString();
   }
 
   async createTimeLimitedPasscode(
@@ -98,14 +90,12 @@ export class TTLockService {
     startTime: Date,
     endTime: Date,
     bookingId: number,
-    customerName?: string,
-    existingCodes: string[] = [],
-    preGeneratedCode?: string
+    customerName?: string
   ): Promise<{ passcode: string; passcodeId: number }> {
     try {
       // Real TTLock API implementation
       const accessToken = await this.getAccessToken();
-      const passcode = preGeneratedCode || this.generatePasscode(existingCodes);
+      const passcode = this.generatePasscode(bookingId);
       // Use exact booking start time (no adjustment needed)
       const startTimeMs = startTime.getTime();
       const endTimeMs = endTime.getTime();
@@ -241,25 +231,23 @@ export class TTLockService {
     }
   }
 
-  // New method to create the same passcode on multiple locks (front door + interior door)
+  // Create the same passcode on multiple locks (front door + interior door)
   async createMultiLockPasscode(
     lockIds: string[],
     startTime: Date,
     endTime: Date,
     bookingId: number,
-    customerName?: string,
-    existingCodes: string[] = []
+    customerName?: string
   ): Promise<{ passcode: string; passcodeIds: number[] }> {
     const results: number[] = [];
+    let passcode = '';
 
-    // Generate ONE code upfront so every lock gets the same passcode
-    const passcode = this.generatePasscode(existingCodes);
-
-    console.log(`🔑 Creating unified 6-digit passcode for ${lockIds.length} locks: ${lockIds.join(', ')}`);
+    console.log(`🔑 Creating unified passcode for ${lockIds.length} locks: ${lockIds.join(', ')}`);
 
     for (const lockId of lockIds) {
       try {
-        const result = await this.createTimeLimitedPasscode(lockId, startTime, endTime, bookingId, customerName, [], passcode);
+        const result = await this.createTimeLimitedPasscode(lockId, startTime, endTime, bookingId, customerName);
+        passcode = result.passcode; // Same passcode for all locks
         results.push(result.passcodeId);
         console.log(`✅ Passcode ${maskPasscode(passcode)} created for lock ${lockId} (ID: ${result.passcodeId})`);
       } catch (error) {
