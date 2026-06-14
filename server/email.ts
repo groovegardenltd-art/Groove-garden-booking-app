@@ -82,19 +82,15 @@ function getBaseUrl(): string {
     return `https://${process.env.REPL_SLUG}.${process.env.REPLIT_CLUSTER}.repl.co`;
   }
   
-  // Critical: Log error and refuse to send broken links
-  console.error('Could not determine base URL for email links. Email sending aborted.');
-  console.error('Available env vars:', {
-    BASE_URL: !!process.env.BASE_URL,
-    FRONTEND_BASE_URL: !!process.env.FRONTEND_BASE_URL,
-    REPLIT_EXTERNAL_HOSTNAME: !!process.env.REPLIT_EXTERNAL_HOSTNAME,
-    REPLIT_DEPLOYMENT: process.env.REPLIT_DEPLOYMENT,
-    REPL_SLUG: !!process.env.REPL_SLUG,
-    REPLIT_DEV_DOMAIN: !!process.env.REPLIT_DEV_DOMAIN,
-    REPLIT_CLUSTER: !!process.env.REPLIT_CLUSTER
-  });
-  
-  throw new Error('Unable to determine base URL for email links');
+  // Fallback: use the REPLIT_DOMAINS env var (set automatically on deployed repls)
+  if (process.env.REPLIT_DOMAINS) {
+    const firstDomain = process.env.REPLIT_DOMAINS.split(',')[0].trim();
+    if (firstDomain) return `https://${firstDomain}`;
+  }
+
+  // Last resort: log a warning but don't crash — email goes out with imperfect links
+  console.warn('Could not determine base URL for email links; falling back to production domain.');
+  return 'https://groovegardenltd.replit.app';
 }
 
 interface EmailParams {
@@ -421,7 +417,7 @@ export async function sendBookingConfirmationEmail(
           <div style="border-top: 1px solid #f59e0b; padding-top: 15px;">
             <p style="color: #92400e; margin: 0 0 8px 0; font-weight: bold;">${room.name} Door Code:</p>
             <div style="background-color: #fff; border: 2px solid #10b981; border-radius: 6px; padding: 15px; margin: 10px 0; font-family: monospace; font-size: 24px; font-weight: bold; color: #065f46; letter-spacing: 3px;">
-              ${room.name === 'Live Room' ? '5234' : room.name === 'Pod 1' ? '2369' : room.name === 'Pod 2' ? '3542' : 'N/A'}#
+              ${room.name === 'Live Room' ? '5234' : room.name === 'Pod 1' ? '2369' : room.name === 'Pod 2' ? '3542' : 'See below'}#
             </div>
             <p style="color: #92400e; margin: 5px 0 0 0; font-size: 12px;">
               For ${room.name} interior door - works 24/7.

@@ -2694,11 +2694,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (room.lockId) lockIds.push(room.lockId);
           if (room.interiorLockId) lockIds.push(room.interiorLockId);
 
-          // Parse the new date and time - create as UK local time
-          const [year, month, day] = date.split('-');
-          const [startHours, startMinutes = '00'] = startTime.split(':');
-          const [endHours, endMinutes = '00'] = endTime.split(':');
-          
           // Parse booking times as UK local time (handles BST/GMT automatically)
           const startDateTime = parseAsUKTime(date, startTime);
           const endDateTime = parseAsUKTime(date, endTime);
