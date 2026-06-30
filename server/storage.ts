@@ -724,15 +724,16 @@ export class DatabaseStorage implements IStorage {
 
       const block = blockToDelete[0];
 
-      // If this is a parent block (isRecurring=true and parentBlockId=null), delete all children too
-      if (block.isRecurring && block.parentBlockId === null) {
-        // Delete all child blocks first
-        await db.delete(blockedSlots).where(eq(blockedSlots.parentBlockId, id));
-        // Then delete the parent
-        const result = await db.delete(blockedSlots).where(eq(blockedSlots.id, id));
+      if (block.isRecurring) {
+        // Determine the parent ID — either this block IS the parent, or it has one
+        const parentId = block.parentBlockId ?? block.id;
+        // Delete all children of the parent
+        await db.delete(blockedSlots).where(eq(blockedSlots.parentBlockId, parentId));
+        // Delete the parent itself
+        const result = await db.delete(blockedSlots).where(eq(blockedSlots.id, parentId));
         return result.rowCount !== null && result.rowCount > 0;
       } else {
-        // Just delete this single block
+        // Non-recurring — just delete this single block
         const result = await db.delete(blockedSlots).where(eq(blockedSlots.id, id));
         return result.rowCount !== null && result.rowCount > 0;
       }
