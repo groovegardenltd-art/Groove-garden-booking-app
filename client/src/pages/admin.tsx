@@ -289,7 +289,7 @@ export default function Admin() {
         description: "Please log in to access this page.",
         variant: "destructive",
       });
-      setLocation("/login");
+      setLocation("/login?redirect=/admin");
       return;
     }
     const adminEmails = ["groovegardenltd@gmail.com", "tomearl1508@gmail.com"];
