@@ -1212,7 +1212,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log(`👤 Customer name for TTLock: "${user.name}" (User ID: ${user.id})`);
             
             // Parse booking times as UK local time (handles BST/GMT automatically)
-            const startDateTime = parseAsUKTime(bookingData.date, bookingData.startTime);
+            // Start 15 mins early so the code syncs to the lock before the session begins
+            const startDateTime = new Date(parseAsUKTime(bookingData.date, bookingData.startTime).getTime() - 15 * 60 * 1000);
             const endDateTime = parseAsUKTime(bookingData.date, bookingData.endTime);
             
             // Use new multi-lock method to create same passcode on all locks
@@ -2100,7 +2101,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             if (ttlockService && room.lockId) {
               try {
-                const startDateTime = parseAsUKTime(meta.date, meta.startTime);
+                // Start 15 mins early so the code syncs to the lock before the session begins
+                const startDateTime = new Date(parseAsUKTime(meta.date, meta.startTime).getTime() - 15 * 60 * 1000);
                 const endDateTime = parseAsUKTime(meta.date, meta.endTime);
                 const lockIds = [room.lockId];
                 if (room.interiorLockId) lockIds.push(room.interiorLockId);
@@ -2695,7 +2697,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (room.interiorLockId) lockIds.push(room.interiorLockId);
 
           // Parse booking times as UK local time (handles BST/GMT automatically)
-          const startDateTime = parseAsUKTime(date, startTime);
+          // Start 15 mins early so the code syncs to the lock before the session begins
+          const startDateTime = new Date(parseAsUKTime(date, startTime).getTime() - 15 * 60 * 1000);
           const endDateTime = parseAsUKTime(date, endTime);
 
           // Get customer name for passcode label
