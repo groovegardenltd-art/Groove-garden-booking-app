@@ -770,3 +770,46 @@ Professional Rehearsal Spaces
     html: htmlContent
   });
 }
+
+export async function sendAdminCodeFailureAlert(
+  booking: { id: number; date: string; startTime: string; endTime: string; accessCode: string },
+  room: { name: string },
+  customer: { name: string; email: string }
+): Promise<void> {
+  const ADMIN_EMAILS = ['groovegardenltd@gmail.com', 'tomearl1508@gmail.com'];
+  const from = 'groovegardenltd@gmail.com';
+  const adminUrl = 'https://groovegardenltd.replit.app/admin';
+
+  const subject = `⚠️ Action Required: Lock code not synced — Booking #${booking.id}`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background-color: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+        <h2 style="color: #92400e; margin: 0 0 8px 0;">⚠️ Lock Code Not Synced to Hardware</h2>
+        <p style="color: #92400e; margin: 0;">A booking was created but the access code could not be registered with TTLock. The customer has been sent a code that may not work.</p>
+      </div>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+        <tr><td style="padding: 8px; color: #6b7280; width: 140px;">Booking ID</td><td style="padding: 8px; font-weight: bold;">#${booking.id}</td></tr>
+        <tr style="background:#f9fafb"><td style="padding: 8px; color: #6b7280;">Customer</td><td style="padding: 8px;">${customer.name} (${customer.email})</td></tr>
+        <tr><td style="padding: 8px; color: #6b7280;">Room</td><td style="padding: 8px;">${room.name}</td></tr>
+        <tr style="background:#f9fafb"><td style="padding: 8px; color: #6b7280;">Date & Time</td><td style="padding: 8px;">${booking.date} &nbsp; ${booking.startTime}–${booking.endTime}</td></tr>
+        <tr><td style="padding: 8px; color: #6b7280;">Code sent to customer</td><td style="padding: 8px; font-family: monospace; font-size: 16px; color: #dc2626;">${booking.accessCode}#</td></tr>
+      </table>
+      <div style="background: #eff6ff; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+        <p style="margin: 0 0 8px 0; font-weight: bold; color: #1e40af;">What to do:</p>
+        <ol style="margin: 0; padding-left: 20px; color: #1e40af;">
+          <li>Make sure the WiFi bridge is online (check TTLock app)</li>
+          <li>Go to Admin → Bookings and find booking #${booking.id}</li>
+          <li>Click <strong>Resync Code</strong> — this will register a real code and automatically resend the email to the customer</li>
+        </ol>
+      </div>
+      <a href="${adminUrl}" style="display: inline-block; background-color: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Go to Admin Panel</a>
+    </div>
+  `;
+
+  const text = `⚠️ Lock Code Not Synced — Booking #${booking.id}\n\nCustomer: ${customer.name} (${customer.email})\nRoom: ${room.name}\nDate: ${booking.date} ${booking.startTime}-${booking.endTime}\nCode sent: ${booking.accessCode}#\n\nAction: Go to Admin → Bookings → find #${booking.id} → click Resync Code.\n${adminUrl}`;
+
+  for (const to of ADMIN_EMAILS) {
+    await sendEmail({ to, from, subject, html, text }).catch(() => {});
+  }
+}

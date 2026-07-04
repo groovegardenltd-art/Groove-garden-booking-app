@@ -288,7 +288,7 @@ export default function Admin() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/bookings"] });
       toast({
         title: "✅ Code Resynced",
-        description: data.message || "New code registered and confirmation email resent.",
+        description: data.message || "New code registered with the lock.",
       });
     },
     onError: () => {

@@ -8,7 +8,7 @@ import { insertUserSchema, loginSchema, insertBookingSchema } from "@shared/sche
 import { createTTLockService } from "./ttlock";
 import { z } from "zod";
 import Stripe from "stripe";
-import { notifyPendingIdVerification, sendRejectionNotification, sendPasswordResetEmail, sendBookingConfirmationEmail, sendRefundConfirmationEmail } from "./email";
+import { notifyPendingIdVerification, sendRejectionNotification, sendPasswordResetEmail, sendBookingConfirmationEmail, sendRefundConfirmationEmail, sendAdminCodeFailureAlert } from "./email";
 import { comparePassword, hashPassword } from "./password-utils";
 import crypto from "crypto";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
@@ -1346,6 +1346,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           );
           console.log(`Booking confirmation email sent to ${bookingUser.email} for booking #${booking.id}`);
+
+          // Alert admins if the TTLock code wasn't registered (bridge offline/API failure)
+          if (!ttlockPasscodeId || ttlockPasscodeId < 0) {
+            sendAdminCodeFailureAlert(
+              { id: booking.id, date: booking.date, startTime: booking.startTime, endTime: booking.endTime, accessCode: booking.accessCode },
+              { name: room.name },
+              { name: bookingUser.name, email: bookingUser.email }
+            ).catch(() => {}); // fire-and-forget, don't block response
+          }
         }
       } catch (error) {
         console.error('Failed to send booking confirmation email:', error);
@@ -2666,19 +2675,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(bookings.id, id));
 
-      // Resend confirmation email with new code
-      await sendBookingConfirmationEmail(
-        user.email,
-        user.name,
-        { id: booking.id, date: booking.date, startTime: booking.startTime, endTime: booking.endTime, accessCode: lockResult.passcode, totalPrice: booking.totalPrice },
-        { name: room.name }
-      );
-
       const succeeded = lockResult.passcodeIds.filter(pid => pid > 0).length;
-      console.log(`[ADMIN] Resynced passcode for booking ${id}: ${succeeded}/${lockIds.length} locks, email resent to ${user.email}`);
+      console.log(`[ADMIN] Resynced passcode for booking ${id}: ${succeeded}/${lockIds.length} locks`);
 
       res.json({ 
-        message: `Code resynced on ${succeeded}/${lockIds.length} locks. Confirmation email resent.`,
+        message: `Code resynced on ${succeeded}/${lockIds.length} locks.`,
         passcode: lockResult.passcode,
         locksSucceeded: succeeded,
         locksTotal: lockIds.length,
