@@ -30,7 +30,7 @@ export function PaymentForm({ amount, onSuccess, onCancel }: PaymentFormProps) {
       const { error } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: window.location.origin,
+          return_url: window.location.href,
         },
         redirect: "if_required",
       });

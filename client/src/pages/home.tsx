@@ -46,6 +46,37 @@ export default function Home() {
     checkAuth();
   }, []);
 
+  // Handle Stripe redirect-based payments (3DS, some bank/wallet flows)
+  // When Stripe redirects back it appends ?payment_intent=...&redirect_status=...
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const redirectStatus = params.get("redirect_status");
+    const paymentIntent = params.get("payment_intent");
+
+    if (!paymentIntent) return;
+
+    // Clean the URL so refreshing doesn't re-trigger this
+    window.history.replaceState({}, "", window.location.pathname);
+
+    if (redirectStatus === "succeeded") {
+      toast({
+        title: "🎉 Booking Confirmed!",
+        description: "Your payment was successful. Check your email for your access code.",
+      });
+    } else if (redirectStatus === "processing") {
+      toast({
+        title: "Payment Processing",
+        description: "Your payment is being processed. You'll receive a confirmation email shortly.",
+      });
+    } else {
+      toast({
+        title: "Payment Incomplete",
+        description: "Your payment wasn't completed. Please try booking again.",
+        variant: "destructive",
+      });
+    }
+  }, []);
+
   // Fetch rooms with optimized caching
   const { data: rooms = [], isLoading: roomsLoading } = useQuery<Room[]>({
     queryKey: ["/api/rooms"],
