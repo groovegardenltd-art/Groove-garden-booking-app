@@ -1193,6 +1193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let ttlockPasscode: string | undefined;
       let ttlockPasscodeId: number | undefined;
       let lockAccessEnabled = false;
+      let ttlockAttempted = false; // track whether we actually tried the API
 
       if (ttlockService) {
         try {
@@ -1217,6 +1218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const endDateTime = parseAsUKTime(bookingData.date, bookingData.endTime);
             
             // Use new multi-lock method to create same passcode on all locks
+            ttlockAttempted = true;
             const lockResult = await ttlockService.createMultiLockPasscode(
               lockIds,
               startDateTime,
@@ -1226,7 +1228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             );
             
             ttlockPasscode = lockResult.passcode;
-            ttlockPasscodeId = lockResult.passcodeIds[0]; // Use first successful passcode ID
+            ttlockPasscodeId = lockResult.passcodeIds[0]; // -1 if all attempts failed
             lockAccessEnabled = false; // Disable smart lock due to persistent sync issues
             
             // Check status of primary lock
@@ -1263,7 +1265,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userId: authReq.userId,
             accessCode: ttlockPasscode || accessCode,
             ttlockPasscode: ttlockPasscode || undefined,
-            ttlockPasscodeId: ttlockPasscodeId ? ttlockPasscodeId.toString() : undefined,
+            ttlockPasscodeId: (ttlockPasscodeId && ttlockPasscodeId > 0) ? ttlockPasscodeId.toString() : undefined,
             lockAccessEnabled,
             promoCodeId: bookingData.promoCodeId || undefined,
             originalPrice: bookingData.originalPrice || undefined,
@@ -1347,8 +1349,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           );
           console.log(`Booking confirmation email sent to ${bookingUser.email} for booking #${booking.id}`);
 
-          // Alert admins if the TTLock code wasn't registered (bridge offline/API failure)
-          if (!ttlockPasscodeId || ttlockPasscodeId < 0) {
+          // Alert admins if a lock was configured but the code failed to register
+          if (ttlockAttempted && (!ttlockPasscodeId || ttlockPasscodeId < 0)) {
             sendAdminCodeFailureAlert(
               { id: booking.id, date: booking.date, startTime: booking.startTime, endTime: booking.endTime, accessCode: booking.accessCode },
               { name: room.name },
@@ -2121,7 +2123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               userId,
               accessCode: ttlockPasscode || accessCode,
               ttlockPasscode: ttlockPasscode,
-              ttlockPasscodeId: ttlockPasscodeId?.toString(),
+              ttlockPasscodeId: (ttlockPasscodeId && ttlockPasscodeId > 0) ? ttlockPasscodeId.toString() : undefined,
               lockAccessEnabled: false,
               stripePaymentIntentId: paymentIntentId,
               idNumber: user.idNumber || "",
