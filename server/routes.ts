@@ -1813,15 +1813,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         for (const booking of bookingsToSync) {
           try {
-            const [year, month, day] = booking.date.split('-').map(Number);
-            const [startHour] = booking.startTime.split(':').map(Number);
-            const [endHour] = booking.endTime.split(':').map(Number);
-            
-            const startTime = new Date(year, month - 1, day, startHour, 0, 0);
-            const endTime = new Date(year, month - 1, day, endHour, 0, 0);
-            if (endHour <= startHour) endTime.setDate(endTime.getDate() + 1);
-
             const bookingUser = await storage.getUser(booking.userId);
+            const startTime = new Date(parseAsUKTime(booking.date, booking.startTime).getTime() - 15 * 60 * 1000);
+            const endTime = parseAsUKTime(booking.date, booking.endTime);
             const result = await ttlockService.createTimeLimitedPasscode(
               newLockId,
               startTime,
@@ -1834,7 +1828,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               .update(bookings)
               .set({ 
                 ttlockPasscode: result.passcode,
-                ttlockPasscodeId: result.passcodeId.toString()
+                ttlockPasscodeId: result.passcodeId > 0 ? result.passcodeId.toString() : null
               })
               .where(eq(bookings.id, booking.id));
 
@@ -1951,20 +1945,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       for (const booking of bookingsToSync) {
         try {
-          // Parse booking time
-          const [year, month, day] = booking.date.split('-').map(Number);
-          const [startHour] = booking.startTime.split(':').map(Number);
-          const [endHour] = booking.endTime.split(':').map(Number);
-          
-          const startTime = new Date(year, month - 1, day, startHour, 0, 0);
-          const endTime = new Date(year, month - 1, day, endHour, 0, 0);
-          
-          // Handle overnight bookings (end time past midnight)
-          if (endHour <= startHour) {
-            endTime.setDate(endTime.getDate() + 1);
-          }
-
           console.log(`📤 Syncing booking #${booking.id}: ${booking.date} ${booking.startTime}-${booking.endTime}`);
+          const startTime = new Date(parseAsUKTime(booking.date, booking.startTime).getTime() - 15 * 60 * 1000);
+          const endTime = parseAsUKTime(booking.date, booking.endTime);
           
           // Get customer name for passcode label
           const bookingUser = await storage.getUser(booking.userId);
@@ -1984,7 +1967,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .update(bookings)
             .set({ 
               ttlockPasscode: result.passcode,
-              ttlockPasscodeId: result.passcodeId.toString()
+              ttlockPasscodeId: result.passcodeId > 0 ? result.passcodeId.toString() : null
             })
             .where(eq(bookings.id, booking.id));
 
@@ -2781,7 +2764,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           );
 
           newPasscode = lockResult.passcode;
-          newPasscodeId = lockResult.passcodeIds[0]?.toString();
+          newPasscodeId = (lockResult.passcodeIds[0] > 0) ? lockResult.passcodeIds[0].toString() : undefined;
           
           console.log(`[ADMIN] Created new passcode for updated booking ${id}`);
         } catch (error) {

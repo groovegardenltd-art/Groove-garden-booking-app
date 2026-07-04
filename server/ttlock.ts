@@ -92,11 +92,42 @@ export class TTLockService {
     bookingId: number,
     customerName?: string
   ): Promise<{ passcode: string; passcodeId: number }> {
+    const MAX_ATTEMPTS = 3;
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        const result = await this._attemptCreatePasscode(lockId, startTime, endTime, bookingId, customerName);
+        return result;
+      } catch (err) {
+        lastError = err;
+        if (attempt < MAX_ATTEMPTS) {
+          const delay = attempt * 2000; // 2s, 4s
+          console.warn(`⚠️ TTLock attempt ${attempt}/${MAX_ATTEMPTS} failed for lock ${lockId}, retrying in ${delay / 1000}s...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    // All attempts failed — fall back to a local code so booking still completes,
+    // but log clearly so admin knows to resync
+    const passcode = this.generatePasscode(bookingId);
+    console.error(`❌ TTLock API failed after ${MAX_ATTEMPTS} attempts for lock ${lockId} (booking ${bookingId}). Fallback code generated — admin must resync.`);
+    console.error('Last error:', lastError);
+    return { passcode, passcodeId: -1 }; // -1 signals "not registered"
+  }
+
+  private async _attemptCreatePasscode(
+    lockId: string,
+    startTime: Date,
+    endTime: Date,
+    bookingId: number,
+    customerName?: string
+  ): Promise<{ passcode: string; passcodeId: number }> {
     try {
       // Real TTLock API implementation
       const accessToken = await this.getAccessToken();
       const passcode = this.generatePasscode(bookingId);
-      // Use exact booking start time (no adjustment needed)
       const startTimeMs = startTime.getTime();
       const endTimeMs = endTime.getTime();
 
@@ -163,19 +194,8 @@ export class TTLockService {
         throw new Error(`Unexpected TTLock API response: ${JSON.stringify(data)}`);
       }
     } catch (error) {
-      console.error('TTLock API error:', error);
-      
-      // Fallback to generated passcode if API fails
-      const passcode = this.generatePasscode(bookingId);
-      const passcodeId = Math.floor(Math.random() * 2147483647);
-      
-      console.log(`⚠️ TTLock API failed, using generated passcode ${maskPasscode(passcode)} for booking ${bookingId}`);
-      console.log(`Valid from ${startTime.toISOString()} to ${endTime.toISOString()}`);
-      
-      return {
-        passcode,
-        passcodeId,
-      };
+      // Re-throw so the retry loop in createTimeLimitedPasscode can handle it
+      throw error;
     }
   }
 
