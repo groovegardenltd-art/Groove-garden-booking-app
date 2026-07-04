@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Clock, User, FileText, Shield, CalendarX, Plus, Trash2, Repeat, Calendar, MapPin, CreditCard, Phone, Mail, List, Grid3X3, ChevronRight, Edit, Key, Link2, Users } from "lucide-react";
+import { CheckCircle, XCircle, Clock, User, FileText, Shield, CalendarX, Plus, Trash2, Repeat, Calendar, MapPin, CreditCard, Phone, Mail, List, Grid3X3, ChevronRight, Edit, Key, Link2, Users, RefreshCw, AlertTriangle } from "lucide-react";
 import { Link } from "wouter";
 import { AdminCalendar } from "@/components/admin-calendar";
 import { getAuthState } from "@/lib/auth";
@@ -81,6 +81,7 @@ interface AdminBooking {
   totalPrice: number;
   status: string;
   accessCode: string;
+  ttlockPasscodeId: string | null;
   userName: string;
   userEmail: string;
   userPhone: string;
@@ -276,6 +277,24 @@ export default function Admin() {
       toast({
         title: "❌ Cleanup Failed",
         description: "Failed to delete old bookings. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const resyncCodeMutation = useMutation({
+    mutationFn: (bookingId: number) => apiRequest("POST", `/api/admin/bookings/${bookingId}/resync-code`),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/bookings"] });
+      toast({
+        title: "✅ Code Resynced",
+        description: data.message || "New code registered and confirmation email resent.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "❌ Resync Failed",
+        description: "Failed to resync the code. Check TTLock connection.",
         variant: "destructive",
       });
     }
@@ -640,16 +659,39 @@ export default function Admin() {
                         {/* Right Column - Access & Details */}
                         <div className="space-y-2">
                           <div className="text-sm">
-                            <div className="text-gray-600">Access Code:</div>
-                            <div className="font-mono bg-white px-2 py-1 rounded border text-music-purple" data-testid={`text-access-code-${booking.id}`}>
+                            <div className="flex items-center gap-1 text-gray-600">
+                              Access Code:
+                              {!booking.ttlockPasscodeId && booking.status === "confirmed" && (
+                                <span title="Code not registered with lock — resync needed" className="text-amber-500">
+                                  <AlertTriangle className="h-3 w-3 inline" />
+                                </span>
+                              )}
+                            </div>
+                            <div className={`font-mono px-2 py-1 rounded border ${!booking.ttlockPasscodeId && booking.status === "confirmed" ? "bg-amber-50 border-amber-300 text-amber-700" : "bg-white text-music-purple"}`} data-testid={`text-access-code-${booking.id}`}>
                               {booking.accessCode}#
                             </div>
+                            {!booking.ttlockPasscodeId && booking.status === "confirmed" && (
+                              <div className="text-xs text-amber-600 mt-1">⚠️ Not synced to lock</div>
+                            )}
                           </div>
                           <div className="text-xs text-gray-500">
                             <div data-testid={`text-lock-access-${booking.id}`}>Lock Access: {booking.lockAccessEnabled ? "✅ Enabled" : "❌ Disabled"}</div>
                             <div data-testid={`text-created-${booking.id}`}>Booked: {formatDateTime(booking.createdAt)}</div>
                             <div data-testid={`text-booking-id-${booking.id}`}>ID: #{booking.id}</div>
                           </div>
+                          {booking.status === "confirmed" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className={`text-xs h-7 ${!booking.ttlockPasscodeId ? "border-amber-400 text-amber-700 hover:bg-amber-50" : "border-gray-300 text-gray-600 hover:bg-gray-50"}`}
+                              onClick={() => resyncCodeMutation.mutate(booking.id)}
+                              disabled={resyncCodeMutation.isPending}
+                              data-testid={`btn-resync-${booking.id}`}
+                            >
+                              <RefreshCw className="h-3 w-3 mr-1" />
+                              {resyncCodeMutation.isPending ? "Syncing…" : "Resync Code"}
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>

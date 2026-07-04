@@ -1882,6 +1882,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           roomId: bookings.roomId,
           ttlockPasscode: bookings.ttlockPasscode,
           ttlockPasscodeId: bookings.ttlockPasscodeId,
+
           status: bookings.status,
         })
         .from(bookings)
@@ -2639,6 +2640,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Resync TTLock passcode for a booking and resend confirmation email
+  app.post("/api/admin/bookings/:id/resync-code", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const booking = await storage.getBooking(id);
+      if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+      const room = await storage.getRoom(booking.roomId);
+      if (!room) return res.status(404).json({ message: "Room not found" });
+
+      const user = await storage.getUser(booking.userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      if (!ttlockService) return res.status(503).json({ message: "TTLock not configured" });
+
+      // Delete old passcode from locks if it exists
+      if (booking.ttlockPasscodeId) {
+        if (room.lockId) await ttlockService.deletePasscode(room.lockId, parseInt(booking.ttlockPasscodeId)).catch(() => {});
+        if (room.interiorLockId) await ttlockService.deletePasscode(room.interiorLockId, parseInt(booking.ttlockPasscodeId)).catch(() => {});
+      }
+
+      // Build lock list (same logic as booking creation)
+      const lockIds: string[] = [];
+      if (room.lockId) lockIds.push(room.lockId);
+      if (room.interiorLockId) lockIds.push(room.interiorLockId);
+      // Always add front door lock
+      const FRONT_DOOR_LOCK_ID = "24518732";
+      if (!lockIds.includes(FRONT_DOOR_LOCK_ID)) lockIds.unshift(FRONT_DOOR_LOCK_ID);
+
+      const startDateTime = new Date(parseAsUKTime(booking.date, booking.startTime).getTime() - 15 * 60 * 1000);
+      const endDateTime = parseAsUKTime(booking.date, booking.endTime);
+
+      const lockResult = await ttlockService.createMultiLockPasscode(lockIds, startDateTime, endDateTime, booking.id, user.name);
+
+      // Update booking with new passcode
+      await db.update(bookings)
+        .set({
+          accessCode: lockResult.passcode,
+          ttlockPasscode: lockResult.passcode,
+          ttlockPasscodeId: lockResult.passcodeIds[0] > 0 ? lockResult.passcodeIds[0].toString() : null,
+        })
+        .where(eq(bookings.id, id));
+
+      // Resend confirmation email with new code
+      await sendBookingConfirmationEmail(
+        user.email,
+        user.name,
+        { id: booking.id, date: booking.date, startTime: booking.startTime, endTime: booking.endTime, accessCode: lockResult.passcode, totalPrice: booking.totalPrice },
+        { name: room.name }
+      );
+
+      const succeeded = lockResult.passcodeIds.filter(pid => pid > 0).length;
+      console.log(`[ADMIN] Resynced passcode for booking ${id}: ${succeeded}/${lockIds.length} locks, email resent to ${user.email}`);
+
+      res.json({ 
+        message: `Code resynced on ${succeeded}/${lockIds.length} locks. Confirmation email resent.`,
+        passcode: lockResult.passcode,
+        locksSucceeded: succeeded,
+        locksTotal: lockIds.length,
+      });
+    } catch (error) {
+      console.error('[ADMIN] Error resyncing passcode:', error);
+      res.status(500).json({ message: "Failed to resync code" });
+    }
+  });
+
   app.patch("/api/admin/bookings/:id", requireAuth, requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -2899,6 +2966,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalPrice: bookings.totalPrice,
           status: bookings.status,
           accessCode: bookings.accessCode,
+          ttlockPasscodeId: bookings.ttlockPasscodeId,
           lockAccessEnabled: bookings.lockAccessEnabled,
           createdAt: bookings.createdAt,
           groupCode: bookings.groupCode,
