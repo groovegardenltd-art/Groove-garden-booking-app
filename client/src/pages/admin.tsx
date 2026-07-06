@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle, XCircle, Clock, User, FileText, Shield, CalendarX, Plus, Trash2, Repeat, Calendar, MapPin, CreditCard, Phone, Mail, List, Grid3X3, ChevronRight, Edit, Key, Link2, Users, RefreshCw, AlertTriangle } from "lucide-react";
+import { CheckCircle, XCircle, Clock, User, FileText, Shield, CalendarX, Plus, Trash2, Repeat, Calendar, MapPin, CreditCard, Phone, Mail, List, Grid3X3, ChevronRight, Edit, Key, Link2, Users, RefreshCw, AlertTriangle, Search } from "lucide-react";
 import { Link } from "wouter";
 import { AdminCalendar } from "@/components/admin-calendar";
 import { getAuthState } from "@/lib/auth";
@@ -135,6 +135,7 @@ export default function Admin() {
   const [editBlockSlotDialogOpen, setEditBlockSlotDialogOpen] = useState(false);
   const [editingBlockSlot, setEditingBlockSlot] = useState<BlockedSlot | null>(null);
   const [bookingsViewMode, setBookingsViewMode] = useState<"calendar" | "list">("calendar");
+  const [bookingSearch, setBookingSearch] = useState("");
   const [showCleanupConfirm, setShowCleanupConfirm] = useState(false);
   const [expandedRecurringBlocks, setExpandedRecurringBlocks] = useState<Set<number>>(new Set());
   const [blockSlotData, setBlockSlotData] = useState({
@@ -617,7 +618,34 @@ export default function Admin() {
                 <AdminCalendar bookings={adminBookings} blockedSlots={Array.isArray(blockedSlots) ? blockedSlots : []} />
               ) : (
                 <div className="space-y-4" data-testid="admin-bookings-list">
-                  {adminBookings.slice(0, 10).map((booking: AdminBooking) => (
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Search by name, email or room..."
+                      value={bookingSearch}
+                      onChange={e => setBookingSearch(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                  {(() => {
+                    const today = new Date().toISOString().split("T")[0];
+                    const search = bookingSearch.toLowerCase();
+                    const filtered = [...adminBookings]
+                      .filter(b => !search || 
+                        b.userName?.toLowerCase().includes(search) ||
+                        b.userEmail?.toLowerCase().includes(search) ||
+                        b.roomName?.toLowerCase().includes(search))
+                      .sort((a, b) => {
+                        const aFuture = a.date >= today;
+                        const bFuture = b.date >= today;
+                        if (aFuture && !bFuture) return -1;
+                        if (!aFuture && bFuture) return 1;
+                        if (aFuture) return a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime);
+                        return b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime);
+                      });
+                    const visible = search ? filtered : filtered.slice(0, 20);
+                    return (<>
+                      {visible.map((booking: AdminBooking) => (
                     <div key={booking.id} className="border rounded-lg p-4 bg-gray-50" data-testid={`admin-booking-${booking.id}`}>
                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                         {/* Left Column - User & Booking Info */}
@@ -695,13 +723,17 @@ export default function Admin() {
                         </div>
                       </div>
                     </div>
-                  ))}
-                  
-                  {adminBookings.length > 10 && (
-                    <div className="text-center py-4 text-gray-500" data-testid="bookings-count-info">
-                      <p>Showing 10 most recent bookings out of {adminBookings.length} total</p>
-                    </div>
-                  )}
+                      ))}
+                      {!search && filtered.length > 20 && (
+                        <div className="text-center py-4 text-gray-500 text-sm" data-testid="bookings-count-info">
+                          Showing 20 of {filtered.length} bookings — search by name or room to find others.
+                        </div>
+                      )}
+                      {search && filtered.length === 0 && (
+                        <div className="text-center py-8 text-gray-500 text-sm">No bookings match "{bookingSearch}"</div>
+                      )}
+                    </>);
+                  })()}
                 </div>
               )}
             </CardContent>
