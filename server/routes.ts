@@ -2655,25 +2655,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (room.interiorLockId) await ttlockService.deletePasscode(room.interiorLockId, parseInt(booking.ttlockPasscodeId)).catch(() => {});
       }
 
-      // Build lock list (same logic as booking creation)
+      // Build lock list — same logic as booking creation (room's configured locks only)
       const lockIds: string[] = [];
       if (room.lockId) lockIds.push(room.lockId);
       if (room.interiorLockId) lockIds.push(room.interiorLockId);
-      // Always add front door lock
-      const FRONT_DOOR_LOCK_ID = "24518732";
-      if (!lockIds.includes(FRONT_DOOR_LOCK_ID)) lockIds.unshift(FRONT_DOOR_LOCK_ID);
 
       const startDateTime = new Date(parseAsUKTime(booking.date, booking.startTime).getTime() - 15 * 60 * 1000);
       const endDateTime = parseAsUKTime(booking.date, booking.endTime);
 
       const lockResult = await ttlockService.createMultiLockPasscode(lockIds, startDateTime, endDateTime, booking.id, user.name);
 
-      // Update booking with new passcode
+      // Update booking with new passcode — use first successful ID
+      const firstSuccessId = lockResult.passcodeIds.find(pid => pid > 0) ?? null;
       await db.update(bookings)
         .set({
           accessCode: lockResult.passcode,
           ttlockPasscode: lockResult.passcode,
-          ttlockPasscodeId: lockResult.passcodeIds[0] > 0 ? lockResult.passcodeIds[0].toString() : null,
+          ttlockPasscodeId: firstSuccessId ? firstSuccessId.toString() : null,
         })
         .where(eq(bookings.id, id));
 
