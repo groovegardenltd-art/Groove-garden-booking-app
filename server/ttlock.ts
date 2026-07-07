@@ -156,6 +156,7 @@ export class TTLockService {
           keyboardPwd: passcode,
           keyboardPwdName: passcodeName,
           keyboardPwdType: '2',        // 2 = period/timed passcode (start → end date)
+          addType: '2',                // 2 = add via Gateway (not Bluetooth)
           startDate: startTimeMs.toString(),
           endDate: endTimeMs.toString(),
           date: Date.now().toString(),
