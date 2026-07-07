@@ -284,7 +284,8 @@ export default function Admin() {
   });
 
   const resyncCodeMutation = useMutation({
-    mutationFn: (bookingId: number) => apiRequest("POST", `/api/admin/bookings/${bookingId}/resync-code`),
+    mutationFn: ({ bookingId, notify }: { bookingId: number; notify: boolean }) =>
+      apiRequest("POST", `/api/admin/bookings/${bookingId}/resync-code${notify ? '?notify=true' : ''}`),
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/bookings"] });
       toast({
@@ -708,17 +709,30 @@ export default function Admin() {
                             <div data-testid={`text-booking-id-${booking.id}`}>ID: #{booking.id}</div>
                           </div>
                           {booking.status === "confirmed" && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className={`text-xs h-7 ${!booking.ttlockPasscodeId ? "border-amber-400 text-amber-700 hover:bg-amber-50" : "border-gray-300 text-gray-600 hover:bg-gray-50"}`}
-                              onClick={() => resyncCodeMutation.mutate(booking.id)}
-                              disabled={resyncCodeMutation.isPending}
-                              data-testid={`btn-resync-${booking.id}`}
-                            >
-                              <RefreshCw className="h-3 w-3 mr-1" />
-                              {resyncCodeMutation.isPending ? "Syncing…" : "Resync Code"}
-                            </Button>
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className={`text-xs h-7 ${!booking.ttlockPasscodeId ? "border-amber-400 text-amber-700 hover:bg-amber-50" : "border-gray-300 text-gray-600 hover:bg-gray-50"}`}
+                                onClick={() => resyncCodeMutation.mutate({ bookingId: booking.id, notify: false })}
+                                disabled={resyncCodeMutation.isPending}
+                                data-testid={`btn-resync-${booking.id}`}
+                              >
+                                <RefreshCw className="h-3 w-3 mr-1" />
+                                {resyncCodeMutation.isPending ? "Syncing…" : "Resync Code"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs h-7 border-blue-300 text-blue-700 hover:bg-blue-50"
+                                onClick={() => resyncCodeMutation.mutate({ bookingId: booking.id, notify: true })}
+                                disabled={resyncCodeMutation.isPending}
+                                data-testid={`btn-resync-notify-${booking.id}`}
+                              >
+                                <RefreshCw className="h-3 w-3 mr-1" />
+                                Resync & Email
+                              </Button>
+                            </div>
                           )}
                         </div>
                       </div>

@@ -2678,8 +2678,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const succeeded = lockResult.passcodeIds.filter(pid => pid > 0).length;
       console.log(`[ADMIN] Resynced passcode for booking ${id}: ${succeeded}/${lockIds.length} locks`);
 
+      // Optionally send a new confirmation email to the customer
+      const notify = req.query.notify === 'true';
+      if (notify && succeeded > 0) {
+        try {
+          const room = await storage.getRoom(booking.roomId);
+          await sendBookingConfirmationEmail(
+            user.email,
+            user.name,
+            {
+              id: booking.id,
+              date: booking.date,
+              startTime: booking.startTime,
+              endTime: booking.endTime,
+              accessCode: lockResult.passcode,
+              totalPrice: booking.totalPrice ?? '0',
+            },
+            { name: room?.name ?? 'Studio', address: room?.address }
+          );
+          console.log(`[ADMIN] Resync confirmation email sent to ${user.email} for booking ${id}`);
+        } catch (emailErr) {
+          console.error('[ADMIN] Failed to send resync confirmation email:', emailErr);
+        }
+      }
+
       res.json({ 
-        message: `Code resynced on ${succeeded}/${lockIds.length} locks.`,
+        message: `Code resynced on ${succeeded}/${lockIds.length} locks.${notify && succeeded > 0 ? ' Confirmation email sent.' : ''}`,
         passcode: lockResult.passcode,
         locksSucceeded: succeeded,
         locksTotal: lockIds.length,
