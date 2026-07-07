@@ -152,7 +152,7 @@ export class TTLockService {
           lockId: lockId,
           keyboardPwd: passcode,
           keyboardPwdName: passcodeName,
-          keyboardPwdType: '3',        // 3 = time-limited passcode (enforced by lock hardware)
+          keyboardPwdType: '2',        // 2 = period/timed passcode (start → end date)
           startDate: startTimeMs.toString(),
           endDate: endTimeMs.toString(),
           date: Date.now().toString(),
