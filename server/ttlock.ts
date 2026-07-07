@@ -81,8 +81,8 @@ export class TTLockService {
   }
 
   private generatePasscode(bookingId: number): string {
-    // 8-digit code — TTLock gateway sync requires 6-9 digits (addType:2 enforces this)
-    return Math.floor(Math.random() * 90000000 + 10000000).toString();
+    // 6-digit code — TTLock gateway sync requires 6-9 digits (addType:2 enforces this)
+    return Math.floor(Math.random() * 900000 + 100000).toString();
   }
 
   async createTimeLimitedPasscode(
