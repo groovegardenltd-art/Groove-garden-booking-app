@@ -128,7 +128,10 @@ export class TTLockService {
       // Real TTLock API implementation
       const accessToken = await this.getAccessToken();
       const passcode = this.generatePasscode(bookingId);
-      const startTimeMs = startTime.getTime();
+      // If the booking has already started, use now as startDate so the gateway
+      // pushes immediately instead of waiting for a past sync point
+      const now = Date.now();
+      const startTimeMs = startTime.getTime() < now ? now - 60000 : startTime.getTime(); // 1 min buffer
       const endTimeMs = endTime.getTime();
 
       // Create descriptive passcode name with customer name if available
