@@ -81,8 +81,8 @@ export class TTLockService {
   }
 
   private generatePasscode(bookingId: number): string {
-    // Generate a random 10-digit code — proven length for TTLock hardware sync
-    return Math.floor(Math.random() * 9000000000 + 1000000000).toString();
+    // 8-digit code — TTLock gateway sync requires 6-9 digits (addType:2 enforces this)
+    return Math.floor(Math.random() * 90000000 + 10000000).toString();
   }
 
   async createTimeLimitedPasscode(
