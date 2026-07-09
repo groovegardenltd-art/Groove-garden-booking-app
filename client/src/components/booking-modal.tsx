@@ -128,6 +128,10 @@ export const BookingModal = React.memo(function BookingModal({
       .then(r => r.json())
       .then(data => {
         if (!data.freeBooking && data.clientSecret) {
+          // Set state immediately — this mounts <Elements> in the background so the
+          // Stripe iframe starts loading before the user even clicks the button.
+          setClientSecret(data.clientSecret);
+          setPaymentIntentId(data.paymentIntentId);
           return { clientSecret: data.clientSecret as string, paymentIntentId: data.paymentIntentId as string };
         }
         return null;
@@ -464,9 +468,15 @@ export const BookingModal = React.memo(function BookingModal({
       return;
     }
 
-    // Await the pre-created intent (may already be resolved = instant, or still
-    // in-flight = faster than starting fresh since the request began on checkbox tick).
-    // Falls back to on-demand creation if pre-creation failed or wasn't started.
+    // If the payment intent was already pre-created (clientSecret in state), the
+    // Stripe Elements iframe is already mounted and loaded — just reveal it instantly.
+    if (clientSecret) {
+      setShowPayment(true);
+      submittingRef.current = false;
+      return;
+    }
+
+    // Otherwise await the in-flight pre-creation promise, or create on demand as fallback.
     try {
       setIsSubmitting(true);
 
@@ -721,34 +731,48 @@ export const BookingModal = React.memo(function BookingModal({
           </DialogTitle>
         </DialogHeader>
 
-        {(isSubmitting || bookingMutation.isPending) && showPayment ? (
+        {/* Post-payment processing spinner */}
+        {(isSubmitting || bookingMutation.isPending) && showPayment && (
           <div className="text-center py-12 px-4">
             <div className="w-16 h-16 border-4 border-music-purple border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Setting Up Your Session</h3>
             <p className="text-gray-600 mb-4">Payment received! We're generating your access codes and confirming your booking.</p>
             <p className="text-sm text-gray-500">This may take a few moments...</p>
           </div>
-        ) : showPayment && clientSecret ? (
-          TEST_MODE ? (
-            <TestPaymentForm
-              amount={appliedPromoCode ? Number(appliedPromoCode.finalAmount) : calculatePrice(selectedDuration)}
-              onSuccess={handlePaymentSuccess}
-              onCancel={() => setShowPayment(false)}
-            />
-          ) : stripePromise ? (
-            <Elements stripe={stripePromise} options={{ clientSecret }}>
-              <PaymentForm
-                amount={appliedPromoCode ? Number(appliedPromoCode.finalAmount) : calculatePrice(selectedDuration)}
-                onSuccess={handlePaymentSuccess}
-                onCancel={() => setShowPayment(false)}
-              />
-            </Elements>
-          ) : (
+        )}
+
+        {/* Stripe Elements — mounted in DOM as soon as clientSecret is set so the iframe
+            pre-loads in the background. CSS display toggles visibility; the component
+            stays mounted so Stripe never has to reload from scratch. */}
+        {clientSecret && !TEST_MODE && (
+          stripePromise ? (
+            <div style={{ display: (showPayment && !isSubmitting && !bookingMutation.isPending) ? 'block' : 'none' }}>
+              <Elements stripe={stripePromise} options={{ clientSecret }}>
+                <PaymentForm
+                  amount={appliedPromoCode ? Number(appliedPromoCode.finalAmount) : calculatePrice(selectedDuration)}
+                  onSuccess={handlePaymentSuccess}
+                  onCancel={() => setShowPayment(false)}
+                />
+              </Elements>
+            </div>
+          ) : showPayment && (
             <div className="text-center p-8">
               <p className="text-red-600">Payment service not configured</p>
             </div>
           )
-        ) : (
+        )}
+
+        {/* Test mode payment form */}
+        {TEST_MODE && showPayment && !isSubmitting && !bookingMutation.isPending && (
+          <TestPaymentForm
+            amount={appliedPromoCode ? Number(appliedPromoCode.finalAmount) : calculatePrice(selectedDuration)}
+            onSuccess={handlePaymentSuccess}
+            onCancel={() => setShowPayment(false)}
+          />
+        )}
+
+        {/* Booking summary form — hidden when payment is active */}
+        {!showPayment && !isSubmitting && !bookingMutation.isPending && (
           <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
             <h4 className="font-medium text-gray-900 mb-2 sm:mb-3 text-sm sm:text-base">Booking Details</h4>
