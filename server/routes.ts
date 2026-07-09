@@ -67,11 +67,9 @@ async function processRefundIfEligible(booking: Booking): Promise<{
     return { refunded: false, reason: "No payment intent ID found - payment may have been made in test mode or before refund system was implemented" };
   }
 
-  // Calculate time difference between now and booking date+time
+  // Calculate time difference between now and booking date+time (use UK time to match booking timezone)
   const now = new Date();
-  const [year, month, day] = booking.date.split('-').map(Number);
-  const [hours, minutes] = booking.startTime.split(':').map(Number);
-  const bookingDateTime = new Date(year, month - 1, day, hours, minutes);
+  const bookingDateTime = parseAsUKTime(booking.date, booking.startTime);
   const hoursUntilBooking = (bookingDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
 
   // Check 48-hour policy
@@ -1244,7 +1242,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             ttlockPasscode = lockResult.passcode;
             ttlockPasscodeId = lockResult.passcodeIds[0]; // -1 if all attempts failed
-            lockAccessEnabled = false; // Disable smart lock due to persistent sync issues
+            lockAccessEnabled = lockResult.passcodeIds[0] !== -1; // true if at least one lock got the code
             
             // Check status of primary lock
             if (room.lockId) {
@@ -2163,7 +2161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               accessCode: ttlockPasscode || accessCode,
               ttlockPasscode: ttlockPasscode,
               ttlockPasscodeId: (ttlockPasscodeId && ttlockPasscodeId > 0) ? ttlockPasscodeId.toString() : undefined,
-              lockAccessEnabled: false,
+              lockAccessEnabled: !!(ttlockPasscodeId && ttlockPasscodeId > 0),
               stripePaymentIntentId: paymentIntentId,
               idNumber: user.idNumber || "",
               idType: user.idType || "",
