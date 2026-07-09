@@ -71,6 +71,10 @@ export const BookingModal = React.memo(function BookingModal({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const bookingHandledRef = useRef(false);
+  // Synchronous guard — prevents multiple concurrent submissions even before React re-renders
+  const submittingRef = useRef(false);
+  // Pre-created payment intent — populated when terms checkbox is ticked so button is instant
+  const prePaymentRef = useRef<{ clientSecret: string; paymentIntentId: string } | null>(null);
 
   // Get current user from auth state
   const { user: authUser } = getAuthState();
@@ -86,12 +90,47 @@ export const BookingModal = React.memo(function BookingModal({
   
   // Removed phone number logic - email confirmations only
 
-  // Session heartbeat - keep session alive while payment modal is open
+  // Reset guards and pre-created intent when modal opens/closes
   useEffect(() => {
     if (open) {
       bookingHandledRef.current = false;
+      submittingRef.current = false;
+    } else {
+      prePaymentRef.current = null;
     }
   }, [open]);
+
+  // Pre-create payment intent as soon as terms are ticked — makes the button feel instant
+  useEffect(() => {
+    if (!acceptedTerms || isFreeGroupBooking || TEST_MODE || !selectedRoom || !selectedDate || !selectedTime) {
+      prePaymentRef.current = null;
+      return;
+    }
+    // Don't create a second one if we already have one
+    if (prePaymentRef.current) return;
+
+    const finalAmount = appliedPromoCode ? Number(appliedPromoCode.finalAmount) : calculatePrice(selectedDuration);
+    const endTime = `${String(parseInt(selectedTime.split(':')[0]) + selectedDuration).padStart(2, '0')}:00`;
+
+    apiRequest("POST", "/api/create-payment-intent", {
+      amount: finalAmount,
+      currency: "gbp",
+      roomId: selectedRoom.id,
+      date: selectedDate,
+      startTime: selectedTime,
+      endTime,
+      duration: selectedDuration,
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.freeBooking && data.clientSecret) {
+          prePaymentRef.current = { clientSecret: data.clientSecret, paymentIntentId: data.paymentIntentId };
+        }
+      })
+      .catch(() => {
+        // Silent — will fall back to on-demand creation in handleSubmit
+      });
+  }, [acceptedTerms, appliedPromoCode, selectedDuration, selectedRoom, selectedDate, selectedTime]);
 
   useEffect(() => {
     if (!showPayment) return;
@@ -207,6 +246,7 @@ export const BookingModal = React.memo(function BookingModal({
     onSuccess: (booking) => {
       if (bookingHandledRef.current) return;
       bookingHandledRef.current = true;
+      submittingRef.current = false;
       console.log('✅ Booking created successfully:', booking);
       queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
       onBookingSuccess(booking);
@@ -220,6 +260,7 @@ export const BookingModal = React.memo(function BookingModal({
     },
     onError: async (error: any) => {
       if (bookingHandledRef.current) return;
+      submittingRef.current = false;
       console.error('❌ Booking creation failed:', error);
       
       const failedPaymentId = paymentIntentId;
@@ -383,8 +424,13 @@ export const BookingModal = React.memo(function BookingModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Synchronous guard — blocks re-entry before React re-renders the disabled button
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     
     if (!selectedRoom || !selectedDate || !selectedTime) {
+      submittingRef.current = false;
       toast({
         title: "Invalid Selection",
         description: "Please select a room, date, and time.",
@@ -394,6 +440,7 @@ export const BookingModal = React.memo(function BookingModal({
     }
 
     if (!acceptedTerms) {
+      submittingRef.current = false;
       toast({
         title: "Terms Required",
         description: "Please accept the terms and conditions.",
@@ -401,7 +448,6 @@ export const BookingModal = React.memo(function BookingModal({
       });
       return;
     }
-
 
     // For group bookings, skip payment entirely
     if (isFreeGroupBooking) {
@@ -415,28 +461,34 @@ export const BookingModal = React.memo(function BookingModal({
       return;
     }
 
-    // Create payment intent and show payment form
+    // Use pre-created payment intent if ready, otherwise create on demand
     try {
       setIsSubmitting(true);
-      
-      // Refresh session in background (don't block payment intent creation)
-      apiRequest("POST", "/api/auth/refresh-session").catch(() => {});
-      
-      const paymentData = await createPaymentIntent();
+
+      let paymentData: { clientSecret?: string; paymentIntentId?: string; freeBooking?: boolean };
+
+      if (prePaymentRef.current) {
+        paymentData = prePaymentRef.current;
+        prePaymentRef.current = null;
+      } else {
+        // Refresh session in background (don't block payment intent creation)
+        apiRequest("POST", "/api/auth/refresh-session").catch(() => {});
+        paymentData = await createPaymentIntent();
+      }
       
       // Handle free bookings (100% discount promo codes)
       if (paymentData.freeBooking) {
         console.log('🎁 Free booking - skipping payment form');
-        setPaymentIntentId(paymentData.paymentIntentId);
-        // Directly create booking without payment
+        setPaymentIntentId(paymentData.paymentIntentId!);
         await handleFreeBooking();
         return;
       }
       
-      setClientSecret(paymentData.clientSecret);
-      setPaymentIntentId(paymentData.paymentIntentId);
+      setClientSecret(paymentData.clientSecret!);
+      setPaymentIntentId(paymentData.paymentIntentId!);
       setShowPayment(true);
     } catch (error) {
+      submittingRef.current = false;
       toast({
         title: "Payment Setup Failed",
         description: "Failed to initialize payment. Please try again.",
@@ -450,7 +502,10 @@ export const BookingModal = React.memo(function BookingModal({
   const handleDirectBooking = async () => {
     setIsSubmitting(true);
 
-    if (!selectedRoom || !selectedDate || !selectedTime) return;
+    if (!selectedRoom || !selectedDate || !selectedTime) {
+      submittingRef.current = false;
+      return;
+    }
 
     const endTime = `${String(parseInt(selectedTime.split(':')[0]) + selectedDuration).padStart(2, '0')}:00`;
     
@@ -476,6 +531,7 @@ export const BookingModal = React.memo(function BookingModal({
 
     if (!selectedRoom || !selectedDate || !selectedTime) {
       console.error('Missing booking data:', { selectedRoom, selectedDate, selectedTime });
+      submittingRef.current = false;
       setIsSubmitting(false);
       toast({
         title: "Booking Error",
