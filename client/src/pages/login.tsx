@@ -328,6 +328,12 @@ export default function Login() {
                     </Link>
                   </div>
                   
+                  {loginMutation.isError && (
+                    <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+                      Invalid username or password. Please try again.
+                    </p>
+                  )}
+
                   <Button
                     type="submit"
                     className="w-full bg-green-600 hover:bg-green-700"
