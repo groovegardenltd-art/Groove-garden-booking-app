@@ -101,6 +101,16 @@ interface EmailParams {
   html?: string;
 }
 
+// Encode a header value using RFC 2047 base64 (required for any non-ASCII characters
+// such as emojis or em dashes — without this they render as garbled Ã¢ÂÂ characters).
+function encodeEmailHeader(value: string): string {
+  // Only encode if the string contains non-ASCII characters
+  if (/[^\x00-\x7F]/.test(value)) {
+    return `=?UTF-8?B?${Buffer.from(value, 'utf8').toString('base64')}?=`;
+  }
+  return value;
+}
+
 // Create RFC 2822 formatted email
 function createEmail(params: EmailParams): string {
   const boundary = 'boundary_' + Date.now().toString(16);
@@ -108,7 +118,7 @@ function createEmail(params: EmailParams): string {
   let email = [
     `From: ${params.from}`,
     `To: ${params.to}`,
-    `Subject: ${params.subject}`,
+    `Subject: ${encodeEmailHeader(params.subject)}`,
     'MIME-Version: 1.0',
     `Content-Type: multipart/alternative; boundary="${boundary}"`,
     '',
