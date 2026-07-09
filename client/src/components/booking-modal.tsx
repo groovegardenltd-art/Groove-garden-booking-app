@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,7 +70,8 @@ export const BookingModal = React.memo(function BookingModal({
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+  const bookingHandledRef = useRef(false);
+
   // Get current user from auth state
   const { user: authUser } = getAuthState();
   
@@ -86,6 +87,12 @@ export const BookingModal = React.memo(function BookingModal({
   // Removed phone number logic - email confirmations only
 
   // Session heartbeat - keep session alive while payment modal is open
+  useEffect(() => {
+    if (isOpen) {
+      bookingHandledRef.current = false;
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     if (!showPayment) return;
     
@@ -198,6 +205,8 @@ export const BookingModal = React.memo(function BookingModal({
       throw lastError || new Error("Booking failed after multiple attempts");
     },
     onSuccess: (booking) => {
+      if (bookingHandledRef.current) return;
+      bookingHandledRef.current = true;
       console.log('✅ Booking created successfully:', booking);
       queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
       onBookingSuccess(booking);
@@ -210,6 +219,7 @@ export const BookingModal = React.memo(function BookingModal({
       });
     },
     onError: async (error: any) => {
+      if (bookingHandledRef.current) return;
       console.error('❌ Booking creation failed:', error);
       
       const failedPaymentId = paymentIntentId;
