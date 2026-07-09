@@ -1118,6 +1118,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // 🛡️ FREE BOOKING DUPLICATE PROTECTION: same user/room/date/time already confirmed
+      if (paymentIntentId === 'free_booking' || paymentIntentId === 'test_mode_booking') {
+        const sameSlotBookings = await storage.getBookingsByRoomAndDate(bookingData.roomId, bookingData.date);
+        const existingOwn = sameSlotBookings.find(b =>
+          b.userId === authReq.userId &&
+          b.status === 'confirmed' &&
+          b.startTime === bookingData.startTime &&
+          b.endTime === bookingData.endTime
+        );
+        if (existingOwn) {
+          console.log(`⚠️ Duplicate free booking request for user ${authReq.userId} - returning existing booking #${existingOwn.id}`);
+          return res.status(200).json(existingOwn);
+        }
+      }
+
       // Skip verification for free bookings (100% discount promo codes) or test mode
       
       if (paymentIntentId === 'free_booking') {
