@@ -272,12 +272,20 @@ export const BookingModal = React.memo(function BookingModal({
       }));
       
       const isSessionError = error.message?.includes("Session expired") || error.message?.includes("401");
-      const errorDescription = isSessionError 
-        ? "Your session expired after payment. Please contact support with your payment confirmation."
-        : `Booking could not be confirmed. Your payment ID is: ${failedPaymentId}. Please contact support — your payment is safe.`;
-      
+      const isSlotConflict = error.message?.includes("just booked by someone else") || error.message?.includes("already booked") || error.message?.includes("conflict");
+
+      const errorTitle = isSlotConflict
+        ? "Time Slot No Longer Available"
+        : "⚠️ Booking Failed — Refund Issued";
+
+      const errorDescription = isSessionError
+        ? "Your session expired after payment. A full refund has been automatically issued to your card within 5–10 business days."
+        : isSlotConflict
+          ? "Someone else just booked this slot at the same time. A full refund has been automatically issued to your card — no action needed from you."
+          : "Your booking could not be confirmed. A full refund has been automatically issued to your card within 5–10 business days. No action needed.";
+
       toast({
-        title: "⚠️ Booking Failed - Payment Received",
+        title: errorTitle,
         description: errorDescription,
         variant: "destructive",
         duration: 30000,

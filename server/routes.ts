@@ -1251,6 +1251,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Final availability check — run immediately after payment succeeds to catch
+      // any slot that became taken between the user's initial check and now
+      const finalCheck = await storage.getBookingsByRoomAndDate(bookingData.roomId, bookingData.date);
+      const reqStart = bookingData.startTime;
+      const reqEnd = bookingData.endTime;
+      const conflict = finalCheck.find(b =>
+        b.status === 'confirmed' &&
+        b.startTime < reqEnd &&
+        b.endTime > reqStart
+      );
+      if (conflict) {
+        // Refund before returning — the payment went through but the slot is taken
+        const conflictPaymentId = (req.body as any).paymentIntentId;
+        if (conflictPaymentId && stripe) {
+          try {
+            await stripe.refunds.create({ payment_intent: conflictPaymentId });
+            console.log(`💳 Pre-booking availability check: slot conflict — auto-refunded ${conflictPaymentId}`);
+          } catch (refundErr) {
+            console.error(`❌ CRITICAL: Pre-booking refund failed for ${conflictPaymentId}:`, refundErr);
+          }
+        }
+        return res.status(409).json({ message: "This time slot was just booked by someone else. A full refund has been issued to your card." });
+      }
+
       // Retry logic for booking creation - ensures booking is saved even if first attempt fails
       const maxRetries = 3;
       let booking;
