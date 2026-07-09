@@ -88,10 +88,10 @@ export const BookingModal = React.memo(function BookingModal({
 
   // Session heartbeat - keep session alive while payment modal is open
   useEffect(() => {
-    if (isOpen) {
+    if (open) {
       bookingHandledRef.current = false;
     }
-  }, [isOpen]);
+  }, [open]);
 
   useEffect(() => {
     if (!showPayment) return;
