@@ -73,8 +73,9 @@ export const BookingModal = React.memo(function BookingModal({
   const bookingHandledRef = useRef(false);
   // Synchronous guard — prevents multiple concurrent submissions even before React re-renders
   const submittingRef = useRef(false);
-  // Pre-created payment intent — populated when terms checkbox is ticked so button is instant
-  const prePaymentRef = useRef<{ clientSecret: string; paymentIntentId: string } | null>(null);
+  // Stores the in-flight or resolved payment-intent promise so button clicks always join an
+  // already-started request rather than creating a brand-new one from scratch.
+  const prePaymentPromiseRef = useRef<Promise<{ clientSecret: string; paymentIntentId: string } | null> | null>(null);
 
   // Get current user from auth state
   const { user: authUser } = getAuthState();
@@ -96,23 +97,26 @@ export const BookingModal = React.memo(function BookingModal({
       bookingHandledRef.current = false;
       submittingRef.current = false;
     } else {
-      prePaymentRef.current = null;
+      prePaymentPromiseRef.current = null;
     }
   }, [open]);
 
-  // Pre-create payment intent as soon as terms are ticked — makes the button feel instant
+  // Pre-create payment intent as soon as terms are ticked.
+  // Stores the PROMISE (not just the result) so that if the user clicks the button
+  // while the request is still in-flight, handleSubmit awaits the same request
+  // instead of firing a second one — making it fast regardless of click timing.
   useEffect(() => {
     if (!acceptedTerms || isFreeGroupBooking || TEST_MODE || !selectedRoom || !selectedDate || !selectedTime) {
-      prePaymentRef.current = null;
+      prePaymentPromiseRef.current = null;
       return;
     }
-    // Don't create a second one if we already have one
-    if (prePaymentRef.current) return;
+    // Already have a promise in-flight or resolved — don't start another
+    if (prePaymentPromiseRef.current) return;
 
     const finalAmount = appliedPromoCode ? Number(appliedPromoCode.finalAmount) : calculatePrice(selectedDuration);
     const endTime = `${String(parseInt(selectedTime.split(':')[0]) + selectedDuration).padStart(2, '0')}:00`;
 
-    apiRequest("POST", "/api/create-payment-intent", {
+    prePaymentPromiseRef.current = apiRequest("POST", "/api/create-payment-intent", {
       amount: finalAmount,
       currency: "gbp",
       roomId: selectedRoom.id,
@@ -124,12 +128,11 @@ export const BookingModal = React.memo(function BookingModal({
       .then(r => r.json())
       .then(data => {
         if (!data.freeBooking && data.clientSecret) {
-          prePaymentRef.current = { clientSecret: data.clientSecret, paymentIntentId: data.paymentIntentId };
+          return { clientSecret: data.clientSecret as string, paymentIntentId: data.paymentIntentId as string };
         }
+        return null;
       })
-      .catch(() => {
-        // Silent — will fall back to on-demand creation in handleSubmit
-      });
+      .catch(() => null); // Silent — handleSubmit falls back to on-demand if null
   }, [acceptedTerms, appliedPromoCode, selectedDuration, selectedRoom, selectedDate, selectedTime]);
 
   useEffect(() => {
@@ -461,31 +464,34 @@ export const BookingModal = React.memo(function BookingModal({
       return;
     }
 
-    // Use pre-created payment intent if ready, otherwise create on demand
+    // Await the pre-created intent (may already be resolved = instant, or still
+    // in-flight = faster than starting fresh since the request began on checkbox tick).
+    // Falls back to on-demand creation if pre-creation failed or wasn't started.
     try {
       setIsSubmitting(true);
 
-      let paymentData: { clientSecret?: string; paymentIntentId?: string; freeBooking?: boolean };
+      let preResult: { clientSecret: string; paymentIntentId: string } | null = null;
 
-      if (prePaymentRef.current) {
-        paymentData = prePaymentRef.current;
-        prePaymentRef.current = null;
-      } else {
+      if (prePaymentPromiseRef.current) {
+        preResult = await prePaymentPromiseRef.current;
+        prePaymentPromiseRef.current = null;
+      }
+
+      if (!preResult) {
         // Refresh session in background (don't block payment intent creation)
         apiRequest("POST", "/api/auth/refresh-session").catch(() => {});
-        paymentData = await createPaymentIntent();
+        const data = await createPaymentIntent();
+        if (data.freeBooking) {
+          console.log('🎁 Free booking - skipping payment form');
+          setPaymentIntentId(data.paymentIntentId);
+          await handleFreeBooking();
+          return;
+        }
+        preResult = { clientSecret: data.clientSecret, paymentIntentId: data.paymentIntentId };
       }
-      
-      // Handle free bookings (100% discount promo codes)
-      if (paymentData.freeBooking) {
-        console.log('🎁 Free booking - skipping payment form');
-        setPaymentIntentId(paymentData.paymentIntentId!);
-        await handleFreeBooking();
-        return;
-      }
-      
-      setClientSecret(paymentData.clientSecret!);
-      setPaymentIntentId(paymentData.paymentIntentId!);
+
+      setClientSecret(preResult.clientSecret);
+      setPaymentIntentId(preResult.paymentIntentId);
       setShowPayment(true);
     } catch (error) {
       submittingRef.current = false;
