@@ -1201,8 +1201,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Generate access code
       const accessCode = generateAccessCode();
-      
+
+      // Final availability check — run BEFORE TTLock creation to avoid creating
+      // orphaned passcodes on the lock hardware for slots that are already taken
+      const finalCheck = await storage.getBookingsByRoomAndDate(bookingData.roomId, bookingData.date);
+      const reqStart = bookingData.startTime;
+      const reqEnd = bookingData.endTime;
+      const conflict = finalCheck.find(b =>
+        b.status === 'confirmed' &&
+        b.startTime < reqEnd &&
+        b.endTime > reqStart
+      );
+      if (conflict) {
+        // Refund before returning — the payment went through but the slot is taken
+        const conflictPaymentId = (req.body as any).paymentIntentId;
+        if (conflictPaymentId && stripe && conflictPaymentId !== 'free_booking' && !conflictPaymentId.includes('test')) {
+          try {
+            await stripe.refunds.create({ payment_intent: conflictPaymentId });
+            console.log(`💳 Pre-booking availability check: slot conflict — auto-refunded ${conflictPaymentId}`);
+          } catch (refundErr) {
+            console.error(`❌ CRITICAL: Pre-booking refund failed for ${conflictPaymentId}:`, refundErr);
+          }
+        }
+        return res.status(409).json({ message: "This time slot was just booked by someone else. A full refund has been issued to your card." });
+      }
+
       // TTLock integration - create smart lock passcode if service is available
+      // (runs after availability check so no codes are wasted on unavailable slots)
       let ttlockPasscode: string | undefined;
       let ttlockPasscodeId: number | undefined;
       let lockAccessEnabled = false;
@@ -1249,43 +1274,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const lockStatus = await ttlockService.getLockStatus(room.lockId);
               if (!lockStatus.isOnline) {
                 console.warn(`🚨 TTLock SYNC ISSUE: Temporary passcodes not reaching lock hardware despite gateway connectivity`);
-                console.warn(`🔧 RELIABLE ACCESS: Use initialization passcode 1123334 - works independently of gateway`);
-                console.warn(`📋 STATUS: Remote unlock works but temporary passcode sync remains broken`);
               }
             }
             
             console.log(`🔑 Multi-lock passcode created: ${maskPasscode(ttlockPasscode)} for booking ${bookingData.date} ${bookingData.startTime}-${bookingData.endTime}`);
             console.log(`🚪 Access configured: ${lockResult.passcodeIds.filter(id => id !== -1).length}/${lockIds.length} locks successful`);
-            console.log(`⚡ Customer can use code ${maskPasscode(ttlockPasscode)}# on both front door and ${room.name} interior door`);
           }
         } catch (error) {
           console.warn('Failed to create smart lock passcode:', error);
           // Continue with booking creation even if smart lock fails
         }
-      }
-      
-      // Final availability check — run immediately after payment succeeds to catch
-      // any slot that became taken between the user's initial check and now
-      const finalCheck = await storage.getBookingsByRoomAndDate(bookingData.roomId, bookingData.date);
-      const reqStart = bookingData.startTime;
-      const reqEnd = bookingData.endTime;
-      const conflict = finalCheck.find(b =>
-        b.status === 'confirmed' &&
-        b.startTime < reqEnd &&
-        b.endTime > reqStart
-      );
-      if (conflict) {
-        // Refund before returning — the payment went through but the slot is taken
-        const conflictPaymentId = (req.body as any).paymentIntentId;
-        if (conflictPaymentId && stripe) {
-          try {
-            await stripe.refunds.create({ payment_intent: conflictPaymentId });
-            console.log(`💳 Pre-booking availability check: slot conflict — auto-refunded ${conflictPaymentId}`);
-          } catch (refundErr) {
-            console.error(`❌ CRITICAL: Pre-booking refund failed for ${conflictPaymentId}:`, refundErr);
-          }
-        }
-        return res.status(409).json({ message: "This time slot was just booked by someone else. A full refund has been issued to your card." });
       }
 
       // Retry logic for booking creation - ensures booking is saved even if first attempt fails
