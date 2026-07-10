@@ -1083,9 +1083,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // In-flight booking lock: tracks payment intent IDs currently being processed.
+  // Prevents race conditions where two requests arrive within milliseconds of each other
+  // and both pass the DB duplicate check before either has written the booking record.
+  const inFlightBookings = new Set<string>();
+
   app.post("/api/bookings", requireAuth, async (req, res) => {
     let bookingCreatedOuter = false;
     let bookingIdOuter: number | undefined;
+    let lockKeyToRelease: string | undefined;
     try {
       const authReq = req as AuthenticatedRequest;
       
@@ -1106,11 +1112,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Payment intent ID is required" });
       }
 
+      // 🛡️ IN-FLIGHT LOCK: Block concurrent requests for the same payment intent.
+      // The DB duplicate check below only catches requests where the first has already
+      // committed — this catches the race where both arrive before either writes to DB.
+      const lockKey = paymentIntentId !== 'free_booking' && paymentIntentId !== 'test_mode_booking'
+        ? paymentIntentId
+        : `free_${authReq.userId}_${bookingData.roomId}_${bookingData.date}_${bookingData.startTime}`;
+      
+      if (inFlightBookings.has(lockKey)) {
+        console.log(`⚠️ In-flight duplicate blocked for key ${lockKey.slice(0, 20)}... — waiting for first request to complete`);
+        // Poll for up to 10s for the first request to finish and write the booking
+        for (let i = 0; i < 20; i++) {
+          await new Promise(r => setTimeout(r, 500));
+          if (!inFlightBookings.has(lockKey)) break;
+        }
+        // Now check if a booking was created by the first request
+        if (paymentIntentId !== 'free_booking' && paymentIntentId !== 'test_mode_booking') {
+          const existingBooking = await storage.getBookingByPaymentIntent(paymentIntentId);
+          if (existingBooking) {
+            console.log(`✅ Returning booking #${existingBooking.id} created by first request`);
+            return res.status(200).json(existingBooking);
+          }
+        }
+      }
+      
+      inFlightBookings.add(lockKey);
+      lockKeyToRelease = lockKey;
+
       // 🛡️ DUPLICATE REQUEST PROTECTION: Check if a booking already exists for this payment intent
       // This prevents client-side retries from creating duplicate TTLock codes or triggering false refunds
       if (paymentIntentId !== 'free_booking' && paymentIntentId !== 'test_mode_booking') {
         const existingBooking = await storage.getBookingByPaymentIntent(paymentIntentId);
         if (existingBooking) {
+          inFlightBookings.delete(lockKey);
           console.log(`⚠️ Duplicate booking request detected for payment ${paymentIntentId} - returning existing booking #${existingBooking.id}`);
           return res.status(200).json(existingBooking);
         }
@@ -1461,6 +1495,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Return 500 for other errors
       const errorStack = error instanceof Error ? error.stack : undefined;
       res.status(500).json({ message: "Failed to create booking", error: errorMessage, stack: errorStack });
+    } finally {
+      // Always release the in-flight lock so subsequent legitimate requests can proceed
+      if (lockKeyToRelease) inFlightBookings.delete(lockKeyToRelease);
     }
   });
 
