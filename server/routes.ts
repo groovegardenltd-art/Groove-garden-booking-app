@@ -997,12 +997,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Block past time slots on today's date so the calendar shows them as unavailable.
       // Uses UK local time (BST = UTC+1 in summer, GMT = UTC in winter).
+      // Grace period: slots are bookable on the hour and up to 30 mins in — blocked after that.
       const nowUK = new Date(new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' }));
       const todayUK = `${nowUK.getFullYear()}-${String(nowUK.getMonth() + 1).padStart(2, '0')}-${String(nowUK.getDate()).padStart(2, '0')}`;
       if (date === todayUK) {
         const currentHour = nowUK.getHours();
-        // Mark every slot from 00:00 up to and including the current hour as booked
-        for (let h = 0; h <= currentHour; h++) {
+        const currentMinutes = nowUK.getMinutes();
+        // Slot is blocked if more than 30 minutes have passed since it started
+        const lastBlockedHour = currentMinutes > 30 ? currentHour : currentHour - 1;
+        for (let h = 0; h <= lastBlockedHour; h++) {
           const slotStart = `${String(h).padStart(2, '0')}:00`;
           const slotEnd = `${String(h + 1).padStart(2, '0')}:00`;
           const alreadyCovered = bookedSlots.some(s => s.startTime <= slotStart && s.endTime >= slotEnd);
@@ -1221,15 +1224,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // 🕐 PAST TIME SLOT CHECK: Reject bookings for slots that have already started today
+      // 🕐 PAST TIME SLOT CHECK: Reject bookings for slots that are no longer bookable.
+      // Grace period: bookable on the hour and up to 30 mins in — rejected after that.
       const nowUK = new Date(new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' }));
       const todayUK = `${nowUK.getFullYear()}-${String(nowUK.getMonth() + 1).padStart(2, '0')}-${String(nowUK.getDate()).padStart(2, '0')}`;
       if (bookingData.date === todayUK) {
         const slotHour = parseInt(bookingData.startTime.split(':')[0]);
-        if (nowUK.getHours() >= slotHour) {
+        const nowHour = nowUK.getHours();
+        const nowMinutes = nowUK.getMinutes();
+        const slotExpired = nowHour > slotHour || (nowHour === slotHour && nowMinutes > 30);
+        if (slotExpired) {
           inFlightBookings.delete(lockKeyToRelease!);
           lockKeyToRelease = undefined;
-          return res.status(400).json({ message: "This time slot has already started. Please select a future time slot." });
+          return res.status(400).json({ message: "This time slot is no longer available. Please select a future time slot." });
         }
       }
 

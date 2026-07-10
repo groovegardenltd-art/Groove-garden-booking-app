@@ -189,15 +189,18 @@ export function BookingCalendar({
     return dateUTC < todayUTC;
   };
 
-  // Returns true if the time slot has already started on today's date, or the date is in the past.
-  // Uses the browser's local clock — correct for UK users.
+  // Returns true if the time slot is no longer bookable on today's date, or the date is in the past.
+  // Allows booking on the hour or up to 30 minutes into it — blocks after 30 mins have passed.
   const isPastTimeSlot = (date: Date, time: string) => {
     if (isPastDate(date)) return true;
     if (isToday(date)) {
       const slotHour = parseInt(time.split(':')[0]);
-      const nowHour = new Date().getHours();
-      // Block any slot that has already started (current hour >= slot hour)
-      return nowHour >= slotHour;
+      const now = new Date();
+      const nowHour = now.getHours();
+      const nowMinutes = now.getMinutes();
+      if (nowHour > slotHour) return true;
+      if (nowHour === slotHour && nowMinutes > 30) return true;
+      return false;
     }
     return false;
   };
