@@ -994,6 +994,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           endTime: slot.endTime
         }))
       ];
+
+      // Block past time slots on today's date so the calendar shows them as unavailable.
+      // Uses UK local time (BST = UTC+1 in summer, GMT = UTC in winter).
+      const nowUK = new Date(new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' }));
+      const todayUK = `${nowUK.getFullYear()}-${String(nowUK.getMonth() + 1).padStart(2, '0')}-${String(nowUK.getDate()).padStart(2, '0')}`;
+      if (date === todayUK) {
+        const currentHour = nowUK.getHours();
+        // Mark every slot from 00:00 up to and including the current hour as booked
+        for (let h = 0; h <= currentHour; h++) {
+          const slotStart = `${String(h).padStart(2, '0')}:00`;
+          const slotEnd = `${String(h + 1).padStart(2, '0')}:00`;
+          const alreadyCovered = bookedSlots.some(s => s.startTime <= slotStart && s.endTime >= slotEnd);
+          if (!alreadyCovered) {
+            bookedSlots.push({ startTime: slotStart, endTime: slotEnd });
+          }
+        }
+      }
       
       console.log(`✅ Returning ${bookedSlots.length} total booked slots`);
       res.json({ date, bookedSlots });
@@ -1204,6 +1221,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // 🕐 PAST TIME SLOT CHECK: Reject bookings for slots that have already started today
+      const nowUK = new Date(new Date().toLocaleString('en-GB', { timeZone: 'Europe/London' }));
+      const todayUK = `${nowUK.getFullYear()}-${String(nowUK.getMonth() + 1).padStart(2, '0')}-${String(nowUK.getDate()).padStart(2, '0')}`;
+      if (bookingData.date === todayUK) {
+        const slotHour = parseInt(bookingData.startTime.split(':')[0]);
+        if (nowUK.getHours() >= slotHour) {
+          inFlightBookings.delete(lockKeyToRelease!);
+          lockKeyToRelease = undefined;
+          return res.status(400).json({ message: "This time slot has already started. Please select a future time slot." });
+        }
+      }
+
       // ⚠️ Conflict checking happens inside the transaction in storage.createBooking()
       // to prevent race conditions. Don't check here - let the transaction handle it.
       

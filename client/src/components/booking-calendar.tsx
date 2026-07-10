@@ -189,6 +189,19 @@ export function BookingCalendar({
     return dateUTC < todayUTC;
   };
 
+  // Returns true if the time slot has already started on today's date, or the date is in the past.
+  // Uses the browser's local clock — correct for UK users.
+  const isPastTimeSlot = (date: Date, time: string) => {
+    if (isPastDate(date)) return true;
+    if (isToday(date)) {
+      const slotHour = parseInt(time.split(':')[0]);
+      const nowHour = new Date().getHours();
+      // Block any slot that has already started (current hour >= slot hour)
+      return nowHour >= slotHour;
+    }
+    return false;
+  };
+
   const handleDateClick = (date: Date) => {
     if (!isPastDate(date)) {
       onDateSelect(formatDate(date));
@@ -196,7 +209,8 @@ export function BookingCalendar({
   };
 
   const handleTimeClick = (time: string) => {
-    if (selectedRoom && selectedDate && isTimeSlotAvailable(time, selectedDuration)) {
+    const dateObj = weekDays.find(d => formatDate(d) === selectedDate);
+    if (selectedRoom && selectedDate && isTimeSlotAvailable(time, selectedDuration) && !(dateObj && isPastTimeSlot(dateObj, time))) {
       onTimeSelect(time);
       
       // Auto-adjust duration for Live Room evening bookings if current duration is less than 3 hours
@@ -418,7 +432,7 @@ export function BookingCalendar({
                     const isSelectedSlot = selectedDate === dateStr && selectedTime === hour.time;
                     const isInBookingRange = selectedDate === dateStr && isTimeInBookingRange(hour.time);
                     const isStart = selectedDate === dateStr && isStartTime(hour.time);
-                    const isPast = isPastDate(date);
+                    const isPast = isPastTimeSlot(date, hour.time);
                     
                     let buttonClass = "p-1 sm:p-2 border rounded text-xs sm:text-sm transition-all duration-200 min-h-[40px] sm:min-h-[35px] flex items-center justify-center min-w-[70px] sm:min-w-[75px] ";
                     let buttonText = "•";
