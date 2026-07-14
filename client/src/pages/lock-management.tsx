@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Plus, Lock, CheckCircle, XCircle, RefreshCw, AlertCircle, DoorOpen } from "lucide-react";
+import { Trash2, Plus, Lock, CheckCircle, XCircle, RefreshCw, AlertCircle, DoorOpen, ShieldAlert } from "lucide-react";
 import { Header } from "@/components/header";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -25,6 +25,12 @@ export default function LockManagement() {
     success: number;
     failed: number;
     errors: { bookingId: number; error: string }[];
+  } | null>(null);
+  const [purgeResults, setPurgeResults] = useState<{
+    deleted: number;
+    kept: number;
+    failed: number;
+    errors: string[];
   } | null>(null);
 
   // Fetch rooms
@@ -163,6 +169,28 @@ export default function LockManagement() {
     },
   });
 
+  // Purge all old/orphaned codes from the lock
+  const purgeLockCodesMutation = useMutation({
+    mutationFn: async (lockId: string) => {
+      const response = await apiRequest("POST", "/api/admin/purge-lock-codes", { lockId });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setPurgeResults(data);
+      toast({
+        title: "Purge Complete",
+        description: data.message,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Purge Failed",
+        description: error.message || "Failed to purge old codes",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleAddLock = () => {
     if (!newLockData.roomId || !newLockData.lockId || !newLockData.lockName) {
       toast({
@@ -265,6 +293,68 @@ export default function LockManagement() {
                 {testConnectionMutation.isPending ? "Testing..." : "Test Connection"}
               </Button>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Purge Old Codes */}
+        <Card className="mb-8 border-red-200 bg-red-50">
+          <CardHeader>
+            <CardTitle className="flex items-center text-red-800">
+              <ShieldAlert className="mr-2 h-5 w-5" />
+              Purge Old Codes from Lock
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-white p-4 rounded-lg mb-4">
+              <div className="flex items-start gap-3 mb-4">
+                <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold text-red-800">Remove accumulated old codes</h4>
+                  <p className="text-sm text-gray-600">
+                    This fetches all codes currently stored in the TTLock cloud for the front door lock and deletes
+                    every one that isn't tied to a current or future confirmed booking. Use this to clear
+                    the backlog of inactive codes and free up lock storage.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-500">Lock ID: {rooms[0]?.lockId || "Not configured"}</p>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    const lockId = rooms[0]?.lockId;
+                    if (lockId) {
+                      setPurgeResults(null);
+                      purgeLockCodesMutation.mutate(lockId);
+                    }
+                  }}
+                  disabled={purgeLockCodesMutation.isPending || !rooms[0]?.lockId}
+                >
+                  {purgeLockCodesMutation.isPending ? (
+                    <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Purging...</>
+                  ) : (
+                    <><Trash2 className="mr-2 h-4 w-4" /> Purge Old Codes</>
+                  )}
+                </Button>
+              </div>
+            </div>
+            {purgeResults && (
+              <div className="bg-white p-4 rounded-lg border">
+                <h4 className="font-semibold mb-2">Results</h4>
+                <div className="flex gap-4 text-sm">
+                  <span className="text-red-600 font-medium">🗑 {purgeResults.deleted} deleted</span>
+                  <span className="text-green-600 font-medium">✅ {purgeResults.kept} kept (active bookings)</span>
+                  {purgeResults.failed > 0 && (
+                    <span className="text-orange-600 font-medium">⚠️ {purgeResults.failed} failed</span>
+                  )}
+                </div>
+                {purgeResults.errors.length > 0 && (
+                  <ul className="mt-2 text-xs text-red-600 space-y-1">
+                    {purgeResults.errors.map((e, i) => <li key={i}>{e}</li>)}
+                  </ul>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 

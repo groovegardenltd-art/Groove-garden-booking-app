@@ -329,6 +329,74 @@ export class TTLockService {
     }
   }
 
+  // Fetch every passcode currently stored on a lock from the TTLock cloud.
+  // Returns an array of { keyboardPwdId, keyboardPwdName, keyboardPwdType, startDate, endDate, isCustom, status }
+  async listPasscodes(lockId: string): Promise<any[]> {
+    try {
+      const accessToken = await this.getAccessToken();
+      const allCodes: any[] = [];
+      let pageNo = 1;
+      const pageSize = 100;
+
+      while (true) {
+        const response = await fetch(`${this.baseUrl}/v3/lock/listKeyboardPwd`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            clientId: this.config.clientId,
+            accessToken,
+            lockId,
+            pageNo: pageNo.toString(),
+            pageSize: pageSize.toString(),
+            date: Date.now().toString(),
+          }),
+        });
+
+        if (!response.ok) break;
+        const data = await response.json();
+        const list: any[] = data.list || [];
+        allCodes.push(...list);
+        if (list.length < pageSize) break; // last page
+        pageNo++;
+      }
+
+      return allCodes;
+    } catch (error) {
+      console.error('Failed to list TTLock passcodes:', error);
+      return [];
+    }
+  }
+
+  // Delete every passcode on the lock that is NOT in the keepIds set.
+  // Returns { deleted, failed, kept } counts.
+  async purgeOrphanedPasscodes(
+    lockId: string,
+    keepIds: Set<number>
+  ): Promise<{ deleted: number; failed: number; kept: number; errors: string[] }> {
+    const allCodes = await this.listPasscodes(lockId);
+    let deleted = 0, failed = 0, kept = 0;
+    const errors: string[] = [];
+
+    for (const code of allCodes) {
+      const id: number = code.keyboardPwdId;
+      if (keepIds.has(id)) {
+        kept++;
+        continue;
+      }
+      const ok = await this.deletePasscode(lockId, id);
+      if (ok) {
+        deleted++;
+        console.log(`🧹 Purged orphaned code "${code.keyboardPwdName}" (ID ${id}) from lock ${lockId}`);
+      } else {
+        failed++;
+        errors.push(`Failed to delete code ID ${id} (${code.keyboardPwdName || 'unnamed'})`);
+      }
+    }
+
+    console.log(`🧹 Purge complete for lock ${lockId}: ${deleted} deleted, ${kept} kept, ${failed} failed`);
+    return { deleted, failed, kept, errors };
+  }
+
   async getAccessLogs(lockId: string, startTime: Date, endTime: Date): Promise<any[]> {
     try {
       const accessToken = await this.getAccessToken();

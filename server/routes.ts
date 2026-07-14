@@ -2743,6 +2743,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Resync TTLock passcode for a booking and resend confirmation email
+  // Purge all TTLock codes NOT tied to an active future booking.
+  app.post("/api/admin/purge-lock-codes", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      if (!ttlockService) {
+        return res.status(503).json({ message: "TTLock service not configured" });
+      }
+
+      const { lockId } = req.body;
+      if (!lockId) {
+        return res.status(400).json({ message: "lockId is required" });
+      }
+
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      const activeBookings = await db
+        .select({
+          ttlockPasscodeId: bookings.ttlockPasscodeId,
+          ttlockPasscodeIds: bookings.ttlockPasscodeIds,
+        })
+        .from(bookings)
+        .where(
+          and(
+            gte(bookings.date, todayStr),
+            eq(bookings.status, 'confirmed'),
+            isNotNull(bookings.ttlockPasscode)
+          )
+        );
+
+      const keepIds = new Set<number>();
+      for (const b of activeBookings) {
+        if (b.ttlockPasscodeId) {
+          const parsed = parseInt(b.ttlockPasscodeId, 10);
+          if (!isNaN(parsed)) keepIds.add(parsed);
+        }
+        if (b.ttlockPasscodeIds) {
+          const arr: number[] = Array.isArray(b.ttlockPasscodeIds)
+            ? b.ttlockPasscodeIds
+            : (JSON.parse(b.ttlockPasscodeIds as string) as number[]);
+          arr.forEach(id => keepIds.add(id));
+        }
+      }
+
+      console.log(`🧹 Starting purge for lock ${lockId}. Keeping ${keepIds.size} passcode IDs.`);
+      const result = await ttlockService.purgeOrphanedPasscodes(lockId, keepIds);
+
+      res.json({
+        message: `Purge complete: ${result.deleted} deleted, ${result.kept} kept, ${result.failed} failed`,
+        ...result,
+      });
+    } catch (error) {
+      console.error('Purge lock codes error:', error);
+      res.status(500).json({
+        message: "Failed to purge lock codes",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  });
+
   app.post("/api/admin/bookings/:id/resync-code", requireAuth, requireAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
