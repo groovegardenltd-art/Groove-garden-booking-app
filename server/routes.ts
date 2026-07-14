@@ -2758,10 +2758,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const todayStr = new Date().toISOString().split('T')[0];
 
       const activeBookings = await db
-        .select({
-          ttlockPasscodeId: bookings.ttlockPasscodeId,
-          ttlockPasscodeIds: bookings.ttlockPasscodeIds,
-        })
+        .select({ ttlockPasscodeId: bookings.ttlockPasscodeId })
         .from(bookings)
         .where(
           and(
@@ -2776,12 +2773,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (b.ttlockPasscodeId) {
           const parsed = parseInt(b.ttlockPasscodeId, 10);
           if (!isNaN(parsed)) keepIds.add(parsed);
-        }
-        if (b.ttlockPasscodeIds) {
-          const arr: number[] = Array.isArray(b.ttlockPasscodeIds)
-            ? b.ttlockPasscodeIds
-            : (JSON.parse(b.ttlockPasscodeIds as string) as number[]);
-          arr.forEach(id => keepIds.add(id));
         }
       }
 
