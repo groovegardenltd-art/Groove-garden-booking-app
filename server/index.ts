@@ -310,7 +310,7 @@ async function runStartupTasks() {
   };
 
   await deleteExpiredPasscodes();
-  setInterval(deleteExpiredPasscodes, 60 * 60 * 1000); // every hour
+  setInterval(deleteExpiredPasscodes, 15 * 60 * 1000); // every 15 minutes
 
   // Keep the database connection alive every 4 minutes to prevent Neon cold-start delays
   const DB_KEEPALIVE_MS = 4 * 60 * 1000;
