@@ -397,6 +397,28 @@ export class TTLockService {
     return { deleted, failed, kept, errors };
   }
 
+  // Delete ALL codes on a lock that belong to a specific booking ID.
+  // Codes are named "CustomerName #bookingId" or "Booking-bookingId" — match on the numeric suffix.
+  async deleteAllBookingCodes(lockId: string, bookingId: number): Promise<number> {
+    const allCodes = await this.listPasscodes(lockId);
+    const suffix = `#${bookingId}`;
+    const altSuffix = `-${bookingId}`;
+    const matching = allCodes.filter(c =>
+      (c.keyboardPwdName ?? '').endsWith(suffix) ||
+      (c.keyboardPwdName ?? '').endsWith(altSuffix)
+    );
+
+    let deleted = 0;
+    for (const code of matching) {
+      const ok = await this.deletePasscode(lockId, code.keyboardPwdId);
+      if (ok) {
+        deleted++;
+        console.log(`🗑 Deleted stale code "${code.keyboardPwdName}" (ID ${code.keyboardPwdId}) for booking ${bookingId}`);
+      }
+    }
+    return deleted;
+  }
+
   async getAccessLogs(lockId: string, startTime: Date, endTime: Date): Promise<any[]> {
     try {
       const accessToken = await this.getAccessToken();

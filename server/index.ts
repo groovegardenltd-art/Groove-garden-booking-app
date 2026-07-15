@@ -354,6 +354,11 @@ async function runStartupTasks() {
           const startDateTime = new Date(parseAsUKTime(booking.date, booking.startTime).getTime() - 15 * 60 * 1000);
           const endDateTime = parseAsUKTime(booking.date, booking.endTime);
 
+          // Delete any orphaned codes for this booking before creating a fresh one
+          for (const lid of lockIds) {
+            await ttlockService.deleteAllBookingCodes(lid, booking.id).catch(() => {});
+          }
+
           const lockResult = await ttlockService.createMultiLockPasscode(
             lockIds, startDateTime, endDateTime, booking.id, user?.name
           );
