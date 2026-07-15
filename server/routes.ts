@@ -2806,7 +2806,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!ttlockService) return res.status(503).json({ message: "TTLock not configured" });
 
-      // Delete ALL codes for this booking from TTLock (by name match) to eliminate orphans
+      // Delete the known code by stored ID first (catches the original booking code)
+      if (booking.ttlockPasscodeId) {
+        if (room.lockId) await ttlockService.deletePasscode(room.lockId, parseInt(booking.ttlockPasscodeId)).catch(() => {});
+        if (room.interiorLockId) await ttlockService.deletePasscode(room.interiorLockId, parseInt(booking.ttlockPasscodeId)).catch(() => {});
+      }
+      // Also scan by name to delete any orphans from previous resyncs
       if (room.lockId) await ttlockService.deleteAllBookingCodes(room.lockId, id).catch(() => {});
       if (room.interiorLockId) await ttlockService.deleteAllBookingCodes(room.interiorLockId, id).catch(() => {});
 
