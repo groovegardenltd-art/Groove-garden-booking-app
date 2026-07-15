@@ -527,6 +527,46 @@ export default function Admin() {
           </div>
         </div>
 
+        {/* Unsynced lock codes alert */}
+        {(() => {
+          const today = new Date().toISOString().split('T')[0];
+          const unsynced = (adminBookings ?? []).filter(
+            b => b.status === 'confirmed' && b.accessCode && !b.ttlockPasscodeId && b.date >= today
+          );
+          if (unsynced.length === 0) return null;
+          return (
+            <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-semibold text-amber-800">
+                    {unsynced.length} booking{unsynced.length > 1 ? 's' : ''} not synced to lock
+                  </p>
+                  <p className="text-sm text-amber-700 mb-3">These customers won't be able to get in unless the code is resynced.</p>
+                  <div className="flex flex-wrap gap-2">
+                    {unsynced.map(b => (
+                      <div key={b.id} className="flex items-center gap-2 bg-white border border-amber-200 rounded px-3 py-1.5 text-sm">
+                        <span className="font-medium">{b.userName}</span>
+                        <span className="text-gray-500">{b.date} {b.startTime}–{b.endTime}</span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 text-xs border-amber-400 text-amber-700 hover:bg-amber-50 px-2"
+                          onClick={() => resyncCodeMutation.mutate({ bookingId: b.id, notify: true })}
+                          disabled={resyncCodeMutation.isPending}
+                        >
+                          <RefreshCw className="h-3 w-3 mr-1" />
+                          Resync & Email
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Bookings Overview */}
         <div className="mb-8" data-testid="section-admin-bookings">
           <Card>
