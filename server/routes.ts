@@ -15,7 +15,7 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 
 // Parse a date+time stored as UK local time (BST/GMT) and return a UTC Date for TTLock
-function parseAsUKTime(dateStr: string, timeStr: string): Date {
+export function parseAsUKTime(dateStr: string, timeStr: string): Date {
   const [year, month, day] = dateStr.split('-').map(Number);
   const [hours, minutes] = timeStr.split(':').map(Number);
   // Create a temporary UTC timestamp to determine the UK offset at that moment

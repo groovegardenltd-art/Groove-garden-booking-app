@@ -312,6 +312,76 @@ async function runStartupTasks() {
   await deleteExpiredPasscodes();
   setInterval(deleteExpiredPasscodes, 15 * 60 * 1000); // every 15 minutes
 
+  // Auto-resync any confirmed future bookings where TTLock code was never registered
+  const autoResyncUnsynced = async () => {
+    try {
+      const { db } = await import('./db');
+      const { bookings } = await import('../shared/schema');
+      const { eq, and, gte, isNotNull, isNull } = await import('drizzle-orm');
+      const { storage } = await import('./storage');
+      const { createTTLockService } = await import('./ttlock');
+      const { parseAsUKTime } = await import('./routes');
+
+      const ttlockService = createTTLockService();
+      if (!ttlockService) return;
+
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      const unsynced = await db.select().from(bookings).where(
+        and(
+          gte(bookings.date, todayStr),
+          eq(bookings.status, 'confirmed'),
+          isNotNull(bookings.ttlockPasscode),
+          isNull(bookings.ttlockPasscodeId)
+        )
+      );
+
+      if (unsynced.length === 0) return;
+
+      log(`🔄 Auto-resync: found ${unsynced.length} booking(s) missing TTLock registration`);
+
+      for (const booking of unsynced) {
+        try {
+          const room = await storage.getRoom(booking.roomId);
+          if (!room) continue;
+
+          const lockIds: string[] = [];
+          if (room.lockId) lockIds.push(room.lockId);
+          if (room.interiorLockId) lockIds.push(room.interiorLockId);
+          if (lockIds.length === 0) continue;
+
+          const user = await storage.getUser(booking.userId);
+          const startDateTime = new Date(parseAsUKTime(booking.date, booking.startTime).getTime() - 15 * 60 * 1000);
+          const endDateTime = parseAsUKTime(booking.date, booking.endTime);
+
+          const lockResult = await ttlockService.createMultiLockPasscode(
+            lockIds, startDateTime, endDateTime, booking.id, user?.name
+          );
+
+          const firstSuccessId = lockResult.passcodeIds.find(pid => pid > 0) ?? null;
+          if (firstSuccessId) {
+            await db.update(bookings)
+              .set({
+                ttlockPasscodeId: firstSuccessId.toString(),
+                lockAccessEnabled: true,
+              })
+              .where(eq(bookings.id, booking.id));
+            log(`✅ Auto-resynced TTLock code for booking ${booking.id} (${booking.date} ${booking.startTime})`);
+          } else {
+            log(`⚠️ Auto-resync failed for booking ${booking.id} — TTLock returned no valid ID`);
+          }
+        } catch (err) {
+          log(`⚠️ Auto-resync error for booking ${booking.id}:`, String(err));
+        }
+      }
+    } catch (err) {
+      log('⚠️ Auto-resync job failed:', String(err));
+    }
+  };
+
+  await autoResyncUnsynced();
+  setInterval(autoResyncUnsynced, 10 * 60 * 1000); // every 10 minutes
+
   // Keep the database connection alive every 4 minutes to prevent Neon cold-start delays
   const DB_KEEPALIVE_MS = 4 * 60 * 1000;
   const keepAlive = async () => {
