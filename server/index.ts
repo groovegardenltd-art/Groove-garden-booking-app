@@ -55,23 +55,26 @@ app.use((req, res, next) => {
       log(`Error handled: ${status} - ${message}`);
     });
 
-    // Set up Vite (dev) or static serving (prod) before listening
-    if (app.get("env") === "development") {
-      await setupVite(app, server);
-    } else {
-      serveStatic(app);
-    }
-
-    // Open the port IMMEDIATELY so deployment health checks pass
     const port = 5000;
-    server.listen({
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    }, () => {
+
+    // Open the port FIRST so Cloud Run health probes can always reach the server.
+    // Static / Vite middleware is added inside the listen callback so a setup
+    // failure can never prevent the port from opening.
+    server.listen({ port, host: "0.0.0.0", reusePort: true }, async () => {
       log(`serving on port ${port}`);
 
-      // Run all startup tasks AFTER port is open (non-blocking)
+      // Now wire up the frontend — after the port is already open
+      try {
+        if (app.get("env") === "development") {
+          await setupVite(app, server);
+        } else {
+          serveStatic(app);
+        }
+      } catch (staticErr) {
+        log("⚠️ Static/Vite setup error (server still running):", String(staticErr));
+      }
+
+      // Run background startup tasks (non-blocking)
       runStartupTasks();
     });
 
