@@ -38,6 +38,20 @@ export default function LockManagement() {
     queryKey: ["/api/rooms"],
   });
 
+  // Fetch lock code capacity
+  const { data: codeCount, refetch: refetchCodeCount } = useQuery<{ count: number; limit: number; percent: number }>({
+    queryKey: ["/api/admin/lock-code-count", rooms[0]?.lockId],
+    queryFn: async () => {
+      const lockId = rooms[0]?.lockId;
+      if (!lockId) return null;
+      const res = await fetch(`/api/admin/lock-code-count?lockId=${lockId}`, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!rooms[0]?.lockId,
+    refetchInterval: 5 * 60 * 1000,
+  });
+
   // Fetch bookings that need passcode sync
   const { data: passcodeBookings, refetch: refetchPasscodes } = useQuery<{
     count: number;
@@ -177,6 +191,7 @@ export default function LockManagement() {
     },
     onSuccess: (data) => {
       setPurgeResults(data);
+      refetchCodeCount();
       toast({
         title: "Purge Complete",
         description: data.message,
@@ -265,6 +280,25 @@ export default function LockManagement() {
                 </div>
                 <CheckCircle className="h-8 w-8 text-green-600" />
               </div>
+              {codeCount && (
+                <div className="mt-3">
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="text-gray-500">Lock storage: {codeCount.count}/{codeCount.limit} codes used</span>
+                    <span className={codeCount.percent >= 90 ? "text-red-600 font-semibold" : codeCount.percent >= 70 ? "text-amber-600" : "text-green-600"}>
+                      {codeCount.percent}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all ${codeCount.percent >= 90 ? "bg-red-500" : codeCount.percent >= 70 ? "bg-amber-400" : "bg-green-500"}`}
+                      style={{ width: `${codeCount.percent}%` }}
+                    />
+                  </div>
+                  {codeCount.percent >= 90 && (
+                    <p className="text-xs text-red-600 mt-1 font-medium">⚠️ Critically full — run Purge Old Codes below immediately</p>
+                  )}
+                </div>
+              )}
               <p className="text-xs text-gray-500 mt-3">
                 All {rooms.length} rooms share this front door lock. Individual room locks are changed manually.
               </p>

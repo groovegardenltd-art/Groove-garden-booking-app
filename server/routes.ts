@@ -2744,6 +2744,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Resync TTLock passcode for a booking and resend confirmation email
   // Purge all TTLock codes NOT tied to an active future booking.
+  // Returns how many codes are currently stored in TTLock cloud for a lock
+  app.get("/api/admin/lock-code-count", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      if (!ttlockService) return res.status(503).json({ message: "TTLock not configured" });
+      const lockId = req.query.lockId as string;
+      if (!lockId) return res.status(400).json({ message: "lockId required" });
+      const codes = await ttlockService.listPasscodes(lockId);
+      const LOCK_LIMIT = 100;
+      res.json({ count: codes.length, limit: LOCK_LIMIT, percent: Math.round((codes.length / LOCK_LIMIT) * 100) });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get code count" });
+    }
+  });
+
   app.post("/api/admin/purge-lock-codes", requireAuth, requireAdmin, async (req, res) => {
     try {
       if (!ttlockService) {

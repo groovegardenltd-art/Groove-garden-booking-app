@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, XCircle, Clock, User, FileText, Shield, CalendarX, Plus, Trash2, Repeat, Calendar, MapPin, CreditCard, Phone, Mail, List, Grid3X3, ChevronRight, Edit, Key, Link2, Users, RefreshCw, AlertTriangle, Search } from "lucide-react";
 import { Link } from "wouter";
 import { AdminCalendar } from "@/components/admin-calendar";
-import { getAuthState } from "@/lib/auth";
+import { getAuthState, getAuthHeaders } from "@/lib/auth";
 import { useLocation } from "wouter";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -124,6 +124,19 @@ export default function Admin() {
     queryKey: ["/api/admin/bookings"],
     enabled: !!isAuthorized,
     refetchInterval: 60000, // Refresh every minute
+  });
+
+  const { data: lockCodeCount } = useQuery<{ count: number; limit: number; percent: number }>({
+    queryKey: ["/api/admin/lock-code-count", rooms],
+    queryFn: async () => {
+      const lockId = (rooms as any)?.[0]?.lockId;
+      if (!lockId) return null;
+      const res = await fetch(`/api/admin/lock-code-count?lockId=${lockId}`, { headers: getAuthHeaders(), credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!isAuthorized,
+    refetchInterval: 5 * 60 * 1000,
   });
 
   const { data: oldBookingsData } = useQuery<{ count: number; daysOld: number }>({
@@ -284,14 +297,24 @@ export default function Admin() {
   });
 
   const resyncCodeMutation = useMutation({
-    mutationFn: ({ bookingId, notify }: { bookingId: number; notify: boolean }) =>
-      apiRequest("POST", `/api/admin/bookings/${bookingId}/resync-code${notify ? '?notify=true' : ''}`),
-    onSuccess: (data: any) => {
+    mutationFn: async ({ bookingId, notify }: { bookingId: number; notify: boolean }) => {
+      const res = await apiRequest("POST", `/api/admin/bookings/${bookingId}/resync-code${notify ? '?notify=true' : ''}`);
+      return res.json() as Promise<{ message: string; locksSucceeded: number; locksTotal: number; passcode?: string }>;
+    },
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/bookings"] });
-      toast({
-        title: "✅ Code Resynced",
-        description: data.message || "New code registered with the lock.",
-      });
+      if (data.locksSucceeded === 0) {
+        toast({
+          title: "⚠️ Lock Full — Code Not Registered",
+          description: "Code could not be sent to the lock (storage full). Run Purge Old Codes in Lock Management, then try again.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "✅ Code Resynced",
+          description: data.message || "New code registered with the lock.",
+        });
+      }
     },
     onError: () => {
       toast({
@@ -526,6 +549,30 @@ export default function Admin() {
             </div>
           </div>
         </div>
+
+        {/* Lock storage capacity warning */}
+        {lockCodeCount && lockCodeCount.percent >= 70 && (
+          <div className={`mb-4 rounded-lg border p-4 ${lockCodeCount.percent >= 90 ? "border-red-300 bg-red-50" : "border-amber-300 bg-amber-50"}`}>
+            <div className="flex items-center gap-3">
+              <AlertTriangle className={`h-5 w-5 flex-shrink-0 ${lockCodeCount.percent >= 90 ? "text-red-600" : "text-amber-600"}`} />
+              <div className="flex-1">
+                <p className={`font-semibold ${lockCodeCount.percent >= 90 ? "text-red-800" : "text-amber-800"}`}>
+                  Lock storage {lockCodeCount.percent >= 90 ? "critically full" : "getting full"} — {lockCodeCount.count}/{lockCodeCount.limit} codes
+                </p>
+                <p className={`text-sm ${lockCodeCount.percent >= 90 ? "text-red-700" : "text-amber-700"}`}>
+                  {lockCodeCount.percent >= 90
+                    ? "New booking codes may fail. Go to Lock Management → Purge Old Codes immediately."
+                    : "Run Purge Old Codes in Lock Management soon to prevent issues."}
+                </p>
+              </div>
+              <Link href="/lock-management">
+                <Button size="sm" variant={lockCodeCount.percent >= 90 ? "destructive" : "outline"} className="text-xs">
+                  Purge Now
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* Unsynced lock codes alert */}
         {(() => {
