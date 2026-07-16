@@ -320,7 +320,7 @@ async function runStartupTasks() {
       const { eq, and, gte, isNotNull, isNull } = await import('drizzle-orm');
       const { storage } = await import('./storage');
       const { createTTLockService } = await import('./ttlock');
-      const { parseAsUKTime } = await import('./routes');
+      const { parseAsUKTime } = await import('./time-utils');
 
       const ttlockService = createTTLockService();
       if (!ttlockService) return;
