@@ -316,10 +316,21 @@ export default function Admin() {
         });
       }
     },
-    onError: () => {
+    onError: (error: any) => {
+      let description = "Failed to resync the code. Check TTLock connection.";
+      if (error?.message) {
+        const match = error.message.match(/^\d+:\s*(.+)$/s);
+        const body = match ? match[1] : error.message;
+        try {
+          const parsed = JSON.parse(body);
+          if (parsed?.message) description = parsed.message;
+        } catch {
+          if (body) description = body;
+        }
+      }
       toast({
         title: "❌ Resync Failed",
-        description: "Failed to resync the code. Check TTLock connection.",
+        description,
         variant: "destructive",
       });
     }

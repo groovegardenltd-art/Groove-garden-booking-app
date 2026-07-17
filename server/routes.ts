@@ -2832,11 +2832,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update booking with new passcode — use first successful ID
       const firstSuccessId = lockResult.passcodeIds.find(pid => pid > 0) ?? null;
+      const resyncSucceeded = firstSuccessId !== null;
       await db.update(bookings)
         .set({
-          accessCode: lockResult.passcode,
-          ttlockPasscode: lockResult.passcode,
+          accessCode: lockResult.passcode || booking.accessCode,
+          ttlockPasscode: lockResult.passcode || booking.ttlockPasscode,
           ttlockPasscodeId: firstSuccessId ? firstSuccessId.toString() : null,
+          lockAccessEnabled: resyncSucceeded,
         })
         .where(eq(bookings.id, id));
 
@@ -2873,9 +2875,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         locksSucceeded: succeeded,
         locksTotal: lockIds.length,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('[ADMIN] Error resyncing passcode:', error);
-      res.status(500).json({ message: "Failed to resync code" });
+      const detail = error?.message || String(error);
+      res.status(500).json({ message: `Failed to resync code: ${detail}` });
     }
   });
 
