@@ -456,7 +456,7 @@ export async function sendBookingConfirmationEmail(
           <h4 style="color: #374151; margin: 0 0 10px 0;">Need Help?</h4>
           <p style="color: #6b7280; margin: 0;">
             If you have any questions or need to make changes to your booking, 
-            please contact us at groovegardenltd@gmail.com or call during business hours.
+            please contact us at groovegardenltd@gmail.com.
           </p>
         </div>
         
@@ -506,7 +506,7 @@ ${room.address ? `Address: ${room.address}` : ''}
 NEED HELP?
 ----------
 If you have any questions or need to make changes to your booking, 
-please contact us at groovegardenltd@gmail.com or call during business hours.
+please contact us at groovegardenltd@gmail.com.
 
 Thank you for choosing Groove Garden Studios!
 
