@@ -183,6 +183,28 @@ export default function LockManagement() {
     },
   });
 
+  // Resync all upcoming bookings after a lock reset
+  const resyncAllMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/admin/resync-all-upcoming", {});
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Resync Triggered",
+        description: data.message,
+      });
+      refetchCodeCount();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Resync Failed",
+        description: error.message || "Failed to resync upcoming bookings",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Purge all old/orphaned codes from the lock
   const purgeLockCodesMutation = useMutation({
     mutationFn: async (lockId: string) => {
@@ -389,6 +411,44 @@ export default function LockManagement() {
                 )}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* After Lock Reset — Resync All Upcoming */}
+        <Card className="mb-8 border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle className="flex items-center text-blue-800">
+              <RefreshCw className="mr-2 h-5 w-5" />
+              After a Lock Reset
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-white p-4 rounded-lg">
+              <div className="flex items-start gap-3 mb-4">
+                <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold text-blue-800">Lock was reset or factory cleared?</h4>
+                  <p className="text-sm text-gray-600">
+                    If you've reset the lock hardware, all codes are gone. This will mark all upcoming
+                    bookings for re-pushing — codes for sessions within the next 48 hours will be sent
+                    to the lock automatically within 2 minutes. Sessions further away will be pushed
+                    as they enter the 48-hour window.
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                className="border-blue-400 text-blue-700 hover:bg-blue-100"
+                onClick={() => resyncAllMutation.mutate()}
+                disabled={resyncAllMutation.isPending}
+              >
+                {resyncAllMutation.isPending ? (
+                  <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Resyncing...</>
+                ) : (
+                  <><RefreshCw className="mr-2 h-4 w-4" /> Resync All Upcoming Bookings</>
+                )}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 

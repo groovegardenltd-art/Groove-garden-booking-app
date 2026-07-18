@@ -423,6 +423,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }
 
+  // Automated daily purge — runs every night at 01:00 UK time to clear expired codes
+  async function autoPurgeLockCodes() {
+    if (!ttlockService) return;
+    try {
+      const allRooms = await storage.getAllRooms();
+      const lockIds = new Set<string>();
+      for (const room of allRooms) {
+        if (room.lockId) lockIds.add(room.lockId);
+        if (room.interiorLockId) lockIds.add(room.interiorLockId);
+      }
+      if (lockIds.size === 0) return;
+
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      const ukNow = new Date(now.toLocaleString('en-GB', { timeZone: 'Europe/London' }));
+      const currentTimeStr = `${String(ukNow.getHours()).padStart(2, '0')}:${String(ukNow.getMinutes()).padStart(2, '0')}`;
+
+      const activeBookings = await db
+        .select({ ttlockPasscodeId: bookings.ttlockPasscodeId, date: bookings.date, endTime: bookings.endTime })
+        .from(bookings)
+        .where(and(gte(bookings.date, todayStr), eq(bookings.status, 'confirmed'), isNotNull(bookings.ttlockPasscodeId)));
+
+      const keepIds = new Set<number>();
+      for (const b of activeBookings) {
+        if (!b.ttlockPasscodeId) continue;
+        if (b.date === todayStr) {
+          const endTime = b.endTime === '00:00' ? '24:00' : b.endTime;
+          if (endTime <= currentTimeStr) continue;
+        }
+        const parsed = parseInt(b.ttlockPasscodeId, 10);
+        if (!isNaN(parsed)) keepIds.add(parsed);
+      }
+
+      let totalDeleted = 0;
+      for (const lockId of lockIds) {
+        const result = await ttlockService.purgeOrphanedPasscodes(lockId, keepIds);
+        totalDeleted += result.deleted;
+        if (result.deleted > 0) {
+          console.log(`🧹 Auto-purge lock ${lockId}: ${result.deleted} deleted, ${result.kept} kept`);
+        }
+      }
+      if (totalDeleted > 0) {
+        console.log(`🧹 Daily auto-purge complete: ${totalDeleted} expired codes removed across ${lockIds.size} lock(s)`);
+      }
+    } catch (err) {
+      console.error('❌ Daily auto-purge error:', err);
+    }
+  }
+
+  // Schedule daily purge at 01:00 UK time
+  function scheduleDailyPurge() {
+    const now = new Date();
+    // Find next 01:00 Europe/London in UTC by checking hour-by-hour offset
+    const ukHour = parseInt(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hour12: false, timeZone: 'Europe/London' }).format(now), 10);
+    const ukMinute = now.getUTCMinutes(); // close enough for scheduling
+    // ms until next 01:00 UK: work out how many hours away that is
+    let hoursUntil = (1 - ukHour + 24) % 24;
+    if (hoursUntil === 0 && ukMinute > 0) hoursUntil = 24; // already past 01:00 today
+    const msUntilRun = hoursUntil * 60 * 60 * 1000 - (now.getUTCMinutes() * 60 + now.getUTCSeconds()) * 1000;
+    const msFinal = msUntilRun > 0 ? msUntilRun : 24 * 60 * 60 * 1000;
+    setTimeout(() => {
+      autoPurgeLockCodes();
+      setInterval(autoPurgeLockCodes, 24 * 60 * 60 * 1000);
+    }, msFinal);
+    console.log(`🧹 Daily auto-purge scheduled — next run in ${Math.round(msFinal / 1000 / 60)} minutes`);
+  }
+  scheduleDailyPurge();
+
   // Run immediately on startup, then every hour
   setTimeout(pushPendingLockCodes, 10000); // 10s delay to let app fully start
   setInterval(pushPendingLockCodes, SCHEDULER_INTERVAL_MS);
@@ -3065,6 +3133,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Failed to purge lock codes",
         error: error instanceof Error ? error.message : "Unknown error",
       });
+    }
+  });
+
+  // Mark all upcoming confirmed bookings as "not yet pushed" so the scheduler re-pushes them.
+  // Use this after a lock reset/replacement to force codes to be re-sent to the hardware.
+  app.post("/api/admin/resync-all-upcoming", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      if (!ttlockService) return res.status(503).json({ message: "TTLock service not configured" });
+
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      // Find all confirmed future bookings that have a passcode
+      const upcomingBookings = await db
+        .select()
+        .from(bookings)
+        .where(
+          and(
+            gte(bookings.date, todayStr),
+            eq(bookings.status, 'confirmed'),
+            isNotNull(bookings.ttlockPasscode)
+          )
+        );
+
+      // Reset lockCodePushed so the hourly scheduler will push them all
+      let reset = 0;
+      for (const b of upcomingBookings) {
+        await storage.updateBooking(b.id, {
+          lockCodePushed: false,
+          lockAccessEnabled: false,
+          ttlockPasscodeId: null,
+        });
+        reset++;
+      }
+
+      // Trigger the scheduler immediately rather than waiting up to an hour
+      setTimeout(pushPendingLockCodes, 2000);
+
+      console.log(`🔄 Resync All Upcoming: reset ${reset} booking(s) — scheduler will push within 48h window`);
+      res.json({
+        message: `Reset ${reset} booking(s). Codes for sessions within the next 48 hours will be pushed to the lock within 2 minutes.`,
+        reset,
+      });
+    } catch (error) {
+      console.error('Resync all upcoming error:', error);
+      res.status(500).json({ message: "Failed to reset booking codes", error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
