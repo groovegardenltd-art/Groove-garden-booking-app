@@ -377,7 +377,7 @@ export default function LockManagement() {
                 <h4 className="font-semibold mb-2">Results</h4>
                 <div className="flex gap-4 text-sm">
                   <span className="text-red-600 font-medium">🗑 {purgeResults.deleted} deleted</span>
-                  <span className="text-green-600 font-medium">✅ {purgeResults.kept} kept (active bookings)</span>
+                  <span className="text-green-600 font-medium">✅ {purgeResults.kept} kept (upcoming bookings)</span>
                   {purgeResults.failed > 0 && (
                     <span className="text-orange-600 font-medium">⚠️ {purgeResults.failed} failed</span>
                   )}

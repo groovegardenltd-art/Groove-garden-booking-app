@@ -2918,10 +2918,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "lockId is required" });
       }
 
-      const todayStr = new Date().toISOString().split('T')[0];
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      // Current UK local time string (HH:MM) for comparing end times
+      const ukNow = new Date(now.toLocaleString('en-GB', { timeZone: 'Europe/London' }));
+      const currentTimeStr = `${String(ukNow.getHours()).padStart(2, '0')}:${String(ukNow.getMinutes()).padStart(2, '0')}`;
 
       const activeBookings = await db
-        .select({ ttlockPasscodeId: bookings.ttlockPasscodeId })
+        .select({
+          ttlockPasscodeId: bookings.ttlockPasscodeId,
+          date: bookings.date,
+          endTime: bookings.endTime,
+        })
         .from(bookings)
         .where(
           and(
@@ -2933,10 +2941,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const keepIds = new Set<number>();
       for (const b of activeBookings) {
-        if (b.ttlockPasscodeId) {
-          const parsed = parseInt(b.ttlockPasscodeId, 10);
-          if (!isNaN(parsed)) keepIds.add(parsed);
+        if (!b.ttlockPasscodeId) continue;
+        // For today's bookings, skip codes that have already expired
+        if (b.date === todayStr) {
+          const endTime = b.endTime === '00:00' ? '24:00' : b.endTime;
+          if (endTime <= currentTimeStr) continue; // already ended — safe to purge
         }
+        const parsed = parseInt(b.ttlockPasscodeId, 10);
+        if (!isNaN(parsed)) keepIds.add(parsed);
       }
 
       console.log(`🧹 Starting purge for lock ${lockId}. Keeping ${keepIds.size} passcode IDs.`);
