@@ -357,10 +357,11 @@ export async function sendBookingConfirmationEmail(
   room: {
     name: string;
     address?: string;
-  }
+  },
+  subjectOverride?: string
 ): Promise<boolean> {
   try {
-    const subject = `Booking Confirmed - ${room.name} | Groove Garden Studios`;
+    const subject = subjectOverride ?? `Booking Confirmed - ${room.name} | Groove Garden Studios`;
     
     // Format date and times for display
     const bookingDate = new Date(booking.date + 'T00:00:00');

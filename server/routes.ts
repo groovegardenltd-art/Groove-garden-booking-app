@@ -1706,6 +1706,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const success = await storage.updateBooking(id, updates);
       if (success) {
         console.log(`✅ User edited booking ${id}: ${date} ${startTime}-${endTime}`);
+
+        // Send updated confirmation email (fire-and-forget)
+        try {
+          const bookingUser = await storage.getUser(booking.userId);
+          if (bookingUser?.email) {
+            const finalAccessCode = newPasscode || booking.accessCode || '';
+            await sendBookingConfirmationEmail(
+              bookingUser.email,
+              bookingUser.name || bookingUser.username,
+              {
+                id,
+                date,
+                startTime,
+                endTime,
+                accessCode: finalAccessCode,
+                totalPrice: newPrice.toFixed(2),
+              },
+              room,
+              `Booking Updated - ${room.name} | Groove Garden Studios`
+            );
+            console.log(`✅ Update confirmation email sent to ${bookingUser.email}`);
+          }
+        } catch (emailErr) {
+          console.warn('Failed to send booking update email:', emailErr);
+        }
+
         res.json({
           message: "Booking updated successfully",
           newPrice: newPrice.toFixed(2),
