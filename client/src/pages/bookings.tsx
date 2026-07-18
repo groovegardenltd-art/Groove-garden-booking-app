@@ -30,7 +30,6 @@ export default function Bookings() {
   const [editingBooking, setEditingBooking] = useState<BookingWithRoom | null>(null);
   const [editDate, setEditDate] = useState("");
   const [editStartTime, setEditStartTime] = useState("");
-  const [editEndTime, setEditEndTime] = useState("");
 
   const { data: bookings = [], isLoading } = useQuery<BookingWithRoom[]>({
     queryKey: ["/api/bookings", user?.id],
@@ -111,7 +110,6 @@ export default function Bookings() {
     setEditingBooking(booking);
     setEditDate(booking.date);
     setEditStartTime(booking.startTime);
-    setEditEndTime(booking.endTime);
   };
 
   const copyAccessCode = (code: string) => {
@@ -201,26 +199,31 @@ export default function Bookings() {
     return bookedSlotsForEdit.some(s => s.startTime < hNextStr && s.endTime > hStr);
   };
 
-  const availableStartHours = Array.from({ length: STUDIO_CLOSE - STUDIO_OPEN - 1 }, (_, i) => STUDIO_OPEN + i)
-    .filter(h => !isHourBlocked(h));
+  // Duration is locked — end time is always start + original duration
+  const originalDuration = editingBooking?.duration ?? 0;
+  const selectedStartHour = editStartTime ? parseInt(editStartTime.split(':')[0]) : null;
+  const autoEndHour = selectedStartHour !== null ? selectedStartHour + originalDuration : null;
+  const autoEndTime = autoEndHour !== null
+    ? (autoEndHour === 24 ? '00:00' : `${String(autoEndHour).padStart(2, '0')}:00`)
+    : '';
 
-  const selectedStartHour = editStartTime ? (editStartTime === '00:00' ? 24 : parseInt(editStartTime.split(':')[0])) : null;
-  const availableEndHours = selectedStartHour !== null
-    ? Array.from({ length: STUDIO_CLOSE - selectedStartHour }, (_, i) => selectedStartHour + 1 + i).filter(h => {
-        for (let hr = selectedStartHour; hr < h; hr++) {
-          if (hr > selectedStartHour && isHourBlocked(hr)) return false;
-        }
-        return h <= STUDIO_CLOSE;
-      })
-    : [];
+  // Only offer start hours where the FULL duration block fits and is unblocked
+  const availableStartHours = Array.from({ length: STUDIO_CLOSE - STUDIO_OPEN }, (_, i) => STUDIO_OPEN + i)
+    .filter(h => {
+      if (h + originalDuration > STUDIO_CLOSE) return false;
+      for (let hr = h; hr < h + originalDuration; hr++) {
+        if (isHourBlocked(hr)) return false;
+      }
+      return true;
+    });
 
   const todayStr = new Date().toISOString().split('T')[0];
   const editDateIsSunday = editDate
     ? new Date(editDate + 'T12:00:00Z').getDay() === 0
     : false;
 
-  const newPrice = editingBooking && editStartTime && editEndTime
-    ? calcNewPrice(editingBooking.room, editStartTime, editEndTime)
+  const newPrice = editingBooking && editStartTime && autoEndTime
+    ? calcNewPrice(editingBooking.room, editStartTime, autoEndTime)
     : null;
   const priceChanged = newPrice !== null && editingBooking
     ? Math.abs(newPrice - parseFloat(editingBooking.totalPrice)) > 0.01
@@ -442,10 +445,10 @@ export default function Bookings() {
 
             {/* Start Time */}
             <div className="space-y-1.5">
-              <Label>Start Time</Label>
+              <Label>New Start Time</Label>
               <Select
                 value={editStartTime}
-                onValueChange={(v) => { setEditStartTime(v); setEditEndTime(""); }}
+                onValueChange={setEditStartTime}
                 disabled={!editDate || editDateIsSunday}
               >
                 <SelectTrigger>
@@ -453,7 +456,7 @@ export default function Bookings() {
                 </SelectTrigger>
                 <SelectContent>
                   {availableStartHours.length === 0 && (
-                    <SelectItem value="__none__" disabled>No slots available</SelectItem>
+                    <SelectItem value="__none__" disabled>No slots available for {originalDuration}h block</SelectItem>
                   )}
                   {availableStartHours.map(h => (
                     <SelectItem key={h} value={`${String(h).padStart(2, '0')}:00`}>
@@ -464,52 +467,30 @@ export default function Bookings() {
               </Select>
             </div>
 
-            {/* End Time */}
+            {/* End Time — read-only, locked to original duration */}
             <div className="space-y-1.5">
-              <Label>End Time</Label>
-              <Select
-                value={editEndTime}
-                onValueChange={setEditEndTime}
-                disabled={!editStartTime}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={editStartTime ? "Select end time" : "Choose a start time first"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableEndHours.length === 0 && (
-                    <SelectItem value="__none__" disabled>No slots available</SelectItem>
-                  )}
-                  {availableEndHours.map(h => (
-                    <SelectItem key={h} value={h === 24 ? '00:00' : `${String(h).padStart(2, '0')}:00`}>
-                      {formatHour(h)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>End Time <span className="text-xs text-gray-400 font-normal">(fixed — {originalDuration}h duration)</span></Label>
+              <div className="flex h-10 items-center rounded-md border bg-gray-50 px-3 text-sm text-gray-500">
+                {autoEndHour !== null ? formatHour(autoEndHour) : "Set once start time is chosen"}
+              </div>
             </div>
 
             {/* Price preview */}
-            {editStartTime && editEndTime && editingBooking && newPrice !== null && (
+            {editStartTime && autoEndTime && editingBooking && newPrice !== null && (
               <div className="rounded-lg bg-music-indigo/10 p-3 space-y-1.5 text-sm border border-music-indigo/20">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Duration:</span>
-                  <span className="font-medium">
-                    {(() => {
-                      const s = editStartTime === '00:00' ? 24 : parseInt(editStartTime);
-                      const e = editEndTime === '00:00' ? 24 : parseInt(editEndTime);
-                      return `${e - s} hour${e - s !== 1 ? 's' : ''}`;
-                    })()}
-                  </span>
+                  <span className="font-medium">{originalDuration} hour{originalDuration !== 1 ? 's' : ''}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">New price:</span>
+                  <span className="text-gray-600">Price:</span>
                   <span className="font-semibold text-music-purple">£{newPrice.toFixed(2)}</span>
                 </div>
                 {priceChanged && (
                   <div className="flex gap-2 pt-1 text-amber-700 bg-amber-50 rounded p-2 border border-amber-200">
                     <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
                     <span className="text-xs">
-                      Price differs from your original booking (£{parseFloat(editingBooking.totalPrice).toFixed(2)}). No automatic payment adjustment — please contact us if a refund or top-up is needed.
+                      The rate differs from your original slot (£{parseFloat(editingBooking.totalPrice).toFixed(2)}) due to day/evening pricing. Please contact us to arrange any payment difference.
                     </span>
                   </div>
                 )}
@@ -526,9 +507,9 @@ export default function Bookings() {
                 bookingId: editingBooking!.id,
                 date: editDate,
                 startTime: editStartTime,
-                endTime: editEndTime,
+                endTime: autoEndTime,
               })}
-              disabled={!editDate || editDateIsSunday || !editStartTime || !editEndTime || editMutation.isPending}
+              disabled={!editDate || editDateIsSunday || !editStartTime || !autoEndTime || editMutation.isPending}
               className="bg-music-purple hover:bg-music-purple/90"
             >
               {editMutation.isPending ? "Updating…" : "Confirm Change"}

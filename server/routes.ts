@@ -1616,6 +1616,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const endHour = endTime === '00:00' ? 24 : parseInt(endTime.split(':')[0]);
       const duration = endHour - startHour;
 
+      if (duration !== booking.duration) {
+        return res.status(400).json({ message: "Booking duration cannot be changed — only the date and start time can be edited" });
+      }
       if (duration < 1 || duration > 12) {
         return res.status(400).json({ message: "Booking duration must be between 1 and 12 hours" });
       }
