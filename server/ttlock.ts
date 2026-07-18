@@ -198,7 +198,7 @@ export class TTLockService {
         console.error(`TTLock API returned error: ${data.errcode} - ${data.errmsg}`);
         
         // Provide specific guidance for common permission errors
-        const isPermanent = data.errcode === 20002 || data.errcode === -2018 || data.errcode === -1002;
+        const isPermanent = data.errcode === 20002 || data.errcode === -2018 || data.errcode === -1002 || data.errcode === -3009;
         if (data.errcode === 20002) {
           console.error('⚠️ PERMISSION ISSUE: Account is not lock admin for lock', lockId);
           console.error('📋 SOLUTION: The TTLock account needs to be granted admin access to this lock');
