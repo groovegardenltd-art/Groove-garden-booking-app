@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import { rooms, sessions, users, bookings, type Booking, type BlockedSlot } from "@shared/schema";
-import { eq, and, gte, lte, asc, isNotNull } from "drizzle-orm";
+import { eq, and, gte, lte, asc, isNotNull, sql } from "drizzle-orm";
 import { insertUserSchema, loginSchema, insertBookingSchema } from "@shared/schema";
 import { createTTLockService } from "./ttlock";
 import { z } from "zod";
@@ -344,6 +344,88 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize TTLock service
   const ttlockService = createTTLockService();
+
+  // --- Startup migration: add lock_code_pushed column if it doesn't exist ---
+  try {
+    await db.execute(sql`
+      ALTER TABLE bookings ADD COLUMN IF NOT EXISTS lock_code_pushed BOOLEAN NOT NULL DEFAULT FALSE
+    `);
+    // Mark existing bookings that already have a TTLock ID as pushed (they're already on the lock)
+    await db.execute(sql`
+      UPDATE bookings SET lock_code_pushed = TRUE
+      WHERE ttlock_passcode_id IS NOT NULL AND lock_code_pushed = FALSE
+    `);
+    console.log('✅ lock_code_pushed column migration complete');
+  } catch (err) {
+    console.error('⚠️ lock_code_pushed migration error (non-fatal):', err);
+  }
+
+  // --- Background scheduler: push lock codes within 48-hour rolling window ---
+  const PUSH_WINDOW_HOURS = 48;
+  const SCHEDULER_INTERVAL_MS = 60 * 60 * 1000; // every hour
+
+  async function pushPendingLockCodes() {
+    if (!ttlockService) return;
+    try {
+      const pending = await storage.getBookingsPendingLockPush(PUSH_WINDOW_HOURS);
+      if (pending.length === 0) return;
+      console.log(`🔑 Lock code scheduler: ${pending.length} booking(s) entering 48h window — pushing codes now`);
+
+      for (const booking of pending) {
+        try {
+          const room = await storage.getRoom(booking.roomId);
+          if (!room) continue;
+
+          const lockIds: string[] = [];
+          if (room.lockId) lockIds.push(room.lockId);
+          if (room.interiorLockId) lockIds.push(room.interiorLockId);
+          if (lockIds.length === 0) continue;
+
+          const startDateTime = new Date(parseAsUKTime(booking.date, booking.startTime).getTime() - 15 * 60 * 1000);
+          const endDateTime = parseAsUKTime(booking.date, booking.endTime);
+
+          // Push the pre-generated passcode to the lock hardware
+          // We re-use createMultiLockPasscode but need to pass the stored passcode.
+          // Since the API generates its own code, we use the booking's stored passcode via the
+          // TTLock addPasscode endpoint directly for each lock.
+          const user = await storage.getUser(booking.userId);
+          const passcode = booking.ttlockPasscode!;
+          let anySuccess = false;
+          let firstPasscodeId: number | undefined;
+
+          for (const lockId of lockIds) {
+            try {
+              const result = await ttlockService.pushPasscodeToLock(
+                lockId, passcode, startDateTime, endDateTime, booking.id, user?.name
+              );
+              if (result.passcodeId > 0) {
+                anySuccess = true;
+                if (!firstPasscodeId) firstPasscodeId = result.passcodeId;
+              }
+            } catch (lockErr) {
+              console.warn(`⚠️ Scheduler: failed to push code to lock ${lockId} for booking ${booking.id}:`, lockErr);
+            }
+          }
+
+          await storage.updateBooking(booking.id, {
+            lockCodePushed: anySuccess,
+            lockAccessEnabled: anySuccess,
+            ...(firstPasscodeId ? { ttlockPasscodeId: firstPasscodeId.toString() } : {}),
+          });
+
+          console.log(`🚪 Booking #${booking.id}: code push ${anySuccess ? '✅ success' : '❌ failed — will retry next hour'}`);
+        } catch (bookingErr) {
+          console.error(`❌ Scheduler error for booking ${booking.id}:`, bookingErr);
+        }
+      }
+    } catch (err) {
+      console.error('❌ Lock code scheduler error:', err);
+    }
+  }
+
+  // Run immediately on startup, then every hour
+  setTimeout(pushPendingLockCodes, 10000); // 10s delay to let app fully start
+  setInterval(pushPendingLockCodes, SCHEDULER_INTERVAL_MS);
 
   // Health check endpoint for API
   app.get("/api/health", (req, res) => {
@@ -1287,63 +1369,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(409).json({ message: "This time slot was just booked by someone else. A full refund has been issued to your card." });
       }
 
-      // TTLock integration - create smart lock passcode if service is available
-      // (runs after availability check so no codes are wasted on unavailable slots)
+      // TTLock integration — rolling 48-hour window
+      // Generate the passcode now so the customer gets it in their confirmation email.
+      // Only push it to the lock hardware if the session starts within 48 hours;
+      // otherwise the background scheduler will push it when the time comes.
       let ttlockPasscode: string | undefined;
       let ttlockPasscodeId: number | undefined;
       let lockAccessEnabled = false;
-      let ttlockAttempted = false; // track whether we actually tried the API
+      let lockCodePushed = false;
 
       if (ttlockService) {
         try {
-          // Gather all lock IDs for this room (front door + interior door)
           const lockIds: string[] = [];
-          if (room.lockId) {
-            lockIds.push(room.lockId); // Front door lock
-          }
-          if (room.interiorLockId) {
-            lockIds.push(room.interiorLockId); // Interior door lock
-          }
+          if (room.lockId) lockIds.push(room.lockId);
+          if (room.interiorLockId) lockIds.push(room.interiorLockId);
 
           if (lockIds.length === 0) {
             console.log(`No locks configured for room ${bookingData.roomId}`);
           } else {
-            console.log(`🚪 Setting up access for ${room.name}: Front Door ${room.lockId ? '✅' : '❌'} | Interior Door ${room.interiorLockId ? '✅' : '❌'}`);
-            console.log(`👤 Customer name for TTLock: "${user.name}" (User ID: ${user.id})`);
-            
-            // Parse booking times as UK local time (handles BST/GMT automatically)
-            // Start 15 mins early so the code syncs to the lock before the session begins
-            const startDateTime = new Date(parseAsUKTime(bookingData.date, bookingData.startTime).getTime() - 15 * 60 * 1000);
-            const endDateTime = parseAsUKTime(bookingData.date, bookingData.endTime);
-            
-            // Use new multi-lock method to create same passcode on all locks
-            ttlockAttempted = true;
-            const lockResult = await ttlockService.createMultiLockPasscode(
-              lockIds,
-              startDateTime,
-              endDateTime,
-              Date.now(), // temporary booking ID
-              user.name // Customer name for TTLock display
-            );
-            
-            ttlockPasscode = lockResult.passcode;
-            ttlockPasscodeId = lockResult.passcodeIds[0]; // -1 if all attempts failed
-            lockAccessEnabled = lockResult.passcodeIds[0] !== -1; // true if at least one lock got the code
-            
-            // Check status of primary lock
-            if (room.lockId) {
-              const lockStatus = await ttlockService.getLockStatus(room.lockId);
-              if (!lockStatus.isOnline) {
-                console.warn(`🚨 TTLock SYNC ISSUE: Temporary passcodes not reaching lock hardware despite gateway connectivity`);
+            // Generate the passcode string locally — no lock push yet
+            ttlockPasscode = ttlockService.generatePasscodeString();
+
+            const sessionStart = parseAsUKTime(bookingData.date, bookingData.startTime);
+            const hoursUntilStart = (sessionStart.getTime() - Date.now()) / (1000 * 60 * 60);
+            const withinWindow = hoursUntilStart <= 48;
+
+            console.log(`🗓 Booking ${bookingData.date} ${bookingData.startTime} — ${hoursUntilStart.toFixed(1)}h away (window: ${withinWindow ? 'PUSH NOW' : 'DEFER'})`);
+
+            if (withinWindow) {
+              // Session is within 48 hours — push to lock immediately
+              const startDateTime = new Date(sessionStart.getTime() - 15 * 60 * 1000);
+              const endDateTime = parseAsUKTime(bookingData.date, bookingData.endTime);
+
+              let firstPasscodeId: number | undefined;
+              let anySuccess = false;
+              for (const lockId of lockIds) {
+                try {
+                  const result = await ttlockService.pushPasscodeToLock(
+                    lockId, ttlockPasscode, startDateTime, endDateTime, Date.now(), user.name
+                  );
+                  if (result.passcodeId > 0) {
+                    anySuccess = true;
+                    if (!firstPasscodeId) firstPasscodeId = result.passcodeId;
+                  }
+                } catch (lockErr) {
+                  console.warn(`⚠️ Lock push failed for ${lockId}:`, lockErr);
+                }
               }
+              ttlockPasscodeId = firstPasscodeId ?? -1;
+              lockAccessEnabled = anySuccess;
+              lockCodePushed = anySuccess;
+              console.log(`🚪 Immediate push: ${lockIds.length} lock(s), ${anySuccess ? '✅ success' : '❌ failed — will retry via scheduler'}`);
+            } else {
+              // Session is > 48 hours away — code stored in DB, scheduler will push it later
+              console.log(`⏳ Code deferred: session in ${hoursUntilStart.toFixed(1)}h — scheduler will push within 48h of start`);
             }
-            
-            console.log(`🔑 Multi-lock passcode created: ${maskPasscode(ttlockPasscode)} for booking ${bookingData.date} ${bookingData.startTime}-${bookingData.endTime}`);
-            console.log(`🚪 Access configured: ${lockResult.passcodeIds.filter(id => id !== -1).length}/${lockIds.length} locks successful`);
           }
         } catch (error) {
-          console.warn('Failed to create smart lock passcode:', error);
-          // Continue with booking creation even if smart lock fails
+          console.warn('Failed during TTLock passcode setup:', error);
         }
       }
 
@@ -1363,6 +1446,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ttlockPasscode: ttlockPasscode || undefined,
             ttlockPasscodeId: (ttlockPasscodeId && ttlockPasscodeId > 0) ? ttlockPasscodeId.toString() : undefined,
             lockAccessEnabled,
+            lockCodePushed,
             promoCodeId: bookingData.promoCodeId || undefined,
             originalPrice: bookingData.originalPrice || undefined,
             discountAmount: bookingData.discountAmount || undefined,
@@ -2346,27 +2430,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
               return res.json({ received: true, autoCreated: false, reason: "User or room not found" });
             }
 
-            // Generate access code and create TTLock passcode
+            // Generate access code — rolling 48-hour window
             const accessCode = Math.random().toString(36).substring(2, 8).toUpperCase();
             let ttlockPasscode: string | undefined;
             let ttlockPasscodeId: number | undefined;
+            let webhookLockCodePushed = false;
 
-            if (ttlockService && room.lockId) {
-              try {
-                // Start 15 mins early so the code syncs to the lock before the session begins
-                const startDateTime = new Date(parseAsUKTime(meta.date, meta.startTime).getTime() - 15 * 60 * 1000);
-                const endDateTime = parseAsUKTime(meta.date, meta.endTime);
-                const lockIds = [room.lockId];
-                if (room.interiorLockId) lockIds.push(room.interiorLockId);
-                
-                const lockResult = await ttlockService.createMultiLockPasscode(
-                  lockIds, startDateTime, endDateTime, Date.now(), user.name
-                );
-                ttlockPasscode = lockResult.passcode;
-                ttlockPasscodeId = lockResult.passcodeIds[0];
-                console.log(`🔑 Webhook auto-create: TTLock passcode generated`);
-              } catch (lockErr) {
-                console.warn(`⚠️ Webhook auto-create: TTLock setup failed, continuing without:`, lockErr);
+            if (ttlockService) {
+              const lockIds: string[] = [];
+              if (room.lockId) lockIds.push(room.lockId);
+              if (room.interiorLockId) lockIds.push(room.interiorLockId);
+
+              if (lockIds.length > 0) {
+                try {
+                  ttlockPasscode = ttlockService.generatePasscodeString();
+                  const sessionStart = parseAsUKTime(meta.date, meta.startTime);
+                  const hoursUntilStart = (sessionStart.getTime() - Date.now()) / (1000 * 60 * 60);
+
+                  if (hoursUntilStart <= 48) {
+                    const startDateTime = new Date(sessionStart.getTime() - 15 * 60 * 1000);
+                    const endDateTime = parseAsUKTime(meta.date, meta.endTime);
+                    let anySuccess = false;
+                    let firstId: number | undefined;
+                    for (const lockId of lockIds) {
+                      try {
+                        const r = await ttlockService.pushPasscodeToLock(lockId, ttlockPasscode, startDateTime, endDateTime, Date.now(), user.name);
+                        if (r.passcodeId > 0) { anySuccess = true; if (!firstId) firstId = r.passcodeId; }
+                      } catch (e) { console.warn(`⚠️ Webhook lock push failed for ${lockId}:`, e); }
+                    }
+                    ttlockPasscodeId = firstId ?? -1;
+                    webhookLockCodePushed = anySuccess;
+                    console.log(`🔑 Webhook auto-create: lock push ${anySuccess ? '✅' : '❌ deferred to scheduler'}`);
+                  } else {
+                    console.log(`⏳ Webhook auto-create: session in ${hoursUntilStart.toFixed(1)}h — code deferred to scheduler`);
+                  }
+                } catch (lockErr) {
+                  console.warn(`⚠️ Webhook auto-create: TTLock setup failed, continuing without:`, lockErr);
+                }
               }
             }
 
@@ -2382,6 +2482,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ttlockPasscode: ttlockPasscode,
               ttlockPasscodeId: (ttlockPasscodeId && ttlockPasscodeId > 0) ? ttlockPasscodeId.toString() : undefined,
               lockAccessEnabled: !!(ttlockPasscodeId && ttlockPasscodeId > 0),
+              lockCodePushed: webhookLockCodePushed,
               stripePaymentIntentId: paymentIntentId,
               idNumber: user.idNumber || "",
               idType: user.idType || "",

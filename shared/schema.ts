@@ -85,6 +85,7 @@ export const bookings = pgTable("bookings", {
   ttlockPasscode: text("ttlock_passcode"),
   ttlockPasscodeId: text("ttlock_passcode_id"),
   lockAccessEnabled: boolean("lock_access_enabled").notNull().default(false),
+  lockCodePushed: boolean("lock_code_pushed").notNull().default(false), // true = code physically sent to lock hardware
   // ID verification for self-entry studio
   idNumber: text("id_number"),
   idType: text("id_type"), // "drivers_license", "passport", "state_id", etc.

@@ -93,6 +93,11 @@ export class TTLockService {
     return Math.floor(Math.random() * 900000 + 100000).toString();
   }
 
+  // Public method to generate a passcode string without pushing to the lock
+  generatePasscodeString(): string {
+    return Math.floor(Math.random() * 900000 + 100000).toString();
+  }
+
   async createTimeLimitedPasscode(
     lockId: string,
     startTime: Date,
@@ -270,6 +275,65 @@ export class TTLockService {
       console.error(`❌ Failed to delete TTLock passcode ID ${passcodeId}:`, error);
       return false;
     }
+  }
+
+  // Push a specific pre-generated passcode string to a single lock.
+  // Used by the rolling-window scheduler to activate codes as sessions approach.
+  async pushPasscodeToLock(
+    lockId: string,
+    passcode: string,
+    startTime: Date,
+    endTime: Date,
+    bookingId: number,
+    customerName?: string
+  ): Promise<{ passcode: string; passcodeId: number }> {
+    const MAX_ATTEMPTS = 3;
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        const accessToken = await this.getAccessToken();
+        const passcodeName = customerName ? `${customerName} #${bookingId}` : `Booking-${bookingId}`;
+        const now = Date.now();
+        const startTimeMs = startTime.getTime() < now ? now - 60000 : startTime.getTime();
+
+        const response = await fetch(`${this.baseUrl}/v3/keyboardPwd/add`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            clientId: this.config.clientId,
+            accessToken,
+            lockId,
+            keyboardPwd: passcode,
+            keyboardPwdName: passcodeName,
+            keyboardPwdType: '2',
+            addType: '2',
+            startDate: startTimeMs.toString(),
+            endDate: endTime.getTime().toString(),
+            date: Date.now().toString(),
+          }),
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+
+        if (data.keyboardPwdId) {
+          console.log(`✅ Scheduler pushed passcode ${maskPasscode(passcode)} to lock ${lockId} (ID: ${data.keyboardPwdId})`);
+          return { passcode, passcodeId: data.keyboardPwdId };
+        }
+
+        const isPermanent = [-2018, 20002, -1002, -3009].includes(data.errcode);
+        if (isPermanent) throw new NonRetryableTTLockError(`errcode ${data.errcode}: ${data.errmsg}`);
+        throw new Error(`TTLock errcode ${data.errcode}: ${data.errmsg}`);
+      } catch (err) {
+        lastError = err;
+        if (err instanceof NonRetryableTTLockError) break;
+        if (attempt < MAX_ATTEMPTS) await new Promise(r => setTimeout(r, attempt * 2000));
+      }
+    }
+
+    console.error(`❌ pushPasscodeToLock failed for lock ${lockId} booking ${bookingId}:`, lastError);
+    return { passcode, passcodeId: -1 };
   }
 
   // Create the same passcode on multiple locks (front door + interior door)

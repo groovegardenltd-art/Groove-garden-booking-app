@@ -1,6 +1,6 @@
 import { users, rooms, bookings, promoCodes, blockedSlots, type User, type InsertUser, type Room, type InsertRoom, type Booking, type InsertBooking, type BookingWithRoom, type PromoCode, type InsertPromoCode, type BlockedSlot, type InsertBlockedSlot } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, lt, sql } from "drizzle-orm";
+import { eq, and, lt, sql, isNotNull } from "drizzle-orm";
 import { hashPassword } from "./password-utils";
 
 export interface IStorage {
@@ -27,7 +27,7 @@ export interface IStorage {
   getBookingByPaymentIntent(paymentIntentId: string): Promise<Booking | undefined>;
   getBookingsByRoomAndDate(roomId: number, date: string): Promise<Booking[]>;
   getBookingsByDate(date: string): Promise<Booking[]>;
-  createBooking(booking: InsertBooking & { userId: number; accessCode: string; ttlockPasscode?: string; ttlockPasscodeId?: string; lockAccessEnabled?: boolean; promoCodeId?: number; originalPrice?: string; discountAmount?: string; stripePaymentIntentId?: string }): Promise<Booking>;
+  createBooking(booking: InsertBooking & { userId: number; accessCode: string; ttlockPasscode?: string; ttlockPasscodeId?: string; lockAccessEnabled?: boolean; lockCodePushed?: boolean; promoCodeId?: number; originalPrice?: string; discountAmount?: string; stripePaymentIntentId?: string }): Promise<Booking>;
   updateBookingStatus(id: number, status: string): Promise<Booking | undefined>;
   updateBookingLockAccess(id: number, lockAccessEnabled: boolean): Promise<boolean>;
   updateBooking(id: number, updates: Partial<Booking>): Promise<boolean>;
@@ -37,6 +37,7 @@ export interface IStorage {
   getOldBookingsCount(daysOld: number): Promise<number>;
   getOldBookings(daysOld: number): Promise<Booking[]>;
   deleteOldBookings(daysOld: number): Promise<number>;
+  getBookingsPendingLockPush(withinHours: number): Promise<Booking[]>;
 
   // Promo code methods
   getAllPromoCodes(): Promise<PromoCode[]>;
@@ -459,6 +460,37 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return result.length;
+  }
+
+  // Find confirmed bookings that have a passcode generated but not yet pushed to the lock,
+  // where the session starts within `withinHours` hours from now.
+  async getBookingsPendingLockPush(withinHours: number): Promise<Booking[]> {
+    // We query all confirmed bookings with lockCodePushed=false and a passcode,
+    // then filter by start time in application code (simpler than complex SQL time arithmetic).
+    const allPending = await db
+      .select()
+      .from(bookings)
+      .where(
+        and(
+          eq(bookings.status, 'confirmed'),
+          eq(bookings.lockCodePushed, false),
+          isNotNull(bookings.ttlockPasscode)
+        )
+      );
+
+    const now = Date.now();
+    const windowMs = withinHours * 60 * 60 * 1000;
+
+    return allPending.filter(b => {
+      // Parse booking start as UK local time
+      const [year, month, day] = b.date.split('-').map(Number);
+      const [hour, minute] = b.startTime.split(':').map(Number);
+      // Use UTC approximation: UK is UTC+0 or UTC+1. We over-include slightly to be safe.
+      const startUtcApprox = Date.UTC(year, month - 1, day, hour, minute) - 60 * 60 * 1000; // subtract 1h max offset
+      const msUntilStart = startUtcApprox - now;
+      // Include bookings starting within the window that haven't started yet
+      return msUntilStart >= 0 && msUntilStart <= windowMs;
+    });
   }
 
   async getPromoCodeByCode(code: string): Promise<PromoCode | undefined> {
