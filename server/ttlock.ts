@@ -1,5 +1,13 @@
 import crypto from 'crypto';
 
+// Error class for TTLock failures that should not be retried (e.g. permission denied)
+class NonRetryableTTLockError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'NonRetryableTTLockError';
+  }
+}
+
 // Security utility: Mask passcode for logging (show first 2 and last 2 digits)
 function maskPasscode(passcode: string): string {
   if (!passcode || passcode.length < 4) {
@@ -101,6 +109,11 @@ export class TTLockService {
         return result;
       } catch (err) {
         lastError = err;
+        // Don't retry permanent errors (permission denied, invalid credentials, etc.)
+        if (err instanceof NonRetryableTTLockError) {
+          console.warn(`⚠️ TTLock permanent error for lock ${lockId} — skipping retries, using fallback code`);
+          break;
+        }
         if (attempt < MAX_ATTEMPTS) {
           const delay = attempt * 2000; // 2s, 4s
           console.warn(`⚠️ TTLock attempt ${attempt}/${MAX_ATTEMPTS} failed for lock ${lockId}, retrying in ${delay / 1000}s...`);
@@ -185,6 +198,7 @@ export class TTLockService {
         console.error(`TTLock API returned error: ${data.errcode} - ${data.errmsg}`);
         
         // Provide specific guidance for common permission errors
+        const isPermanent = data.errcode === 20002 || data.errcode === -2018 || data.errcode === -1002;
         if (data.errcode === 20002) {
           console.error('⚠️ PERMISSION ISSUE: Account is not lock admin for lock', lockId);
           console.error('📋 SOLUTION: The TTLock account needs to be granted admin access to this lock');
@@ -193,6 +207,9 @@ export class TTLockService {
           console.error('📋 SOLUTION: Contact TTLock support to enable passcode API permissions for your developer account');
         }
         
+        if (isPermanent) {
+          throw new NonRetryableTTLockError(`TTLock API error: ${data.errmsg || 'Unknown error'} (errcode ${data.errcode})`);
+        }
         throw new Error(`TTLock API error: ${data.errmsg || 'Unknown error'}`);
       } else {
         throw new Error(`Unexpected TTLock API response: ${JSON.stringify(data)}`);

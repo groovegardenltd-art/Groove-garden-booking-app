@@ -15,7 +15,7 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 
 // Parse a date+time stored as UK local time (BST/GMT) and return a UTC Date for TTLock
-export { parseAsUKTime } from './time-utils';
+import { parseAsUKTime } from './time-utils';
 
 // Security utility: Mask passcode for logging (show first 2 and last 2 digits)
 function maskPasscode(passcode: string): string {
@@ -1585,6 +1585,135 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Booking cancellation error:', error);
       res.status(500).json({ message: "Failed to cancel booking" });
+    }
+  });
+
+  // User edit booking — change date/time of own upcoming booking
+  app.patch("/api/bookings/:id", requireAuth, async (req, res) => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      const id = parseInt(req.params.id);
+      const { date, startTime, endTime } = req.body;
+
+      if (!date || !startTime || !endTime) {
+        return res.status(400).json({ message: "Date, start time, and end time are required" });
+      }
+
+      const booking = await storage.getBooking(id);
+      if (!booking) return res.status(404).json({ message: "Booking not found" });
+      if (booking.userId !== authReq.userId) return res.status(403).json({ message: "Access denied" });
+      if (booking.status === "cancelled") return res.status(400).json({ message: "Cannot edit a cancelled booking" });
+
+      // Must be more than 1 hour before the current booking starts
+      const currentStart = parseAsUKTime(booking.date, booking.startTime);
+      const hoursUntil = (currentStart.getTime() - Date.now()) / (1000 * 60 * 60);
+      if (hoursUntil < 1) {
+        return res.status(400).json({ message: "Bookings cannot be edited within 1 hour of the start time" });
+      }
+
+      // Validate new times
+      const startHour = parseInt(startTime.split(':')[0]);
+      const endHour = endTime === '00:00' ? 24 : parseInt(endTime.split(':')[0]);
+      const duration = endHour - startHour;
+
+      if (duration < 1 || duration > 12) {
+        return res.status(400).json({ message: "Booking duration must be between 1 and 12 hours" });
+      }
+      if (startHour < 9 || endHour > 24 || startHour >= endHour) {
+        return res.status(400).json({ message: "Bookings must be between 09:00 and 00:00 (midnight)" });
+      }
+
+      // Sunday check
+      const dayOfWeek = new Date(date + 'T12:00:00Z').getDay();
+      if (dayOfWeek === 0) {
+        return res.status(400).json({ message: "Studios are closed on Sundays" });
+      }
+
+      const room = await storage.getRoom(booking.roomId);
+      if (!room) return res.status(404).json({ message: "Room not found" });
+
+      // Live Room 3-hour evening minimum
+      if (room.name === 'Live Room' && startHour >= 17 && duration < 3) {
+        return res.status(400).json({ message: "The Live Room requires a 3-hour minimum for evening bookings (from 5pm onwards)" });
+      }
+
+      // Check availability excluding own booking
+      const existingBookings = await storage.getBookingsByRoomAndDate(booking.roomId, date);
+      const normalizedEnd = endTime === '00:00' ? '24:00' : endTime;
+      const hasConflict = existingBookings.some((b: Booking) => {
+        if (b.id === id) return false;
+        if (b.status === 'cancelled') return false;
+        return startTime < b.endTime && normalizedEnd > b.startTime;
+      });
+      if (hasConflict) {
+        return res.status(400).json({ message: "That time slot is not available — please choose another time" });
+      }
+
+      // Delete old TTLock passcode
+      if (ttlockService && booking.ttlockPasscodeId) {
+        try {
+          if (room.lockId) await ttlockService.deletePasscode(room.lockId, parseInt(booking.ttlockPasscodeId));
+          if (room.interiorLockId) await ttlockService.deletePasscode(room.interiorLockId, parseInt(booking.ttlockPasscodeId));
+          console.log(`✅ Deleted old TTLock passcode for edited booking ${id}`);
+        } catch (err) {
+          console.warn('Failed to delete old TTLock passcode on edit:', err);
+        }
+      }
+
+      // Create new TTLock passcode
+      let newPasscode: string | undefined;
+      let newPasscodeId: string | undefined;
+      let newLockAccessEnabled = false;
+      if (ttlockService && (room.lockId || room.interiorLockId)) {
+        try {
+          const lockIds: string[] = [];
+          if (room.lockId) lockIds.push(room.lockId);
+          if (room.interiorLockId) lockIds.push(room.interiorLockId);
+          const startDateTime = new Date(parseAsUKTime(date, startTime).getTime() - 15 * 60 * 1000);
+          const endDateTime = parseAsUKTime(date, endTime === '00:00' ? '24:00' : endTime);
+          const bookingUser = await storage.getUser(booking.userId);
+          const lockResult = await ttlockService.createMultiLockPasscode(lockIds, startDateTime, endDateTime, id, bookingUser?.name);
+          const firstSuccessId = lockResult.passcodeIds.find(pid => pid > 0);
+          newPasscode = lockResult.passcode;
+          newPasscodeId = firstSuccessId ? firstSuccessId.toString() : undefined;
+          newLockAccessEnabled = !!firstSuccessId;
+          console.log(`✅ Created new TTLock passcode for edited booking ${id}`);
+        } catch (err) {
+          console.warn('Failed to create new TTLock passcode on edit:', err);
+        }
+      }
+
+      // Recalculate price
+      const newPrice = calculateBookingPrice(room, startTime, endTime === '00:00' ? '24:00' : endTime, duration);
+
+      const updates: any = {
+        date,
+        startTime,
+        endTime,
+        duration,
+        totalPrice: newPrice.toFixed(2),
+        ttlockPasscodeId: newPasscodeId ?? null,
+        lockAccessEnabled: newLockAccessEnabled,
+      };
+      if (newPasscode) {
+        updates.accessCode = newPasscode;
+        updates.ttlockPasscode = newPasscode;
+      }
+
+      const success = await storage.updateBooking(id, updates);
+      if (success) {
+        console.log(`✅ User edited booking ${id}: ${date} ${startTime}-${endTime}`);
+        res.json({
+          message: "Booking updated successfully",
+          newPrice: newPrice.toFixed(2),
+          newAccessCode: newPasscode || booking.accessCode,
+        });
+      } else {
+        res.status(500).json({ message: "Failed to update booking" });
+      }
+    } catch (error: any) {
+      console.error('Booking edit error:', error);
+      res.status(500).json({ message: "Failed to update booking: " + error.message });
     }
   });
 
