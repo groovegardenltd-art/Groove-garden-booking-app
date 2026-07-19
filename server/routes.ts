@@ -3244,6 +3244,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ttlockPasscode: lockResult.passcode || booking.ttlockPasscode,
           ttlockPasscodeId: firstSuccessId ? firstSuccessId.toString() : null,
           lockAccessEnabled: resyncSucceeded,
+          lockCodePushed: resyncSucceeded,
         })
         .where(eq(bookings.id, id));
 
