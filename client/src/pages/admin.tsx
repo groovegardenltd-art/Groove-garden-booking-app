@@ -230,6 +230,22 @@ export default function Admin() {
     }
   });
 
+  const quickPurgeMutation = useMutation({
+    mutationFn: async () => {
+      const lockId = (rooms as any)?.[0]?.lockId;
+      if (!lockId) throw new Error("No lock configured");
+      const res = await apiRequest("POST", "/api/admin/purge-lock-codes", { lockId });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/lock-code-count"] });
+      toast({ title: "Purge complete", description: data.message });
+    },
+    onError: (error: any) => {
+      toast({ title: "Purge failed", description: error.message || "Unknown error", variant: "destructive" });
+    },
+  });
+
   const updateBlockedSlotMutation = useMutation({
     mutationFn: (data: { id: number; startTime: string; endTime: string; reason: string }) => 
       apiRequest("PATCH", `/api/admin/blocked-slots/${data.id}`, {
@@ -576,11 +592,15 @@ export default function Admin() {
                     : "Run Purge Old Codes in Lock Management soon to prevent issues."}
                 </p>
               </div>
-              <Link href="/lock-management">
-                <Button size="sm" variant={lockCodeCount.percent >= 90 ? "destructive" : "outline"} className="text-xs">
-                  Purge Now
-                </Button>
-              </Link>
+              <Button
+                size="sm"
+                variant={lockCodeCount.percent >= 90 ? "destructive" : "outline"}
+                className="text-xs"
+                disabled={quickPurgeMutation.isPending}
+                onClick={() => quickPurgeMutation.mutate()}
+              >
+                {quickPurgeMutation.isPending ? <><RefreshCw className="mr-1 h-3 w-3 animate-spin" />Purging...</> : "Purge Now"}
+              </Button>
             </div>
           </div>
         )}
