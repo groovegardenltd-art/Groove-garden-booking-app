@@ -358,7 +358,8 @@ export async function sendBookingConfirmationEmail(
     name: string;
     address?: string;
   },
-  subjectOverride?: string
+  subjectOverride?: string,
+  headerNote?: string
 ): Promise<boolean> {
   try {
     const subject = subjectOverride ?? `Booking Confirmed - ${room.name} | Groove Garden Studios`;
@@ -381,10 +382,16 @@ export async function sendBookingConfirmationEmail(
           <p style="color: #6b7280; margin: 5px 0;">Music Rehearsal Studio</p>
         </div>
         
-        <div style="background-color: #dcfce7; border: 1px solid #16a34a; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+        ${headerNote
+          ? `<div style="background-color: #fef9c3; border: 1px solid #eab308; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+          <h2 style="color: #713f12; margin: 0 0 10px 0;">🔑 Updated Access Code</h2>
+          <p style="color: #713f12; margin: 0; font-size: 15px;">${headerNote}</p>
+        </div>`
+          : `<div style="background-color: #dcfce7; border: 1px solid #16a34a; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
           <h2 style="color: #166534; margin: 0 0 10px 0;">🎉 Booking Confirmed!</h2>
           <p style="color: #166534; margin: 0; font-size: 16px;">Your rehearsal session is all set!</p>
-        </div>
+        </div>`
+        }
         
         <div style="background-color: #f9fafb; border-radius: 8px; padding: 20px; margin: 20px 0;">
           <h3 style="color: #374151; margin: 0 0 15px 0;">Booking Details</h3>
