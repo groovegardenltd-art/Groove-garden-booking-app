@@ -364,8 +364,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const PUSH_WINDOW_HOURS = 48;
   const SCHEDULER_INTERVAL_MS = 60 * 60 * 1000; // every hour
 
+  let schedulerRunning = false; // mutex to prevent concurrent runs
+
   async function pushPendingLockCodes() {
     if (!ttlockService) return;
+    if (schedulerRunning) {
+      console.log('⏭ Lock code scheduler already running — skipping concurrent run');
+      return;
+    }
+    schedulerRunning = true;
     try {
       const pending = await storage.getBookingsPendingLockPush(PUSH_WINDOW_HOURS);
       if (pending.length === 0) return;
@@ -373,6 +380,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       for (const booking of pending) {
         try {
+          // Re-fetch booking to guard against concurrent runs pushing the same booking twice
+          const freshBooking = await storage.getBooking(booking.id);
+          if (!freshBooking || freshBooking.lockCodePushed) {
+            console.log(`⏭ Booking #${booking.id} already pushed by concurrent run — skipping`);
+            continue;
+          }
+
           const room = await storage.getRoom(booking.roomId);
           if (!room) continue;
 
@@ -384,10 +398,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const startDateTime = new Date(parseAsUKTime(booking.date, booking.startTime).getTime() - 15 * 60 * 1000);
           const endDateTime = parseAsUKTime(booking.date, booking.endTime);
 
-          // Push the pre-generated passcode to the lock hardware
-          // We re-use createMultiLockPasscode but need to pass the stored passcode.
-          // Since the API generates its own code, we use the booking's stored passcode via the
-          // TTLock addPasscode endpoint directly for each lock.
           const user = await storage.getUser(booking.userId);
           const passcode = booking.ttlockPasscode!;
           let anySuccess = false;
@@ -407,6 +417,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
 
+          // Mark as pushed immediately so a concurrent run can't push again
           await storage.updateBooking(booking.id, {
             lockCodePushed: anySuccess,
             lockAccessEnabled: anySuccess,
@@ -420,6 +431,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (err) {
       console.error('❌ Lock code scheduler error:', err);
+    } finally {
+      schedulerRunning = false;
     }
   }
 
@@ -3167,12 +3180,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         reset++;
       }
 
-      // Trigger the scheduler immediately rather than waiting up to an hour
-      setTimeout(pushPendingLockCodes, 2000);
-
       console.log(`🔄 Resync All Upcoming: reset ${reset} booking(s) — scheduler will push within 48h window`);
       res.json({
-        message: `Reset ${reset} booking(s). Codes for sessions within the next 48 hours will be pushed to the lock within 2 minutes.`,
+        message: `Reset ${reset} booking(s). Codes for sessions within the next 48 hours will be pushed to the lock within the next hour by the automatic scheduler.`,
         reset,
       });
     } catch (error) {
