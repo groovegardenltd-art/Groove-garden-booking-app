@@ -3149,6 +3149,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Manually trigger the lock code scheduler (safe — respects the mutex)
+  app.post("/api/admin/trigger-push-now", requireAuth, requireAdmin, async (req, res) => {
+    if (!ttlockService) return res.status(503).json({ message: "TTLock service not configured" });
+    if (schedulerRunning) {
+      return res.json({ message: "Scheduler is already running — check back in a moment.", alreadyRunning: true });
+    }
+    // Run in background so the HTTP response returns immediately
+    pushPendingLockCodes().catch(err => console.error('Manual push trigger error:', err));
+    res.json({ message: "Push started — codes for bookings within the next 48 hours are being sent to the lock now." });
+  });
+
   // Mark all upcoming confirmed bookings as "not yet pushed" so the scheduler re-pushes them.
   // Use this after a lock reset/replacement to force codes to be re-sent to the hardware.
   app.post("/api/admin/resync-all-upcoming", requireAuth, requireAdmin, async (req, res) => {

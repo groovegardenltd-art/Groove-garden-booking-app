@@ -183,6 +183,28 @@ export default function LockManagement() {
     },
   });
 
+  // Manually trigger the scheduler to push pending codes now
+  const pushNowMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/admin/trigger-push-now", {});
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Push Triggered",
+        description: data.message,
+      });
+      refetchCodeCount();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Push Failed",
+        description: error.message || "Failed to trigger push",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Resync all upcoming bookings after a lock reset
   const resyncAllMutation = useMutation({
     mutationFn: async () => {
@@ -436,18 +458,38 @@ export default function LockManagement() {
                   </p>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                className="border-blue-400 text-blue-700 hover:bg-blue-100"
-                onClick={() => resyncAllMutation.mutate()}
-                disabled={resyncAllMutation.isPending}
-              >
-                {resyncAllMutation.isPending ? (
-                  <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Resyncing...</>
-                ) : (
-                  <><RefreshCw className="mr-2 h-4 w-4" /> Resync All Upcoming Bookings</>
-                )}
-              </Button>
+              <div className="flex flex-col gap-3">
+                <div>
+                  <Button
+                    variant="outline"
+                    className="border-green-400 text-green-700 hover:bg-green-100"
+                    onClick={() => pushNowMutation.mutate()}
+                    disabled={pushNowMutation.isPending}
+                  >
+                    {pushNowMutation.isPending ? (
+                      <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Pushing...</>
+                    ) : (
+                      <><RefreshCw className="mr-2 h-4 w-4" /> Push Pending Codes Now</>
+                    )}
+                  </Button>
+                  <p className="text-xs text-gray-500 mt-1">Immediately pushes codes for all bookings within the next 48 hours.</p>
+                </div>
+                <div>
+                  <Button
+                    variant="outline"
+                    className="border-blue-400 text-blue-700 hover:bg-blue-100"
+                    onClick={() => resyncAllMutation.mutate()}
+                    disabled={resyncAllMutation.isPending}
+                  >
+                    {resyncAllMutation.isPending ? (
+                      <><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Resyncing...</>
+                    ) : (
+                      <><RefreshCw className="mr-2 h-4 w-4" /> Resync All Upcoming Bookings</>
+                    )}
+                  </Button>
+                  <p className="text-xs text-gray-500 mt-1">Use after a lock reset — marks all bookings as unpushed so codes get re-sent.</p>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
