@@ -1862,6 +1862,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalPrice: newPrice.toFixed(2),
         ttlockPasscodeId: newPasscodeId ?? null,
         lockAccessEnabled: newLockAccessEnabled,
+        lockCodePushed: newLockAccessEnabled,
       };
       if (newPasscode) {
         updates.accessCode = newPasscode;
@@ -1889,7 +1890,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 totalPrice: newPrice.toFixed(2),
               },
               room,
-              `Booking Updated - ${room.name} | Groove Garden Studios`
+              `Booking Updated - ${room.name} | Groove Garden Studios`,
+              `Your booking #${id} has been updated. Your new session details and access code are below.`
             );
             console.log(`✅ Update confirmation email sent to ${bookingUser.email}`);
           }
