@@ -387,8 +387,8 @@ async function runStartupTasks() {
     }
   };
 
-  await autoResyncUnsynced();
-  setInterval(autoResyncUnsynced, 10 * 60 * 1000); // every 10 minutes
+  // autoResyncUnsynced disabled — pushPendingLockCodes (routes.ts) handles this
+  // with a proper 12h window and check-before-push to prevent lock flooding.
 
   // Keep the database connection alive every 4 minutes to prevent Neon cold-start delays
   const DB_KEEPALIVE_MS = 4 * 60 * 1000;

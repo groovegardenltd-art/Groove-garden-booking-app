@@ -1,14 +1,23 @@
 ---
-name: TTLock lock capacity and -3009 error
-description: Real hardware capacity and what causes -3009 "no space" errors on TTLock locks
+name: TTLock lock capacity and flooding root cause
+description: Real hardware capacity, what causes -3009 errors, and the autoResyncUnsynced flooding bug
 ---
 
-The front door lock (production ID 33130132) holds ~250+ passcodes, not ~13 as initially assumed. A single purge deleted over 250 codes successfully.
+The front door lock (production ID 33130132) holds ~250+ passcodes, not ~13 as initially assumed.
 
-The -3009 "There is NO SPACE to store Customized Passcodes" error is NOT a hardware storage limit. It is triggered by the TTLock gateway sync queue being overloaded with too many pending operations at once (e.g. many codes queued to push before the lock physically syncs).
+## -3009 "no space" error
+NOT a hardware storage limit. Triggered when the lock's physical hardware is full — caused by codes accumulating faster than they are cleared. Gateway queues add/delete commands and flushes them when "upload data" is triggered in TTLock app.
 
-**Why:** Codes added via gateway (addType: '2') are queued in TTLock cloud pending sync to the physical lock. If too many are queued simultaneously, -3009 is returned. Once the lock syncs (keypad press), the queue clears.
+## Root cause of lock flooding (FIXED)
+`autoResyncUnsynced` in server/index.ts ran every 10 minutes with **no time window**. It pushed codes for ALL future bookings where `ttlockPasscodeId IS NULL`. After "Resync All Upcoming" sets `ttlockPasscodeId = null` for all bookings, this flooded the lock with every future booking (potentially hundreds). Fixed by disabling `autoResyncUnsynced` — `pushPendingLockCodes` in routes.ts handles this correctly with a 12h window and check-before-push logic.
 
-**How to apply:** Do not reduce push windows or code limits based on assumed hardware capacity. Instead, prevent duplicate queuing via check-before-push logic. The real fix for -3009 is ensuring the lock syncs regularly and codes are not duplicated.
+## How TTLock gateway sync works
+- API add/delete commands go to TTLock cloud first
+- Gateway queues them and delivers to physical hardware when lock "uploads data"
+- "Upload data" in TTLock app flushes ALL queued commands — including any pending pushes from our scheduler
+- So purging via Bluetooth then "upload data" still re-adds queued codes if our scheduler has pushed since the purge
 
-Codes show as "Permanent Custom" in TTLock app regardless of keyboardPwdType sent — this appears to be a display quirk, not evidence that time-limited codes aren't working.
+## How to apply
+- Never run "Resync All Upcoming" unless doing a full lock hardware reset (it sets ttlockPasscodeId=null for all bookings, triggering mass re-push)
+- The safe push path is pushPendingLockCodes (12h window, check-before-push, hourly)
+- After a purge, wait for scheduler to naturally push only current-window codes before uploading data to lock hardware
