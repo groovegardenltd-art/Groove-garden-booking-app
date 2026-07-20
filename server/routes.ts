@@ -360,8 +360,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error('⚠️ lock_code_pushed migration error (non-fatal):', err);
   }
 
-  // --- Background scheduler: push lock codes within 48-hour rolling window ---
-  const PUSH_WINDOW_HOURS = 48;
+  // --- Background scheduler: push lock codes within 24-hour rolling window ---
+  const PUSH_WINDOW_HOURS = 24;
   const SCHEDULER_INTERVAL_MS = 60 * 60 * 1000; // every hour
 
   let schedulerRunning = false; // mutex to prevent concurrent runs
@@ -405,12 +405,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           for (const lockId of lockIds) {
             try {
-              // Delete any existing code for this booking by name before pushing
-              // — makes the push idempotent so re-deployments never create duplicates
-              await ttlockService.deleteAllBookingCodes(lockId, booking.id).catch(() => {});
-              if (booking.ttlockPasscodeId) {
-                await ttlockService.deletePasscode(lockId, parseInt(booking.ttlockPasscodeId)).catch(() => {});
+              // Check if a code for this booking already exists on TTLock cloud
+              // — if it does, just record the ID and skip pushing to avoid duplicates
+              let existingId: number | undefined;
+              try {
+                const allCodes = await ttlockService.listPasscodes(lockId);
+                const found = allCodes.find(c =>
+                  (c.keyboardPwdName ?? '').endsWith(`#${booking.id}`) ||
+                  (c.keyboardPwdName ?? '').endsWith(`-${booking.id}`)
+                );
+                if (found) {
+                  existingId = found.keyboardPwdId;
+                  console.log(`⏭ Booking #${booking.id}: code already exists on lock ${lockId} (ID ${existingId}) — skipping push`);
+                }
+              } catch { /* if list fails, proceed with push */ }
+
+              if (existingId) {
+                anySuccess = true;
+                if (!firstPasscodeId) firstPasscodeId = existingId;
+                continue;
               }
+
               const result = await ttlockService.pushPasscodeToLock(
                 lockId, passcode, startDateTime, endDateTime, booking.id, user?.name
               );
