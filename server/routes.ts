@@ -366,7 +366,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   let schedulerRunning = false; // mutex to prevent concurrent runs
 
-  async function pushPendingLockCodes() {
+  async function pushPendingLockCodes(windowHoursOverride?: number) {
     if (!ttlockService) return;
     if (schedulerRunning) {
       console.log('⏭ Lock code scheduler already running — skipping concurrent run');
@@ -397,10 +397,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.warn('⚠️ Pre-push cleanup error (non-fatal):', cleanupErr);
       }
 
-      // ── Step 2: push codes for upcoming bookings in the 12h window ───────────
-      const pending = await storage.getBookingsPendingLockPush(PUSH_WINDOW_HOURS);
+      // ── Step 2: push codes for upcoming bookings in the window ───────────────
+      const effectiveWindow = windowHoursOverride ?? PUSH_WINDOW_HOURS;
+      const pending = await storage.getBookingsPendingLockPush(effectiveWindow);
       if (pending.length === 0) return;
-      console.log(`🔑 Lock code scheduler: ${pending.length} booking(s) entering ${PUSH_WINDOW_HOURS}h window — pushing codes now`);
+      console.log(`🔑 Lock code scheduler: ${pending.length} booking(s) in ${effectiveWindow}h window — pushing codes now`);
 
       for (const booking of pending) {
         try {
@@ -3202,9 +3203,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (schedulerRunning) {
       return res.json({ message: "Scheduler is already running — check back in a moment.", alreadyRunning: true });
     }
-    // Run in background so the HTTP response returns immediately
-    pushPendingLockCodes().catch(err => console.error('Manual push trigger error:', err));
-    res.json({ message: "Push started — codes for bookings within the next 48 hours are being sent to the lock now." });
+    // Run in background with a 7-day window so a manual press covers all upcoming bookings
+    // (e.g. after a lock reset). The automatic hourly scheduler still uses the 12h window.
+    pushPendingLockCodes(7 * 24).catch(err => console.error('Manual push trigger error:', err));
+    res.json({ message: "Push started — codes for all upcoming bookings are being sent to the lock now." });
   });
 
   // Mark all upcoming confirmed bookings as "not yet pushed" so the scheduler re-pushes them.
