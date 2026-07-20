@@ -405,6 +405,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           for (const lockId of lockIds) {
             try {
+              // Delete any existing code for this booking by name before pushing
+              // — makes the push idempotent so re-deployments never create duplicates
+              await ttlockService.deleteAllBookingCodes(lockId, booking.id).catch(() => {});
+              if (booking.ttlockPasscodeId) {
+                await ttlockService.deletePasscode(lockId, parseInt(booking.ttlockPasscodeId)).catch(() => {});
+              }
               const result = await ttlockService.pushPasscodeToLock(
                 lockId, passcode, startDateTime, endDateTime, booking.id, user?.name
               );
