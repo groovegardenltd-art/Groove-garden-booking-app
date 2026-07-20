@@ -360,8 +360,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error('⚠️ lock_code_pushed migration error (non-fatal):', err);
   }
 
-  // --- Background scheduler: push lock codes within 24-hour rolling window ---
-  const PUSH_WINDOW_HOURS = 24;
+  // --- Background scheduler: push lock codes within 12-hour rolling window ---
+  const PUSH_WINDOW_HOURS = 12;
   const SCHEDULER_INTERVAL_MS = 60 * 60 * 1000; // every hour
 
   let schedulerRunning = false; // mutex to prevent concurrent runs
@@ -374,9 +374,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     schedulerRunning = true;
     try {
+      // ── Step 1: purge codes for sessions that have already ended ─────────────
+      // This frees lock slots before we try to push new codes
+      try {
+        const expired = await storage.getExpiredBookingsWithPasscodes();
+        if (expired.length > 0) {
+          console.log(`🧹 Pre-push cleanup: removing codes for ${expired.length} ended session(s)`);
+          for (const b of expired) {
+            const room = await storage.getRoom(b.roomId);
+            const lockIds = [room?.lockId, room?.interiorLockId].filter(Boolean) as string[];
+            for (const lockId of lockIds) {
+              if (b.ttlockPasscodeId) {
+                await ttlockService.deletePasscode(lockId, parseInt(b.ttlockPasscodeId)).catch(() => {});
+              }
+              await ttlockService.deleteAllBookingCodes(lockId, b.id).catch(() => {});
+            }
+            await storage.clearBookingPasscode(b.id);
+            console.log(`🗑 Cleared expired code for booking #${b.id} (${b.date} ${b.startTime}-${b.endTime})`);
+          }
+        }
+      } catch (cleanupErr) {
+        console.warn('⚠️ Pre-push cleanup error (non-fatal):', cleanupErr);
+      }
+
+      // ── Step 2: push codes for upcoming bookings in the 12h window ───────────
       const pending = await storage.getBookingsPendingLockPush(PUSH_WINDOW_HOURS);
       if (pending.length === 0) return;
-      console.log(`🔑 Lock code scheduler: ${pending.length} booking(s) entering 48h window — pushing codes now`);
+      console.log(`🔑 Lock code scheduler: ${pending.length} booking(s) entering ${PUSH_WINDOW_HOURS}h window — pushing codes now`);
 
       for (const booking of pending) {
         try {
