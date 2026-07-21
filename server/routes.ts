@@ -3327,8 +3327,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               totalPrice: booking.totalPrice ?? '0',
             },
             { name: room?.name ?? 'Studio', address: room?.address },
-            `Your Updated Access Code — ${room?.name ?? 'Studio'} | Groove Garden Studios`,
-            `We've updated your access code for booking #${booking.id}. Please use the new code below to enter the studio. Sorry for any inconvenience.`
+            `⚠️ Your Access Code Has Changed — ${room?.name ?? 'Studio'} | Groove Garden Studios`,
+            `Your access code for booking #${booking.id} has been updated. Your old code will no longer work. Please use the new code shown below — you can also view it anytime on your My Bookings page.`
           );
           console.log(`[ADMIN] Resync confirmation email sent to ${user.email} for booking ${id}`);
         } catch (emailErr) {

@@ -300,7 +300,10 @@ export default function Bookings() {
                         {/* Access Codes */}
                         <div className="space-y-2">
                           <div className="bg-white rounded-lg p-3 border">
-                            <div className="text-sm font-medium text-gray-900 mb-2">Front Door Code</div>
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="text-sm font-medium text-gray-900">Front Door Code</div>
+                              <div className="text-xs text-gray-400 italic">always current</div>
+                            </div>
                             <div className="flex items-center justify-between">
                               <code className="bg-music-indigo text-white px-3 py-1 rounded text-lg font-mono">
                                 {booking.accessCode}#
@@ -309,6 +312,7 @@ export default function Bookings() {
                                 <Copy className="h-4 w-4" />
                               </Button>
                             </div>
+                            <p className="text-xs text-gray-400 mt-1">If you received a code update email, this is your new code.</p>
                           </div>
                           <div className="bg-green-50 rounded-lg p-3 border border-green-200">
                             <div className="text-sm font-medium text-gray-900 mb-2">{booking.room.name} Interior Code</div>

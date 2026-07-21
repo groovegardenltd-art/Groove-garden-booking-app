@@ -383,9 +383,10 @@ export async function sendBookingConfirmationEmail(
         </div>
         
         ${headerNote
-          ? `<div style="background-color: #fef9c3; border: 1px solid #eab308; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
-          <h2 style="color: #713f12; margin: 0 0 10px 0;">🔑 Updated Access Code</h2>
-          <p style="color: #713f12; margin: 0; font-size: 15px;">${headerNote}</p>
+          ? `<div style="background-color: #fee2e2; border: 2px solid #dc2626; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+          <h2 style="color: #991b1b; margin: 0 0 10px 0;">⚠️ Your Access Code Has Changed</h2>
+          <p style="color: #991b1b; margin: 0 0 12px 0; font-size: 15px; font-weight: bold;">Your previous code will NOT work — please use the new code below.</p>
+          <p style="color: #7f1d1d; margin: 0; font-size: 14px;">${headerNote}</p>
         </div>`
           : `<div style="background-color: #dcfce7; border: 1px solid #16a34a; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
           <h2 style="color: #166534; margin: 0 0 10px 0;">🎉 Booking Confirmed!</h2>
