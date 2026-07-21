@@ -361,8 +361,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // --- Background scheduler: push lock codes within 12-hour rolling window ---
-  const PUSH_WINDOW_HOURS = 12;
-  const SCHEDULER_INTERVAL_MS = 60 * 60 * 1000; // every hour
+  const PUSH_WINDOW_HOURS = 24;
+  const SCHEDULER_INTERVAL_MS = 30 * 60 * 1000; // every 30 minutes
 
   let schedulerRunning = false; // mutex to prevent concurrent runs
 
@@ -470,10 +470,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ...(firstPasscodeId ? { ttlockPasscodeId: firstPasscodeId.toString() } : {}),
           });
 
-          console.log(`🚪 Booking #${booking.id}: code push ${anySuccess ? '✅ success' : '❌ failed — will retry next hour'}`);
+          console.log(`🚪 Booking #${booking.id}: code push ${anySuccess ? '✅ success' : '❌ failed — will retry next run'}`);
         } catch (bookingErr) {
           console.error(`❌ Scheduler error for booking ${booking.id}:`, bookingErr);
         }
+      }
+
+      // ── Step 3: proactive alert — any confirmed booking starting within 3 hours
+      //    with NO ttlockPasscodeId at all (code was never registered, not just unpushed)
+      try {
+        const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
+        const nowMs = Date.now();
+        const allConfirmed = await db
+          .select()
+          .from(bookings)
+          .where(and(
+            eq(bookings.status, 'confirmed'),
+            isNull(bookings.ttlockPasscodeId)
+          ));
+
+        const urgentUnsynced = allConfirmed.filter(b => {
+          const [year, month, day] = b.date.split('-').map(Number);
+          const [hour, minute] = b.startTime.split(':').map(Number);
+          const startUtcApprox = Date.UTC(year, month - 1, day, hour, minute) - 60 * 60 * 1000;
+          const msUntilStart = startUtcApprox - nowMs;
+          return msUntilStart >= 0 && msUntilStart <= THREE_HOURS_MS;
+        });
+
+        for (const b of urgentUnsynced) {
+          const room = await storage.getRoom(b.roomId);
+          const user = await storage.getUser(b.userId);
+          if (room && user) {
+            console.warn(`🚨 URGENT: Booking #${b.id} starts within 3h — NO TTLock code registered. Alerting admin.`);
+            sendAdminCodeFailureAlert(
+              { id: b.id, date: b.date, startTime: b.startTime, endTime: b.endTime, accessCode: b.accessCode },
+              { name: room.name },
+              { name: user.name, email: user.email }
+            ).catch(() => {});
+          }
+        }
+      } catch (alertErr) {
+        console.warn('⚠️ Proactive alert check failed (non-fatal):', alertErr);
       }
     } catch (err) {
       console.error('❌ Lock code scheduler error:', err);

@@ -287,6 +287,12 @@ export class TTLockService {
     bookingId: number,
     customerName?: string
   ): Promise<{ passcode: string; passcodeId: number }> {
+    // Guard: don't push a code whose validity window has already closed
+    if (endTime.getTime() <= Date.now()) {
+      console.warn(`⚠️ Skipping push for booking ${bookingId} on lock ${lockId} — end time ${endTime.toISOString()} is already in the past`);
+      return { passcode, passcodeId: -1 };
+    }
+
     const MAX_ATTEMPTS = 3;
     let lastError: unknown;
 
