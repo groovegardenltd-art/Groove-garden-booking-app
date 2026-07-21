@@ -607,10 +607,17 @@ export default function Admin() {
 
         {/* Unsynced lock codes alert */}
         {(() => {
-          const today = new Date().toISOString().split('T')[0];
-          const unsynced = (adminBookings ?? []).filter(
-            b => b.status === 'confirmed' && b.accessCode && !b.ttlockPasscodeId && b.date >= today
-          );
+          const now = Date.now();
+          const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+          const unsynced = (adminBookings ?? []).filter(b => {
+            if (b.status !== 'confirmed' || !b.accessCode || b.ttlockPasscodeId) return false;
+            // Only warn if the session starts within 24h — further out is handled automatically
+            const [year, month, day] = b.date.split('-').map(Number);
+            const [hour, minute] = b.startTime.split(':').map(Number);
+            const startMs = Date.UTC(year, month - 1, day, hour, minute);
+            const msUntilStart = startMs - now;
+            return msUntilStart >= 0 && msUntilStart <= TWENTY_FOUR_HOURS_MS;
+          });
           if (unsynced.length === 0) return null;
           return (
             <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4">
@@ -806,20 +813,36 @@ export default function Admin() {
                         {/* Right Column - Access & Details */}
                         <div className="space-y-2">
                           <div className="text-sm">
-                            <div className="flex items-center gap-1 text-gray-600">
-                              Access Code:
-                              {!booking.ttlockPasscodeId && booking.status === "confirmed" && (
-                                <span title="Code not registered with lock — resync needed" className="text-amber-500">
-                                  <AlertTriangle className="h-3 w-3 inline" />
-                                </span>
-                              )}
-                            </div>
-                            <div className={`font-mono px-2 py-1 rounded border ${!booking.ttlockPasscodeId && booking.status === "confirmed" ? "bg-amber-50 border-amber-300 text-amber-700" : "bg-white text-music-purple"}`} data-testid={`text-access-code-${booking.id}`}>
-                              {booking.accessCode}#
-                            </div>
-                            {!booking.ttlockPasscodeId && booking.status === "confirmed" && (
-                              <div className="text-xs text-amber-600 mt-1">⚠️ Not synced to lock</div>
-                            )}
+                            {(() => {
+                              const isUnsyncedUrgent = !booking.ttlockPasscodeId && booking.status === "confirmed" && (() => {
+                                const [y, m, d] = booking.date.split('-').map(Number);
+                                const [h, min] = booking.startTime.split(':').map(Number);
+                                const msUntil = Date.UTC(y, m - 1, d, h, min) - Date.now();
+                                return msUntil >= 0 && msUntil <= 24 * 60 * 60 * 1000;
+                              })();
+                              const isPending = !booking.ttlockPasscodeId && booking.status === "confirmed" && !isUnsyncedUrgent;
+                              return (
+                                <>
+                                  <div className="flex items-center gap-1 text-gray-600">
+                                    Access Code:
+                                    {isUnsyncedUrgent && (
+                                      <span title="Code not registered with lock — resync needed" className="text-amber-500">
+                                        <AlertTriangle className="h-3 w-3 inline" />
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className={`font-mono px-2 py-1 rounded border ${isUnsyncedUrgent ? "bg-amber-50 border-amber-300 text-amber-700" : "bg-white text-music-purple"}`} data-testid={`text-access-code-${booking.id}`}>
+                                    {booking.accessCode}#
+                                  </div>
+                                  {isUnsyncedUrgent && (
+                                    <div className="text-xs text-amber-600 mt-1">⚠️ Not synced to lock</div>
+                                  )}
+                                  {isPending && (
+                                    <div className="text-xs text-blue-500 mt-1">🕐 Scheduled — auto-pushes within 24h of session</div>
+                                  )}
+                                </>
+                              );
+                            })()}
                           </div>
                           <div className="text-xs text-gray-500">
                             <div data-testid={`text-lock-access-${booking.id}`}>Lock Access: {booking.lockAccessEnabled ? "✅ Enabled" : "❌ Disabled"}</div>
