@@ -3215,6 +3215,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       if (!ttlockService) return res.status(503).json({ message: "TTLock service not configured" });
 
+      // Block if a push is already in progress to prevent wiping IDs mid-run
+      if (schedulerRunning) {
+        return res.status(409).json({ message: "A code push is currently in progress — please wait a moment then try again." });
+      }
+
       const todayStr = new Date().toISOString().split('T')[0];
 
       // Find all confirmed future bookings that have a passcode
@@ -3229,7 +3234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           )
         );
 
-      // Reset lockCodePushed so the hourly scheduler will push them all
+      // Reset lockCodePushed so the scheduler will push them all
       let reset = 0;
       for (const b of upcomingBookings) {
         await storage.updateBooking(b.id, {
@@ -3240,9 +3245,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         reset++;
       }
 
-      console.log(`🔄 Resync All Upcoming: reset ${reset} booking(s) — scheduler will push within 48h window`);
+      console.log(`🔄 Resync All Upcoming: reset ${reset} booking(s) — triggering immediate push`);
+
+      // Immediately push all upcoming codes (7-day window) so IDs are saved now,
+      // not left to the next hourly cycle where another resync could wipe them again.
+      pushPendingLockCodes(7 * 24).catch(err => console.error('Post-resync push error:', err));
+
       res.json({
-        message: `Reset ${reset} booking(s). Codes for sessions within the next 48 hours will be pushed to the lock within the next hour by the automatic scheduler.`,
+        message: `Reset ${reset} booking(s) and started pushing codes now — this may take a minute.`,
         reset,
       });
     } catch (error) {
