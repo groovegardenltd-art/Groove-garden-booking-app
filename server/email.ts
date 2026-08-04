@@ -461,6 +461,15 @@ export async function sendBookingConfirmationEmail(
           ${room.address ? `<p style="color: #1e40af; margin: 10px 0 0 0;"><strong>Address:</strong> ${room.address}</p>` : ''}
         </div>
         
+        <div style="background-color: #fef9c3; border: 1px solid #eab308; border-radius: 8px; padding: 16px; margin: 20px 0;">
+          <h4 style="color: #854d0e; margin: 0 0 8px 0;">📋 Cancellation Policy</h4>
+          <p style="color: #854d0e; margin: 0; font-size: 14px;">
+            Free cancellation with a <strong>full refund up to 48 hours</strong> before your session.
+            Cancellations within 48 hours of your session are <strong>non-refundable</strong>.
+            You can cancel from your My Bookings page.
+          </p>
+        </div>
+
         <div style="background-color: #f3f4f6; border-radius: 8px; padding: 16px; margin: 20px 0;">
           <h4 style="color: #374151; margin: 0 0 10px 0;">Need Help?</h4>
           <p style="color: #6b7280; margin: 0;">
@@ -511,6 +520,12 @@ STUDIO ACCESS INSTRUCTIONS
 NOTE: Two different codes are needed - one for building entry, one for your studio.
 
 ${room.address ? `Address: ${room.address}` : ''}
+
+CANCELLATION POLICY
+-------------------
+Free cancellation with a full refund up to 48 hours before your session.
+Cancellations within 48 hours of your session are non-refundable.
+You can cancel from your My Bookings page.
 
 NEED HELP?
 ----------

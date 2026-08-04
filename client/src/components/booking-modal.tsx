@@ -937,6 +937,12 @@ export const BookingModal = React.memo(function BookingModal({
           </div>
           )}
 
+          {/* Cancellation policy notice */}
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs sm:text-sm text-amber-900">
+            <span className="font-semibold">Cancellation policy:</span> free cancellation with a full refund up to <span className="font-semibold">48 hours</span> before your session. Cancellations within 48 hours are <span className="font-semibold">non-refundable</span>.{" "}
+            <a href="/cancellation-policy" target="_blank" className="underline">Full policy</a>
+          </div>
+
           {/* Terms */}
           <div className="flex items-start space-x-2">
             <Checkbox
