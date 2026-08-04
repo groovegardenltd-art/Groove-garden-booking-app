@@ -36,10 +36,16 @@ export function PaymentForm({ amount, onSuccess, onCancel }: PaymentFormProps) {
       });
 
       if (error) {
+        console.error('💳 Stripe confirmPayment error:', error.type, error.code, error.message);
+        const wasCancelled = error.code === 'payment_intent_payment_attempt_expired'
+          || /cancel/i.test(error.message || '')
+          || error.type === 'validation_error';
         toast({
-          title: "Payment Failed",
-          description: error.message,
-          variant: "destructive",
+          title: wasCancelled ? "Payment Not Completed" : "Payment Failed",
+          description: wasCancelled
+            ? "The payment was not completed — no money has been taken. Please try again."
+            : error.message,
+          variant: wasCancelled ? "default" : "destructive",
         });
       } else {
         onSuccess();
