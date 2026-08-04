@@ -2725,11 +2725,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             console.log(`✅ Booking #${booking.id} auto-cancelled due to Stripe payment reversal`);
 
-            // Email admin so they're aware
+            // Email the customer so they understand why the booking was cancelled,
+            // and email admin so they're aware
             try {
               const user = await storage.getUser(booking.userId);
               const room = await storage.getRoom(booking.roomId);
               if (user && room) {
+                // Customer email — explains the unexpected refund
+                const customerSubject = `Your booking has been cancelled — payment reversed | Groove Garden Studios`;
+                const customerHtml = `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+  <div style="background-color: #fee2e2; border: 2px solid #dc2626; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+    <p style="color: #991b1b; font-weight: bold; font-size: 16px; margin: 0;">⚠️ Your booking has been cancelled</p>
+  </div>
+  <p>Hi ${user.name},</p>
+  <p>Your payment of <strong>£${amountRefunded.toFixed(2)}</strong> for the booking below was reversed by your bank or card provider, so we've had to cancel your session:</p>
+  <div style="background-color: #f9fafb; border-radius: 8px; padding: 16px; margin: 16px 0;">
+    <p style="margin: 4px 0;"><strong>Room:</strong> ${room.name}</p>
+    <p style="margin: 4px 0;"><strong>Date:</strong> ${booking.date}</p>
+    <p style="margin: 4px 0;"><strong>Time:</strong> ${booking.startTime}–${booking.endTime}</p>
+  </div>
+  <p><strong>If you still want this slot</strong>, please book again on our website — the slot has been freed up and is available on a first-come, first-served basis. The refund you received means no money was taken for this booking.</p>
+  <p>If you didn't expect this or think it's a mistake, contact your bank or reply to this email and we'll help you sort it out.</p>
+  <p>Groove Garden Studios</p>
+</div>`;
+                const customerText = `Your booking has been cancelled — payment reversed\n\nHi ${user.name},\n\nYour payment of £${amountRefunded.toFixed(2)} for the following booking was reversed by your bank or card provider, so we've had to cancel your session:\n\nRoom: ${room.name}\nDate: ${booking.date}\nTime: ${booking.startTime}–${booking.endTime}\n\nIf you still want this slot, please book again on our website — the slot is now free and available first-come, first-served. The refund you received means no money was taken for this booking.\n\nIf you didn't expect this or think it's a mistake, contact your bank or reply to this email.\n\nGroove Garden Studios`;
+                await sendEmail({ to: user.email, from: 'groovegardenltd@gmail.com', subject: customerSubject, html: customerHtml, text: customerText }).catch((e) => console.warn('Failed to send customer reversal email:', e));
+                console.log(`📧 Reversal cancellation email sent to customer ${user.email}`);
+
                 const adminUrl = process.env.REPLIT_DEV_DOMAIN
                   ? `https://${process.env.REPLIT_DEV_DOMAIN}/admin`
                   : 'https://your-app.replit.app/admin';
