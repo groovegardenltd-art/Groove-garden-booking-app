@@ -45,8 +45,8 @@ export default function CancellationPolicy() {
                   <li>You'll receive an email confirmation within minutes</li>
                 </ol>
                 
-                <p className="pt-4"><strong>Phone Cancellation:</strong></p>
-                <p>Call us at +44 (0) 20 1234 5678 during business hours (9 AM - 6 PM, Monday-Friday)</p>
+                <p className="pt-4"><strong>Email Cancellation:</strong></p>
+                <p>Email us at groovegardenltd@gmail.com if you need help cancelling</p>
               </div>
             </section>
 
@@ -109,9 +109,7 @@ export default function CancellationPolicy() {
               <h2 className="text-xl font-semibold text-gray-900 mb-3">Contact for Cancellation Support</h2>
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <p><strong>Need help with your cancellation?</strong></p>
-                <p>📧 Email: bookings@groovegardenstudios.com</p>
-                <p>📞 Phone: +44 (0) 20 1234 5678</p>
-                <p>🕒 Business Hours: Monday-Friday, 9 AM - 6 PM GMT</p>
+                <p>📧 Email: groovegardenltd@gmail.com</p>
                 <p>💬 Response Time: We typically respond to emails within 2 hours during business hours</p>
               </div>
             </section>

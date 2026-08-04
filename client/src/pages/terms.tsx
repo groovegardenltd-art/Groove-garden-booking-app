@@ -27,7 +27,7 @@ export default function Terms() {
                 <p>• You must provide valid ID information for studio access verification.</p>
                 <p>• Access codes are time-limited to your booking duration only.</p>
                 <p>• Do not share access codes with unauthorized individuals.</p>
-                <p>• Studio hours: Monday-Saturday, 9:00 AM - 12:00 AM (Midnight).</p>
+                <p>• Studio hours: Monday-Sunday, 9:00 AM - 12:00 AM (Midnight).</p>
               </div>
             </section>
 
@@ -40,6 +40,7 @@ export default function Terms() {
                 <p>• No smoking, food, or drinks (except water) in the studios.</p>
                 <p>• Clean up after your session and return equipment to proper locations.</p>
                 <p>• Volume levels must be respectful of neighboring studios and businesses.</p>
+                <p>• Anyone under the age of 18 must be accompanied by an adult at all times.</p>
               </div>
             </section>
 
@@ -92,8 +93,7 @@ export default function Terms() {
               <h2 className="text-xl font-semibold text-gray-900 mb-3">8. Contact Information</h2>
               <div className="space-y-2">
                 <p>For questions or concerns regarding these terms:</p>
-                <p>• Email: info@groovegardenstudios.com</p>
-                <p>• Phone: +44 (0) 20 1234 5678</p>
+                <p>• Email: groovegardenltd@gmail.com</p>
                 <p>• Address: Groove Garden Studios, London, UK</p>
               </div>
             </section>

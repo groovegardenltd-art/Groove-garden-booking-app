@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Music, Clock, Shield, CreditCard, Users, MapPin, Phone, Mail, Star, Leaf, Flower2, TreePine } from "lucide-react";
+import { Music, Clock, Shield, CreditCard, Users, MapPin, Mail, Star, Leaf, Flower2, TreePine } from "lucide-react";
 import grooveGardenLogo from "@/assets/groove-garden-logo.jpeg";
 
 // Preload the home page for faster navigation
@@ -400,14 +400,9 @@ export default function Website() {
               <p className="text-gray-600">123 Music Street<br />London, UK</p>
             </div>
             <div className="flex flex-col items-center">
-              <Phone className="w-8 h-8 text-green-600 mb-3" />
-              <h4 className="font-semibold mb-2">Phone</h4>
-              <p className="text-gray-600">+44 20 1234 5678</p>
-            </div>
-            <div className="flex flex-col items-center">
               <Mail className="w-8 h-8 text-green-600 mb-3" />
               <h4 className="font-semibold mb-2">Email</h4>
-              <p className="text-gray-600">hello@groovegarden.co.uk</p>
+              <p className="text-gray-600">groovegardenltd@gmail.com</p>
             </div>
           </div>
         </div>
@@ -451,16 +446,13 @@ export default function Website() {
               <h4 className="font-semibold mb-4">Contact</h4>
               <ul className="space-y-2 text-sm text-gray-400">
                 <li>123 Music Street, London</li>
-                <li>+44 20 1234 5678</li>
-                <li>hello@groovegarden.co.uk</li>
+                <li>groovegardenltd@gmail.com</li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold mb-4">Hours</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li>Monday - Friday: 9AM - Midnight</li>
-                <li>Saturday: 9AM - Midnight</li>
-                <li>Sunday: Closed</li>
+                <li>Monday - Sunday: 9AM - Midnight</li>
               </ul>
             </div>
           </div>

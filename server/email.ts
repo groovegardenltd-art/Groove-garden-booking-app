@@ -757,7 +757,6 @@ export async function sendRefundConfirmationEmail(
         <div class="contact-info">
           <p style="margin: 5px 0;"><strong>Need help?</strong></p>
           <p style="margin: 5px 0;">📧 Email: groovegardenltd@gmail.com</p>
-          <p style="margin: 5px 0;">📞 Phone: +44 (0) 20 1234 5678</p>
         </div>
 
         <div class="footer">
@@ -789,7 +788,6 @@ We hope to see you again soon! If you'd like to make a new booking, just visit o
 
 Need help?
 Email: groovegardenltd@gmail.com
-Phone: +44 (0) 20 1234 5678
 
 ---
 Groove Garden Studios
