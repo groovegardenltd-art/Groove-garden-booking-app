@@ -948,7 +948,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dataController: {
           name: "Groove Garden Studios",
           email: "groovegardenltd@gmail.com",
-          address: "London, UK"
+          address: "Unit 10, Sussex House Industrial Estate, Hove, BN3 7DX"
         },
         personalData: {
           account: {

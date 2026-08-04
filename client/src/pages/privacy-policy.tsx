@@ -33,7 +33,7 @@ export default function PrivacyPolicy() {
               </p>
               <div className="bg-gray-50 p-4 rounded-lg mt-3">
                 <p>Email: <a href="mailto:groovegardenltd@gmail.com" className="text-green-600 hover:underline">groovegardenltd@gmail.com</a></p>
-                <p>Address: Groove Garden Studios, London, UK</p>
+                <p>Address: Groove Garden Studios, Unit 10, Sussex House Industrial Estate, Hove, BN3 7DX</p>
               </div>
             </section>
 

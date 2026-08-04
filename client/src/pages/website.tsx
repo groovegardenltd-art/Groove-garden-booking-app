@@ -397,7 +397,7 @@ export default function Website() {
             <div className="flex flex-col items-center">
               <MapPin className="w-8 h-8 text-green-600 mb-3" />
               <h4 className="font-semibold mb-2">Location</h4>
-              <p className="text-gray-600">123 Music Street<br />London, UK</p>
+              <p className="text-gray-600">Unit 10, Sussex House Industrial Estate<br />Hove, BN3 7DX</p>
             </div>
             <div className="flex flex-col items-center">
               <Mail className="w-8 h-8 text-green-600 mb-3" />
@@ -445,7 +445,7 @@ export default function Website() {
             <div>
               <h4 className="font-semibold mb-4">Contact</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li>123 Music Street, London</li>
+                <li>Unit 10, Sussex House Industrial Estate, Hove, BN3 7DX</li>
                 <li>groovegardenltd@gmail.com</li>
               </ul>
             </div>

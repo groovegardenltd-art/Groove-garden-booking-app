@@ -94,7 +94,7 @@ export default function Terms() {
               <div className="space-y-2">
                 <p>For questions or concerns regarding these terms:</p>
                 <p>• Email: groovegardenltd@gmail.com</p>
-                <p>• Address: Groove Garden Studios, London, UK</p>
+                <p>• Address: Groove Garden Studios, Unit 10, Sussex House Industrial Estate, Hove, BN3 7DX</p>
               </div>
             </section>
 
