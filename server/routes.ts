@@ -3,12 +3,12 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import { rooms, sessions, users, bookings, type Booking, type BlockedSlot } from "@shared/schema";
-import { eq, and, gte, lte, asc, isNotNull, sql } from "drizzle-orm";
+import { eq, and, gte, lte, asc, isNull, isNotNull, sql } from "drizzle-orm";
 import { insertUserSchema, loginSchema, insertBookingSchema } from "@shared/schema";
 import { createTTLockService } from "./ttlock";
 import { z } from "zod";
 import Stripe from "stripe";
-import { notifyPendingIdVerification, sendRejectionNotification, sendPasswordResetEmail, sendBookingConfirmationEmail, sendRefundConfirmationEmail, sendAdminCodeFailureAlert } from "./email";
+import { notifyPendingIdVerification, sendRejectionNotification, sendPasswordResetEmail, sendBookingConfirmationEmail, sendRefundConfirmationEmail, sendAdminCodeFailureAlert, sendEmail } from "./email";
 import { comparePassword, hashPassword } from "./password-utils";
 import crypto from "crypto";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
@@ -2680,6 +2680,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error(`❌ Webhook processing error:`, err);
         return res.status(500).json({ message: "Webhook processing failed" });
       }
+    }
+
+    // Handle charge refunded / reversed — cancel the booking automatically
+    if (event.type === 'charge.refunded') {
+      const charge = event.data.object;
+      const paymentIntentId = charge.payment_intent;
+      const amountRefunded = (charge.amount_refunded ?? 0) / 100;
+      const isFullRefund = charge.refunded === true && (charge.amount_refunded ?? 0) >= (charge.amount ?? 0);
+
+      if (paymentIntentId) {
+        console.log(`💸 Webhook: charge.refunded for payment intent ${paymentIntentId} (£${amountRefunded.toFixed(2)}, ${isFullRefund ? 'FULL' : 'PARTIAL'})`);
+        try {
+          const booking = await storage.getBookingByPaymentIntent(paymentIntentId);
+          if (booking && !isFullRefund) {
+            // Partial refund — record it but keep the booking active
+            await storage.updateBooking(booking.id, {
+              refundStatus: 'partial',
+              refundAmount: amountRefunded.toFixed(2),
+              refundedAt: new Date(),
+            });
+            console.log(`ℹ️ Partial refund of £${amountRefunded.toFixed(2)} recorded for booking #${booking.id} — booking stays confirmed`);
+            return res.json({ received: true });
+          }
+          if (booking && booking.status !== 'cancelled') {
+            console.log(`🔄 Auto-cancelling booking #${booking.id} due to Stripe reversal`);
+
+            // Delete TTLock passcode if it exists
+            if (ttlockService && booking.ttlockPasscodeId) {
+              try {
+                const room = await storage.getRoom(booking.roomId);
+                if (room?.lockId) await ttlockService.deletePasscode(room.lockId, parseInt(booking.ttlockPasscodeId));
+                if (room?.interiorLockId) await ttlockService.deletePasscode(room.interiorLockId, parseInt(booking.ttlockPasscodeId));
+              } catch (e) { console.warn('Failed to delete TTLock passcode on auto-cancel:', e); }
+            }
+
+            // Mark booking as cancelled and record the actual refunded amount
+            await storage.updateBooking(booking.id, {
+              status: 'cancelled',
+              refundStatus: 'succeeded',
+              refundAmount: amountRefunded.toFixed(2),
+              refundedAt: new Date(),
+            });
+
+            console.log(`✅ Booking #${booking.id} auto-cancelled due to Stripe payment reversal`);
+
+            // Email admin so they're aware
+            try {
+              const user = await storage.getUser(booking.userId);
+              const room = await storage.getRoom(booking.roomId);
+              if (user && room) {
+                const adminUrl = process.env.REPLIT_DEV_DOMAIN
+                  ? `https://${process.env.REPLIT_DEV_DOMAIN}/admin`
+                  : 'https://your-app.replit.app/admin';
+                const ADMIN_EMAILS = ['groovegardenltd@gmail.com', 'tomearl1508@gmail.com'];
+                const subject = `⚠️ Booking #${booking.id} auto-cancelled — Stripe reversal`;
+                const body = `Stripe reversed the payment for booking #${booking.id}.\n\nCustomer: ${user.name} (${user.email})\nRoom: ${room.name}\nDate: ${booking.date} ${booking.startTime}–${booking.endTime}\nAmount reversed: £${booking.totalPrice}\n\nThe booking has been automatically cancelled and the slot is now free.\nIf the customer wants to re-book, they will need to pay again.\n\n${adminUrl}`;
+                for (const to of ADMIN_EMAILS) {
+                  await sendEmail({ to, from: 'groovegardenltd@gmail.com', subject, html: `<pre>${body}</pre>`, text: body }).catch(() => {});
+                }
+              }
+            } catch (e) { console.warn('Failed to send admin alert for auto-cancel:', e); }
+          } else if (booking?.status === 'cancelled') {
+            console.log(`ℹ️ Webhook charge.refunded: booking #${booking.id} already cancelled — no action needed`);
+          } else {
+            console.warn(`⚠️ Webhook charge.refunded: no booking found for payment intent ${paymentIntentId}`);
+          }
+        } catch (err: any) {
+          console.error('❌ Error handling charge.refunded webhook:', err);
+        }
+      }
+      return res.json({ received: true });
     }
 
     // Return 200 for all other event types so Stripe doesn't retry

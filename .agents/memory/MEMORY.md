@@ -1,3 +1,4 @@
 - [TTLock permanent error retries](ttlock-permanent-errors.md) — non-retryable errcode (-2018, 20002) must break out of retry loop immediately or cause 12s delays before fallback.
 - [parseAsUKTime routes import](routes-parseAsUKTime.md) — `export { X } from './mod'` does NOT make X available locally; must use `import { X } from './mod'`.
+- [Stripe reversal webhook](stripe-reversal-webhook.md) — Stripe reverses payments & emails customers itself; app must handle `charge.refunded` AND the event must be enabled in Stripe dashboard.
 - [TTLock lock capacity and -3009 error](ttlock-capacity.md) — lock holds 250+ codes; -3009 is gateway queue overload not hardware full; codes show "Permanent Custom" regardless of type sent.
