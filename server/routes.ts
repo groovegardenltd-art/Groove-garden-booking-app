@@ -1541,6 +1541,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let ttlockPasscodeId: number | undefined;
       let lockAccessEnabled = false;
       let lockCodePushed = false;
+      let ttlockAttempted = false;
 
       if (ttlockService) {
         try {
@@ -1551,6 +1552,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (lockIds.length === 0) {
             console.log(`No locks configured for room ${bookingData.roomId}`);
           } else {
+            ttlockAttempted = true;
             // Generate the passcode string locally — no lock push yet
             ttlockPasscode = ttlockService.generatePasscodeString();
 
