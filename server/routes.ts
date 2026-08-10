@@ -2748,10 +2748,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     <p style="margin: 4px 0;"><strong>Time:</strong> ${booking.startTime}–${booking.endTime}</p>
   </div>
   <p><strong>If you still want this slot</strong>, please book again on our website — the slot has been freed up and is available on a first-come, first-served basis. The refund you received means no money was taken for this booking.</p>
-  <p>If you didn't expect this or think it's a mistake, contact your bank or reply to this email and we'll help you sort it out.</p>
+  <p>If you didn't expect this or think it's a mistake, please get in touch with us and we'll help you sort it out:</p>
+  <div style="background-color: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 12px; margin: 16px 0;">
+    <p style="margin: 4px 0;">📧 <strong>Email:</strong> groovegardenltd@gmail.com</p>
+    <p style="margin: 4px 0;">📞 <strong>Phone:</strong> 07464 949485 or 07972 051223</p>
+  </div>
   <p>Groove Garden Studios</p>
 </div>`;
-                const customerText = `Your booking has been cancelled — payment reversed\n\nHi ${user.name},\n\nYour payment of £${amountRefunded.toFixed(2)} for the following booking was reversed by your bank or card provider, so we've had to cancel your session:\n\nRoom: ${room.name}\nDate: ${booking.date}\nTime: ${booking.startTime}–${booking.endTime}\n\nIf you still want this slot, please book again on our website — the slot is now free and available first-come, first-served. The refund you received means no money was taken for this booking.\n\nIf you didn't expect this or think it's a mistake, contact your bank or reply to this email.\n\nGroove Garden Studios`;
+                const customerText = `Your booking has been cancelled — payment reversed\n\nHi ${user.name},\n\nYour payment of £${amountRefunded.toFixed(2)} for the following booking was reversed by your bank or card provider, so we've had to cancel your session:\n\nRoom: ${room.name}\nDate: ${booking.date}\nTime: ${booking.startTime}–${booking.endTime}\n\nIf you still want this slot, please book again on our website — the slot is now free and available first-come, first-served. The refund you received means no money was taken for this booking.\n\nIf you didn't expect this or think it's a mistake, please get in touch and we'll help you sort it out:\n\nEmail: groovegardenltd@gmail.com\nPhone: 07464 949485 or 07972 051223\n\nGroove Garden Studios`;
                 await sendEmail({ to: user.email, from: 'groovegardenltd@gmail.com', subject: customerSubject, html: customerHtml, text: customerText }).catch((e) => console.warn('Failed to send customer reversal email:', e));
                 console.log(`📧 Reversal cancellation email sent to customer ${user.email}`);
 
