@@ -402,7 +402,7 @@ export default function Website() {
             <div className="flex flex-col items-center">
               <Mail className="w-8 h-8 text-green-600 mb-3" />
               <h4 className="font-semibold mb-2">Email</h4>
-              <p className="text-gray-600">groovegardenltd@gmail.com</p>
+              <p className="text-gray-600">groovegardenltd@gmail.com<br />07464 949485 / 07972 051223</p>
             </div>
           </div>
         </div>
@@ -447,6 +447,7 @@ export default function Website() {
               <ul className="space-y-2 text-sm text-gray-400">
                 <li>Unit 10, Sussex House Industrial Estate, Hove, BN3 7DX</li>
                 <li>groovegardenltd@gmail.com</li>
+                <li>07464 949485 / 07972 051223</li>
               </ul>
             </div>
             <div>

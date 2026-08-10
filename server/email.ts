@@ -599,7 +599,7 @@ export async function sendRejectionNotification(email: string, username: string,
         <span style="color: #2563eb; font-family: monospace;">${process.env.NODE_ENV === 'production' ? 'https://replit.app/@groovegardenltd/groove-garden-music-studios' : 'http://localhost:5000'}/resubmit-verification</span>
       </p>
       
-      <p style="color: #6b7280; font-size: 14px;">Questions? Contact our support team at groovegardenltd@gmail.com</p>
+      <p style="color: #6b7280; font-size: 14px;">Questions? Contact our support team at groovegardenltd@gmail.com or call 07464 949485 / 07972 051223</p>
       
       <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
       <p style="color: #9ca3af; font-size: 12px; text-align: center;">
@@ -757,6 +757,7 @@ export async function sendRefundConfirmationEmail(
         <div class="contact-info">
           <p style="margin: 5px 0;"><strong>Need help?</strong></p>
           <p style="margin: 5px 0;">📧 Email: groovegardenltd@gmail.com</p>
+          <p style="margin: 5px 0;">📞 Phone: 07464 949485 or 07972 051223</p>
         </div>
 
         <div class="footer">
@@ -788,6 +789,7 @@ We hope to see you again soon! If you'd like to make a new booking, just visit o
 
 Need help?
 Email: groovegardenltd@gmail.com
+Phone: 07464 949485 or 07972 051223
 
 ---
 Groove Garden Studios

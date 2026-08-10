@@ -110,6 +110,7 @@ export default function CancellationPolicy() {
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <p><strong>Need help with your cancellation?</strong></p>
                 <p>📧 Email: groovegardenltd@gmail.com</p>
+                <p>📞 Phone: 07464 949485 or 07972 051223</p>
                 <p>💬 Response Time: We typically respond to emails within 2 hours during business hours</p>
               </div>
             </section>

@@ -94,6 +94,7 @@ export default function Terms() {
               <div className="space-y-2">
                 <p>For questions or concerns regarding these terms:</p>
                 <p>• Email: groovegardenltd@gmail.com</p>
+                <p>• Phone: 07464 949485 or 07972 051223</p>
                 <p>• Address: Groove Garden Studios, Unit 10, Sussex House Industrial Estate, Hove, BN3 7DX</p>
               </div>
             </section>
